@@ -1,0 +1,6 @@
+{
+  "extends": "@clichy/config/tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true
+  }
+}

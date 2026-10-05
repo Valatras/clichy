@@ -1,0 +1,38 @@
+{
+  "name": "clichy",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "type": "module",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "check-types": "turbo run check-types",
+    "dev:web": "turbo run dev -F web --",
+    "dev:server": "turbo run dev -F server --",
+    "db:push": "turbo run db:push -F @clichy/db --",
+    "db:studio": "turbo run db:studio -F @clichy/db --",
+    "db:generate": "turbo run db:generate -F @clichy/db --",
+    "db:migrate": "turbo run db:migrate -F @clichy/db --",
+    "db:start": "turbo run db:start -F @clichy/db --",
+    "db:watch": "turbo run db:watch -F @clichy/db --",
+    "db:stop": "turbo run db:stop -F @clichy/db --",
+    "db:down": "turbo run db:down -F @clichy/db --",
+    "env:generate": "varlock codegen --path ./apps/web/ && varlock codegen --path ./apps/server/ && varlock codegen --path ./packages/db/",
+    "postinstall": "varlock codegen --path ./apps/web/ && varlock codegen --path ./apps/server/ && varlock codegen --path ./packages/db/",
+    "auth:generate": "cd apps/server && pnpm run auth:generate"
+  },
+  "dependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@clichy/config": "workspace:*",
+    "@types/node": "catalog:",
+    "turbo": "^2.10.12",
+    "typescript": "catalog:",
+    "varlock": "catalog:"
+  },
+  "packageManager": "pnpm@12.8.1"
+}
