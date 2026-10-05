@@ -16,6 +16,7 @@
     "db:studio": "turbo run db:studio -F @clichy/db --",
     "db:generate": "turbo run db:generate -F @clichy/db --",
     "db:migrate": "turbo run db:migrate -F @clichy/db --",
+    "db:reset": "turbo run db:reset -F @clichy/db --",
     "db:start": "turbo run db:start -F @clichy/db --",
     "db:watch": "turbo run db:watch -F @clichy/db --",
     "db:stop": "turbo run db:stop -F @clichy/db --",
