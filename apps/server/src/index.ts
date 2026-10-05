@@ -48,7 +48,7 @@ fastify.route({
 });
 
 fastify.get("/", async () => {
-  return "OK";
+  return "OK FROM FASTIFY-CLICHY";
 });
 
 fastify.listen({ port: 3000 }, (err) => {
