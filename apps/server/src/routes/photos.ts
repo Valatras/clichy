@@ -1,8 +1,8 @@
 import path from "node:path";
 
-import type { FastifyPluginAsync } from "fastify";
+import type { FastifyPluginAsync, FastifyRequest } from "fastify";
 
-import { db, auth } from "../services";
+import { auth, db } from "../services";
 import { FileSystemStorage } from "../storage";
 
 const storage = new FileSystemStorage();
@@ -14,18 +14,54 @@ const ALLOWED_TYPES = new Map([
   ["image/gif", ".gif"],
 ]);
 
-const photoRoutes: FastifyPluginAsync = async (fastify) => {
-  fastify.post("/photos", async (request, reply) => {
-    // Get the authenticated user from Better Auth.
-    const headers = new Headers();
+async function getSession(request: FastifyRequest) {  const headers = new Headers();
 
-    for (const [key, value] of Object.entries(request.headers)) {
-      if (value) {
-        headers.append(key, value.toString());
-      }
+  for (const [key, value] of Object.entries(request.headers)) {
+    if (value) {
+      headers.append(key, value.toString());
+    }
+  }
+
+  return auth.api.getSession({ headers });
+}
+
+const photoRoutes: FastifyPluginAsync = async (fastify) => {
+  /**
+   * List all photos belonging to the authenticated user.
+   */
+  fastify.get("/photos", async (request, reply) => {
+    const session = await getSession(request);
+
+    if (!session) {
+      return reply.status(401).send({
+        error: "Unauthorized",
+      });
     }
 
-    const session = await auth.api.getSession({ headers });
+    const photos = await db.photo.findMany({
+      where: {
+        userId: session.user.id,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      select: {
+        id: true,
+        filename: true,
+        mimeType: true,
+        size: true,
+        createdAt: true,
+      },
+    });
+
+    return reply.send(photos);
+  });
+
+  /**
+   * Upload a photo for the authenticated user.
+   */
+  fastify.post("/photos", async (request, reply) => {
+    const session = await getSession(request);
 
     if (!session) {
       return reply.status(401).send({
@@ -77,12 +113,50 @@ const photoRoutes: FastifyPluginAsync = async (fastify) => {
         createdAt: photo.createdAt,
       });
     } catch (error) {
-      // Avoid leaving an orphaned file if the database operation fails.
       await storage.delete(storageKey);
-
       throw error;
     }
   });
+
+  /**
+   * Serve a photo belonging to the authenticated user.
+   */
+  fastify.get<{ Params: { id: string } }>(
+    "/photos/:id",
+    async (request, reply) => {
+      const session = await getSession(request);
+
+      if (!session) {
+        return reply.status(401).send({
+          error: "Unauthorized",
+        });
+      }
+
+      const photo = await db.photo.findUnique({
+        where: {
+          id: request.params.id,
+        },
+      });
+
+      if (!photo || photo.userId !== session.user.id) {
+        return reply.status(404).send({
+          error: "Photo not found",
+        });
+      }
+
+      try {
+        const buffer = await storage.read(photo.storageKey);
+
+        return reply
+          .type(photo.mimeType)
+          .send(buffer);
+      } catch {
+        return reply.status(404).send({
+          error: "Photo file not found",
+        });
+      }
+    },
+  );
 };
 
 export default photoRoutes;
