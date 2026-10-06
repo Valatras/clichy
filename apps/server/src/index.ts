@@ -1,8 +1,11 @@
 import fastifyCors from "@fastify/cors";
 import Fastify from "fastify";
+import fastifyMultipart from "@fastify/multipart";
 
 import { ENV } from "./env.server";
 import { auth } from "./services";
+import photoRoutes from "./routes/photos";
+
 
 const baseCorsConfig = {
   origin: ENV.CORS_ORIGIN,
@@ -16,7 +19,16 @@ const fastify = Fastify({
   logger: true,
 });
 
+fastify.register(fastifyMultipart, {
+  limits: {
+    fileSize: 20 * 1024 * 1024,
+  },
+});
+
 fastify.register(fastifyCors, baseCorsConfig);
+
+fastify.register(photoRoutes);
+
 
 fastify.route({
   method: ["GET", "POST"],
