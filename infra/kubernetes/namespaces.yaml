@@ -1,0 +1,15 @@
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: clichy-dev
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: clichy-test
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: clichy-prod
