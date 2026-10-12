@@ -157,7 +157,7 @@ export default function Home() {
         <div className="mx-auto max-w-6xl px-6 py-20 sm:py-28">
           <div className="max-w-3xl">
             <p className="mb-4 text-sm font-medium uppercase tracking-widest text-muted-foreground">
-              Photo Library
+              Photo Library V2
             </p>
 
             <h1 className="text-5xl font-semibold tracking-tight sm:text-6xl">
