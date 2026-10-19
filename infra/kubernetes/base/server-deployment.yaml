@@ -1,20 +1,7 @@
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: clichy-server-photos
-  namespace: clichy-dev
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 10Gi
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: clichy-server
-  namespace: clichy-dev
 spec:
   replicas: 1
   selector:
@@ -73,18 +60,3 @@ spec:
         - name: photos
           persistentVolumeClaim:
             claimName: clichy-server-photos
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: clichy-server
-  namespace: clichy-dev
-spec:
-  selector:
-    app: clichy-server
-  ports:
-    - name: http
-      port: 3000
-      targetPort: http
-      protocol: TCP
-  type: ClusterIP

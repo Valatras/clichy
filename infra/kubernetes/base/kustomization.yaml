@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - postgres-statefulset.yaml
+  - server-deployment.yaml
+  - server-service.yaml
+  - server-photos-pvc.yaml
+  - web-deployment.yaml
+  - web-service.yaml
+  - ingress.yaml

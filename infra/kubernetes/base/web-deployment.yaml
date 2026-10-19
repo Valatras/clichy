@@ -1,11 +1,9 @@
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: clichy-web
-  namespace: clichy-dev
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: clichy-web
@@ -22,13 +20,21 @@ spec:
             - configMapRef:
                 name: clichy-web-config
           ports:
-            - containerPort: 3000
+            - name: http
+              containerPort: 3000
+              protocol: TCP
           readinessProbe:
             httpGet:
               path: /
-              port: 3000
+              port: http
             initialDelaySeconds: 5
             periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
           resources:
             requests:
               cpu: 100m
@@ -36,16 +42,3 @@ spec:
             limits:
               cpu: 500m
               memory: 512Mi
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: clichy-web
-  namespace: clichy-dev
-spec:
-  selector:
-    app: clichy-web
-  ports:
-    - port: 80
-      targetPort: 3000
-  type: ClusterIP
