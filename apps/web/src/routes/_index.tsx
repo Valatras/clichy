@@ -2,8 +2,6 @@ import { useEffect, useRef, useState } from "react";
 
 import type { Route } from "./+types/_index";
 
-const API_URL = "http://localhost:3000";
-
 type Photo = {
   id: string;
   filename: string;
@@ -34,13 +32,16 @@ export default function Home() {
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [podName, setPodName] = useState<string | null>(null);
+  const [podLoading, setPodLoading] = useState(false);
+  const [podError, setPodError] = useState<string | null>(null);
 
   async function loadPhotos() {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`${API_URL}/photos`, {
+      const response = await fetch("/photos", {
         credentials: "include",
       });
 
@@ -52,12 +53,9 @@ export default function Home() {
 
       const loadedPhotos = await Promise.all(
         data.map(async (photo) => {
-          const imageResponse = await fetch(
-            `${API_URL}/photos/${photo.id}`,
-            {
-              credentials: "include",
-            },
-          );
+          const imageResponse = await fetch(`/photos/${photo.id}`, {
+            credentials: "include",
+          });
 
           if (!imageResponse.ok) {
             throw new Error(`Failed to load ${photo.filename}`);
@@ -110,7 +108,7 @@ export default function Home() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch(`${API_URL}/photos`, {
+      const response = await fetch("/photos", {
         method: "POST",
         credentials: "include",
         body: formData,
@@ -150,6 +148,26 @@ export default function Home() {
     }
   }
 
+  async function showServingPod() {
+    setPodLoading(true);
+    setPodError(null);
+
+    try {
+      const response = await fetch("/pod", { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error("Unable to identify the serving pod.");
+      }
+
+      const data: { podName: string } = await response.json();
+      setPodName(data.podName);
+    } catch (err) {
+      console.error(err);
+      setPodError("Unable to identify the serving pod.");
+    } finally {
+      setPodLoading(false);
+    }
+  }
+
   return (
     <main className="min-h-[calc(100vh-4rem)]">
       {/* Hero */}
@@ -157,7 +175,7 @@ export default function Home() {
         <div className="mx-auto max-w-6xl px-6 py-20 sm:py-28">
           <div className="max-w-3xl">
             <p className="mb-4 text-sm font-medium uppercase tracking-widest text-muted-foreground">
-              Photo Library V2
+              Photo Library V3
             </p>
 
             <h1 className="text-5xl font-semibold tracking-tight sm:text-6xl">
@@ -194,7 +212,25 @@ export default function Home() {
               <span className="text-sm text-muted-foreground">
                 JPG, PNG, WebP or GIF · max 20 MB
               </span>
+              <button
+                type="button"
+                onClick={showServingPod}
+                disabled={podLoading}
+                className="rounded-md border bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {podLoading ? "Checking..." : "Show serving pod"}
+              </button>
             </div>
+
+            {podName && (
+              <p className="mt-3 text-sm text-muted-foreground">
+                Served by pod: <strong>{podName}</strong>
+              </p>
+            )}
+
+            {podError && (
+              <p className="mt-3 text-sm text-destructive">{podError}</p>
+            )}
 
             {selectedFile && uploading && (
               <p className="mt-4 text-sm text-muted-foreground">
