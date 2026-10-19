@@ -10,6 +10,20 @@ spec:
     - host: clichy.localhost
       http:
         paths:
+          - path: /api/auth
+            pathType: Prefix
+            backend:
+              service:
+                name: clichy-server
+                port:
+                  number: 3000
+          - path: /photos
+            pathType: Prefix
+            backend:
+              service:
+                name: clichy-server
+                port:
+                  number: 3000
           - path: /
             pathType: Prefix
             backend:

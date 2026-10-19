@@ -16,6 +16,7 @@ local.db-*
 # Environment variables
 .env
 .env*.local
+infra/kubernetes/server_secrets.yaml
 
 # IDEs and editors
 .vscode/*

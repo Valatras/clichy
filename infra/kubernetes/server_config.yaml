@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: clichy-server-config
+  namespace: clichy-dev
+data:
+  NODE_ENV: "production"
+  BETTER_AUTH_URL: "http://clichy.localhost"
+  CORS_ORIGIN: "http://clichy.localhost"
+  PHOTO_STORAGE_PATH: "/data/photos"
