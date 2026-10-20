@@ -34,6 +34,7 @@ jobs:
         run: pnpm check-types
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/clichy?schema=public
+          VITE_SERVER_URL: http://localhost:3000
 
       - name: Run server tests
         run: pnpm --filter server test
