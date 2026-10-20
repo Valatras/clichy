@@ -41,3 +41,6 @@ jobs:
 
       - name: Build applications
         run: pnpm build
+        env:
+          VITE_SERVER_URL: http://localhost:3000
+
