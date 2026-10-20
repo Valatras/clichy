@@ -23,7 +23,7 @@ replicas:
   - name: clichy-server
     count: 1
   - name: clichy-web
-    count: 1
+    count: 2
 patches:
   - target:
       group: networking.k8s.io

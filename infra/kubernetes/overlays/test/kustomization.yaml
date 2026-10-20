@@ -21,9 +21,9 @@ images:
     newTag: test
 replicas:
   - name: clichy-server
-    count: 1
+    count: 2
   - name: clichy-web
-    count: 1
+    count: 2
 patches:
   - target:
       group: apps
