@@ -16,7 +16,7 @@ type LoadedPhoto = Photo & {
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Clichy V5 — Photo Library with CI/CD" },
+    { title: "Clichy V6 — Photo Library with CI/CD" },
     {
       name: "description",
       content: "A simple and powerful photo library.",
@@ -175,7 +175,7 @@ export default function Home() {
         <div className="mx-auto max-w-6xl px-6 py-20 sm:py-28">
           <div className="max-w-3xl">
             <p className="mb-4 text-sm font-medium uppercase tracking-widest text-muted-foreground">
-              Photo Library V3
+              Photo Library V6 with CI/CD operations
             </p>
 
             <h1 className="text-5xl font-semibold tracking-tight sm:text-6xl">
