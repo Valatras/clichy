@@ -16,7 +16,7 @@ type LoadedPhoto = Photo & {
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Clichy — Photo Library" },
+    { title: "Clichy — Photo Library with CI" },
     {
       name: "description",
       content: "A simple and powerful photo library.",
