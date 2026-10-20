@@ -12,7 +12,7 @@ permissions:
 jobs:
   ci:
     name: Test and build
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
@@ -44,3 +44,87 @@ jobs:
         env:
           VITE_SERVER_URL: http://localhost:3000
 
+  package:
+    name: Build and publish container images
+    runs-on: ubuntu-latest
+    needs: ci
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish server image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/docker_clichy_server/Dockerfile
+          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+          tags: ghcr.io/valatras/clichy-server:sha-${{ github.sha }}
+
+      - name: Build and publish web image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/docker_clichy_web/Dockerfile
+          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+          tags: ghcr.io/valatras/clichy-web:sha-${{ github.sha }}
+          build-args: |
+            VITE_SERVER_URL=http://localhost:3000
+
+  deploy:
+    name: Deploy to local Kubernetes
+    runs-on: [self-hosted, linux]
+    needs: [ci, package]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Apply Kubernetes manifests
+        run: kubectl apply -k infra/kubernetes/overlays/test
+
+      - name: Update workloads to the published images
+        run: |
+          kubectl set image deployment/clichy-server \
+            server=ghcr.io/valatras/clichy-server:sha-${GITHUB_SHA} \
+            --namespace=clichy-test
+          kubectl set image deployment/clichy-web \
+            web=ghcr.io/valatras/clichy-web:sha-${GITHUB_SHA} \
+            --namespace=clichy-test
+
+      - name: Wait for deployments to roll out
+        run: |
+          kubectl rollout status deployment/clichy-server --namespace=clichy-test --timeout=180s
+          kubectl rollout status deployment/clichy-web --namespace=clichy-test --timeout=180s
+
+      - name: Verify pods are ready
+        run: |
+          kubectl wait --for=condition=Ready pod \
+            --selector=app=clichy-server \
+            --namespace=clichy-test \
+            --timeout=180s
+          kubectl wait --for=condition=Ready pod \
+            --selector=app=clichy-web \
+            --namespace=clichy-test \
+            --timeout=180s
+
+      - name: Show deployment and pod status
+        if: always()
+        run: kubectl get deployments,pods --namespace=clichy-test --output=wide
