@@ -65,6 +65,117 @@ The Kubernetes environments use isolated databases and Secrets. The PostgreSQL S
 
 Each configured namespace needs a `clichy-server-secrets` Secret with `DATABASE_URL`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `BETTER_AUTH_SECRET`. Keep these values outside Git. `DATABASE_URL` must use that environment's credentials and database name, with reserved password characters URL-encoded. Changing `POSTGRES_DB` does not create or rename a database in an already-initialized PostgreSQL volume.
 
+## Preparing a k3s cluster
+
+The manifests are in `infra/kubernetes/overlays/`. The `dev` overlay uses the k3s default `local-path` StorageClass for PostgreSQL and photos and expects the default Traefik ingress controller. These defaults are suitable for a single-node development cluster; the node-local volumes are not a backup or high-availability solution.
+
+### Select the k3s context
+
+On the k3s server, verify the cluster, storage class, and Traefik installation:
+
+```bash
+sudo k3s kubectl get nodes
+sudo k3s kubectl get storageclass
+sudo k3s kubectl get pods -n kube-system | grep traefik
+```
+
+On the k3s server, create a dedicated kubeconfig rather than overwriting the Docker Desktop context:
+
+```bash
+mkdir -p "$HOME/.kube"
+sudo cp /etc/rancher/k3s/k3s.yaml "$HOME/.kube/clichy-k3s.yaml"
+sudo chown "$(id -u):$(id -g)" "$HOME/.kube/clichy-k3s.yaml"
+chmod 600 "$HOME/.kube/clichy-k3s.yaml"
+```
+
+If kubectl will run from another machine, securely transfer this kubeconfig to that machine first. If connecting remotely, replace its `127.0.0.1` API address with the k3s server's reachable IP, then select and verify this dedicated config:
+
+```bash
+K3S_SERVER_IP=192.0.2.10 # Replace with the k3s server's reachable IP.
+KUBECONFIG="$HOME/.kube/clichy-k3s.yaml" kubectl config set-cluster default \
+  --server="https://${K3S_SERVER_IP}:6443"
+export KUBECONFIG="$HOME/.kube/clichy-k3s.yaml"
+kubectl config current-context
+kubectl get nodes
+```
+
+Do not continue unless `kubectl config current-context` and `kubectl get nodes` identify k3s. Protect this kubeconfig: it grants cluster-admin access.
+
+### Create namespace-local secrets
+
+The application and private GHCR images both need Secrets in the target namespace. Do this once per namespace (here, `clichy-dev`) before applying its overlay:
+
+```bash
+kubectl apply -f infra/kubernetes/overlays/dev/namespace.yaml
+
+mkdir -p "$HOME/.config/clichy"
+chmod 700 "$HOME/.config/clichy"
+umask 077
+touch "$HOME/.config/clichy/dev-secrets.env"
+chmod 600 "$HOME/.config/clichy/dev-secrets.env"
+```
+
+Edit `$HOME/.config/clichy/dev-secrets.env` with the five required key/value pairs: `DATABASE_URL`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `BETTER_AUTH_SECRET`. Use `clichy-postgres` as the database host and `clichy_dev` as the dev database name. Generate a unique auth secret (for example, `openssl rand -base64 32`); URL-encode reserved characters in the database password within `DATABASE_URL`. Keep this file outside the repository.
+
+Then create or update the Kubernetes Secret:
+
+```bash
+set -o pipefail
+kubectl create secret generic clichy-server-secrets \
+  --namespace=clichy-dev \
+  --from-env-file="$HOME/.config/clichy/dev-secrets.env" \
+  --dry-run=client -o yaml | kubectl apply -f -
+```
+
+Create the GHCR pull Secret using a GitHub token authorized to read the `valatras/clichy-server` and `valatras/clichy-web` packages. The token is read without echoing and piped to kubectl rather than passed as a command-line argument:
+
+
+```bash
+(
+set -o pipefail
+read -rp "GitHub username: " GHCR_USERNAME
+read -srp "GHCR read:packages token: " GHCR_TOKEN
+printf "\n"
+printf "%s" "$GHCR_TOKEN" |
+  GHCR_USERNAME="$GHCR_USERNAME" python3 -c '
+import base64, json, os, sys
+username = os.environ["GHCR_USERNAME"]
+token = sys.stdin.read()
+auth = base64.b64encode(f"{username}:{token}".encode()).decode()
+json.dump({"auths": {"ghcr.io": {
+    "username": username, "password": token, "auth": auth
+}}}, sys.stdout)
+' |
+  kubectl create secret generic ghcr-pull-secret \
+    --namespace=clichy-dev \
+    --type=kubernetes.io/dockerconfigjson \
+    --from-file=.dockerconfigjson=/dev/stdin \
+    --dry-run=client -o yaml |
+  kubectl apply -f -
+)
+```
+
+Do not enable shell tracing (`set -x`) while entering credentials. `imagePullSecrets` is configured for the server and web Deployments in the `dev`, `test`, and `prod` overlays; create `ghcr-pull-secret` separately in every namespace you deploy.
+
+### Deploy Dev
+
+The CI workflow publishes immutable `sha-<commit>` tags to GHCR. Set `IMAGE_TAG` to a tag from a successful `master` workflow run:
+
+```bash
+kubectl apply -k infra/kubernetes/overlays/dev
+export IMAGE_TAG=sha-REPLACE_WITH_COMMIT_SHA
+kubectl set image deployment/clichy-server \
+  server="ghcr.io/valatras/clichy-server:${IMAGE_TAG}" -n clichy-dev
+kubectl set image deployment/clichy-web \
+  web="ghcr.io/valatras/clichy-web:${IMAGE_TAG}" -n clichy-dev
+kubectl rollout status deployment/clichy-server -n clichy-dev --timeout=180s
+kubectl rollout status deployment/clichy-web -n clichy-dev --timeout=180s
+kubectl get pods,ingress,pvc -n clichy-dev
+unset IMAGE_TAG
+```
+
+The overlay serves HTTP on `clichy.localhost`. For access from another machine, point that hostname to the k3s node's IP (for example, add `<K3S_SERVER_IP> clichy.localhost` to the client's hosts file) and allow inbound HTTP to the node. `localhost` by itself resolves to the client machine, not a remote k3s node.
+
 ### Connect and migrate Dev or Test
 
 In a first terminal, start a port-forward for the environment. For Dev:
