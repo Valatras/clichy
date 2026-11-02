@@ -36,11 +36,13 @@ This project uses PostgreSQL with Prisma.
 1. Make sure you have a PostgreSQL database set up.
 2. Update your `apps/server/.env` file with your PostgreSQL connection details.
 
-3. Apply the schema to your database:
+3. Apply the committed Prisma migrations to your database:
 
 ```bash
-pnpm run db:push
+pnpm --filter @clichy/db db:migrate:deploy
 ```
+
+For persistent environments, use `prisma migrate deploy` rather than `db:push`. Supply `DATABASE_URL` through a secure environment or secret manager; do not commit it. Create new migrations during development with `pnpm run db:migrate`.
 
 Then, run the development server:
 
@@ -50,6 +52,68 @@ pnpm run dev
 
 Open [http://localhost:5173](http://localhost:5173) in your browser to see the web application.
 The API is running at [http://localhost:3000](http://localhost:3000).
+
+## Kubernetes Databases
+
+The Kubernetes environments use isolated databases and Secrets. The PostgreSQL Service listens on port `5432` inside each namespace.
+
+| Environment | Namespace | Database | Local port-forward | Status |
+| --- | --- | --- | --- | --- |
+| Dev | `clichy-dev` | `clichy_dev` | `25432` | Configured |
+| Test | `clichy-test` | `clichy_test` | `25433` | Configured |
+| Prod | `clichy-prod` | `clichy_prod` | `25434` | Not deployed; provision a Secret and confirm the production hostname/TLS first |
+
+Each configured namespace needs a `clichy-server-secrets` Secret with `DATABASE_URL`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `BETTER_AUTH_SECRET`. Keep these values outside Git. `DATABASE_URL` must use that environment's credentials and database name, with reserved password characters URL-encoded. Changing `POSTGRES_DB` does not create or rename a database in an already-initialized PostgreSQL volume.
+
+### Connect and migrate Dev or Test
+
+In a first terminal, start a port-forward for the environment. For Dev:
+
+```bash
+kubectl port-forward -n clichy-dev svc/clichy-postgres 25432:5432
+```
+
+For Test, use `kubectl port-forward -n clichy-test svc/clichy-postgres 25433:5432`.
+
+In a second terminal, set the namespace and matching local port. The command below reads credentials directly from the Kubernetes Secret, rewrites only the connection host/port, and does not print the URL:
+
+```bash
+export NAMESPACE=clichy-test
+export LOCAL_PORT=25433
+export DATABASE_URL="$(
+  kubectl get secret clichy-server-secrets -n "$NAMESPACE" -o json |
+    node -e '
+      let input = "";
+      process.stdin.setEncoding("utf8");
+      process.stdin.on("data", chunk => input += chunk);
+      process.stdin.on("end", () => {
+        const data = JSON.parse(input).data;
+        const decode = key => Buffer.from(data[key], "base64").toString("utf8");
+        const url = new URL(decode("DATABASE_URL"));
+        url.hostname = "127.0.0.1";
+        url.port = process.env.LOCAL_PORT;
+        url.username = decode("POSTGRES_USER");
+        url.password = decode("POSTGRES_PASSWORD");
+        url.pathname = "/" + decode("POSTGRES_DB");
+        if (!url.searchParams.has("schema")) url.searchParams.set("schema", "public");
+        process.stdout.write(url.toString());
+      });
+    '
+)"
+```
+
+Connect with `psql "$DATABASE_URL"` or apply the checked-in Prisma migrations:
+
+```bash
+pnpm --filter @clichy/db db:migrate:deploy
+unset DATABASE_URL NAMESPACE LOCAL_PORT
+```
+
+Use `NAMESPACE=clichy-dev` and `LOCAL_PORT=25432` for Dev. Prod is not currently provisioned in the cluster; do not use the example hostname in its overlay as a real production endpoint. Before enabling it, create a namespace-local Secret, configure the real hostname and TLS, then deploy its overlay and use local port `25434` for access.
+
+The Test API currently mounts the existing `clichy-server-photos` PVC as a temporary fallback. The overlay's NFS PV refers to host `valtask`, which the Kubernetes node cannot resolve. Reapplying the Test overlay will restore that broken NFS claim; configure a resolvable NFS host before doing so. No PV, PVC, or photo data was changed for the database reset.
+
+The CI deployment does not run migrations. `db:migrate:deploy` runs `prisma migrate deploy` and applies committed migrations without resetting data. Create migrations during development with `pnpm run db:migrate`; do not use `db:push` for persistent environments.
 
 ## UI Customization
 
@@ -107,9 +171,9 @@ clichy/
 - `pnpm run dev:web`: Start only the web application
 - `pnpm run dev:server`: Start only the server
 - `pnpm run check-types`: Check TypeScript types across all apps
-- `pnpm run db:push`: Push schema changes to database
+- `pnpm --filter @clichy/db db:migrate:deploy`: Apply committed Prisma migrations
+- `pnpm run db:migrate`: Create and apply a migration during development
 - `pnpm run db:generate`: Generate database client/types
-- `pnpm run db:migrate`: Run database migrations
 - `pnpm run db:studio`: Open database studio UI
 
 ## Better Auth Schema Generation

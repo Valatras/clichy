@@ -4,6 +4,8 @@ namespace: clichy-test
 resources:
   - namespace.yaml
   - ../../base
+  # - photos-pv.yaml
+  # - photos-pvc.yaml
 configMapGenerator:
   - name: clichy-server-config
     literals:
@@ -25,6 +27,24 @@ replicas:
   - name: clichy-web
     count: 2
 patches:
+  - target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: clichy-server
+    patch: |-
+      - op: add
+        path: /spec/template/spec/securityContext
+        value:
+          runAsNonRoot: true
+          runAsUser: 10001
+          runAsGroup: 2000
+          supplementalGroups:
+            - 1000
+      - op: add
+        path: /spec/template/spec/containers/0/securityContext
+        value:
+          allowPrivilegeEscalation: false
   - target:
       group: apps
       version: v1
