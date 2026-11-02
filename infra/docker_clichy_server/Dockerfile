@@ -29,6 +29,7 @@ COPY . .
 
 RUN pnpm install --offline --frozen-lockfile
 RUN DATABASE_URL="postgresql://build:build@localhost:5432/build" pnpm --filter @clichy/db db:generate
+RUN pnpm --filter server env:generate
 RUN pnpm --filter server build
 RUN pnpm --filter server deploy --prod --legacy /out
 
@@ -42,6 +43,7 @@ WORKDIR /app
 
 COPY --from=builder --chown=node:node /out/ ./
 COPY --from=builder --chown=node:node /app/apps/server/dist ./dist
+COPY --from=builder /app/apps/server/src/env.ts ./src/env.ts
 
 RUN mkdir -p "${PHOTO_STORAGE_PATH}" \
     && chown -R node:node "${PHOTO_STORAGE_PATH}"
