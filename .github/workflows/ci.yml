@@ -97,6 +97,59 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install database workspace dependencies
+        run: pnpm install --frozen-lockfile --filter @clichy/db...
+
+      - name: Apply database migrations to Test
+        # Migrate before deploying code that may require the new schema.
+        run: |
+          set -euo pipefail
+          kubectl port-forward --address 127.0.0.1 \
+            --namespace=clichy-test \
+            service/clichy-postgres 25433:5432 \
+            >"${RUNNER_TEMP}/clichy-test-postgres-port-forward.log" 2>&1 &
+          port_forward_pid=$!
+          trap 'kill "$port_forward_pid" 2>/dev/null || true' EXIT
+
+          for attempt in $(seq 1 30); do
+            if (echo > /dev/tcp/127.0.0.1/25433) >/dev/null 2>&1; then
+              break
+            fi
+            sleep 1
+          done
+          if ! (echo > /dev/tcp/127.0.0.1/25433) >/dev/null 2>&1; then
+            cat "${RUNNER_TEMP}/clichy-test-postgres-port-forward.log"
+            exit 1
+          fi
+
+          DATABASE_URL="$(kubectl get secret clichy-server-secrets \
+            --namespace=clichy-test \
+            --output=json |
+            node -e '
+              let input = "";
+              process.stdin.on("data", (chunk) => input += chunk);
+              process.stdin.on("end", () => {
+                const secret = JSON.parse(input);
+                const url = new URL(
+                  Buffer.from(secret.data.DATABASE_URL, "base64").toString(),
+                );
+                url.hostname = "127.0.0.1";
+                url.port = "25433";
+                process.stdout.write(url.toString());
+              });
+            ')"
+          export DATABASE_URL
+          pnpm --filter @clichy/db exec prisma migrate deploy
+
       - name: Apply Kubernetes manifests
         run: |
           kubectl apply -k infra/kubernetes/monitoring
