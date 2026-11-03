@@ -5,6 +5,7 @@ import fastifyMultipart from "@fastify/multipart";
 import { ENV } from "./env.server";
 import { auth } from "./services";
 import photoRoutes from "./routes/photos";
+import { registerServerMetrics } from "./metrics";
 
 
 const baseCorsConfig = {
@@ -18,6 +19,8 @@ const baseCorsConfig = {
 const fastify = Fastify({
   logger: true,
 });
+
+registerServerMetrics(fastify);
 
 fastify.register(fastifyMultipart, {
   limits: {
