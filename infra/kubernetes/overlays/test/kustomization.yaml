@@ -4,6 +4,7 @@ namespace: clichy-test
 resources:
   - namespace.yaml
   - ../../base
+  - hpa.yaml
   # - photos-pv.yaml
   # - photos-pvc.yaml
 configMapGenerator:
@@ -21,11 +22,6 @@ images:
     newTag: test
   - name: clichy-web
     newTag: test
-replicas:
-  - name: clichy-server
-    count: 2
-  - name: clichy-web
-    count: 2
 patches:
   - target:
       group: apps

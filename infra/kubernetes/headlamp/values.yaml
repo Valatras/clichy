@@ -1,0 +1,37 @@
+replicaCount: 1
+
+config:
+  inCluster: true
+  unsafeUseServiceAccountToken: false
+  enableHelm: false
+  oidc:
+    secret:
+      create: false
+
+serviceAccount:
+  create: false
+  name: headlamp
+
+clusterRoleBinding:
+  create: false
+
+automountServiceAccountToken: true
+
+service:
+  type: ClusterIP
+  port: 80
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    cpu: 250m
+    memory: 256Mi
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 100
+  runAsGroup: 101
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true

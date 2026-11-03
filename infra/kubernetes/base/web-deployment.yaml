@@ -3,7 +3,6 @@ kind: Deployment
 metadata:
   name: clichy-web
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app: clichy-web

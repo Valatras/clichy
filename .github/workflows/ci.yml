@@ -98,7 +98,22 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Apply Kubernetes manifests
-        run: kubectl apply -k infra/kubernetes/overlays/test
+        run: |
+          kubectl apply -k infra/kubernetes/monitoring
+          for app in server web; do
+            deployment="clichy-${app}"
+            manifest="infra/kubernetes/base/${app}-deployment.yaml"
+            if [ -n "$(kubectl get deployment "${deployment}" \
+              --namespace=clichy-test \
+              --ignore-not-found \
+              --output=name)" ]; then
+              kubectl apply set-last-applied \
+                --filename="${manifest}" \
+                --namespace=clichy-test \
+                --create-annotation=true
+            fi
+          done
+          kubectl apply -k infra/kubernetes/overlays/test
 
       - name: Update workloads to the published images
         run: |

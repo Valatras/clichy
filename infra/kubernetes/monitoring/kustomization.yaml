@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: monitoring
+resources:
+  - prometheus-rule.yaml
+  - service-monitor.yaml
+configMapGenerator:
+  - name: clichy-grafana-dashboard
+    files:
+      - clichy-dashboard.json
+    options:
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana_folder: Clichy

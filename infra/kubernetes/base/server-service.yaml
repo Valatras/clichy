@@ -2,6 +2,8 @@ apiVersion: v1
 kind: Service
 metadata:
   name: clichy-server
+  labels:
+    app: clichy-server
 spec:
   selector:
     app: clichy-server

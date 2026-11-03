@@ -1,0 +1,120 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: clichy-alerts
+  labels:
+    release: prometheus-stack
+spec:
+  groups:
+    - name: clichy.workloads
+      rules:
+        - alert: ClichyPodRestarting
+          expr: |
+            sum by (namespace, pod, container) (
+              increase(kube_pod_container_status_restarts_total{
+                namespace=~"clichy-(dev|test)"
+              }[15m])
+            ) > 3
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Clichy container is repeatedly restarting
+            description: "{{ $labels.namespace }}/{{ $labels.pod }} container {{ $labels.container }} restarted more than three times in 15 minutes."
+        - alert: ClichyDeploymentUnavailable
+          expr: |
+            kube_deployment_status_replicas_unavailable{
+              namespace=~"clichy-(dev|test)"
+            } > 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Clichy Deployment has unavailable replicas
+            description: "{{ $labels.namespace }}/{{ $labels.deployment }} has {{ $value }} unavailable replicas."
+        - alert: ClichyPodImageOrCrashBackoff
+          expr: |
+            kube_pod_container_status_waiting_reason{
+              namespace=~"clichy-(dev|test)",
+              reason=~"CrashLoopBackOff|ImagePullBackOff"
+            } == 1
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Clichy pod is stuck waiting
+            description: "{{ $labels.namespace }}/{{ $labels.pod }} container {{ $labels.container }} is in {{ $labels.reason }}."
+        - alert: ClichyHighCPUUtilization
+          expr: |
+            sum by (namespace, pod, container) (
+              rate(container_cpu_usage_seconds_total{
+                namespace=~"clichy-(dev|test)",
+                container!="",
+                container!="POD"
+              }[5m])
+            )
+            /
+            on (namespace, pod, container)
+            kube_pod_container_resource_requests{
+              namespace=~"clichy-(dev|test)",
+              resource="cpu",
+              unit="core"
+            } > 0.85
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: Clichy container CPU remains high
+            description: "{{ $labels.namespace }}/{{ $labels.pod }} container {{ $labels.container }} has used more than 85% of its CPU request for 15 minutes."
+        - alert: ClichyHighMemoryUtilization
+          expr: |
+            container_memory_working_set_bytes{
+              namespace=~"clichy-(dev|test)",
+              container!="",
+              container!="POD"
+            }
+            /
+            on (namespace, pod, container)
+            kube_pod_container_resource_limits{
+              namespace=~"clichy-(dev|test)",
+              resource="memory",
+              unit="byte"
+            } > 0.85
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: Clichy container memory remains high
+            description: "{{ $labels.namespace }}/{{ $labels.pod }} container {{ $labels.container }} has used more than 85% of its memory limit for 15 minutes."
+        - alert: ClichyPVCNearCapacity
+          expr: |
+            kubelet_volume_stats_available_bytes{
+              namespace=~"clichy-(dev|test)"
+            }
+            /
+            kubelet_volume_stats_capacity_bytes{
+              namespace=~"clichy-(dev|test)"
+            } < 0.15
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Clichy persistent volume is nearly full
+            description: "{{ $labels.namespace }}/{{ $labels.persistentvolumeclaim }} has less than 15% free capacity."
+        - alert: ClichyHPAMaxReplicas
+          expr: |
+            kube_horizontalpodautoscaler_status_current_replicas{
+              namespace="clichy-test",
+              horizontalpodautoscaler=~"clichy-(web|server)"
+            }
+            >=
+            kube_horizontalpodautoscaler_spec_max_replicas{
+              namespace="clichy-test",
+              horizontalpodautoscaler=~"clichy-(web|server)"
+            }
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Clichy HPA has reached its replica ceiling
+            description: "HPA {{ $labels.horizontalpodautoscaler }} in clichy-test has remained at its maximum replica count for 10 minutes."
