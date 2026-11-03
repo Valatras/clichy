@@ -57,6 +57,9 @@ The API is running at [http://localhost:3000](http://localhost:3000).
 
 The Kubernetes environments use isolated databases and Secrets. The PostgreSQL Service listens on port `5432` inside each namespace.
 
+For Headlamp access, Kubernetes scaling, and monitoring operations, see the
+[administrator Headlamp guide](./infra/kubernetes/administrator_headlamp_guide.md).
+
 | Environment | Namespace | Database | Local port-forward | Status |
 | --- | --- | --- | --- | --- |
 | Dev | `clichy-dev` | `clichy_dev` | `25432` | Configured |
@@ -225,6 +228,8 @@ Use `NAMESPACE=clichy-dev` and `LOCAL_PORT=25432` for Dev. Prod is not currently
 The Test API currently mounts the existing `clichy-server-photos` PVC as a temporary fallback. The overlay's NFS PV refers to host `valtask`, which the Kubernetes node cannot resolve. Reapplying the Test overlay will restore that broken NFS claim; configure a resolvable NFS host before doing so. No PV, PVC, or photo data was changed for the database reset.
 
 The CI deployment does not run migrations. `db:migrate:deploy` runs `prisma migrate deploy` and applies committed migrations without resetting data. Create migrations during development with `pnpm run db:migrate`; do not use `db:push` for persistent environments.
+
+See the [Kubernetes administration, autoscaling, and monitoring guide](./infra/kubernetes/README.md) for Headlamp, Test HPAs, the Clichy Grafana dashboard, Prometheus alert rules, and cluster operation commands.
 
 ## UI Customization
 
