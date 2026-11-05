@@ -3,11 +3,15 @@ kind: PrometheusRule
 metadata:
   name: clichy-alerts
   labels:
+    # Prometheus selects this rule using the same release label as the
+    # ServiceMonitor; this does not configure metric scraping.
     release: prometheus-stack
 spec:
   groups:
     - name: clichy.workloads
       rules:
+        # These rules evaluate metrics already scraped by kube-state-metrics,
+        # kubelet/cAdvisor, and the Kubernetes API; they do not collect metrics.
         - alert: ClichyPodRestarting
           expr: |
             sum by (namespace, pod, container) (

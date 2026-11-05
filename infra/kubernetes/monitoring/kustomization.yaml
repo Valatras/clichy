@@ -4,6 +4,8 @@ namespace: monitoring
 resources:
   - prometheus-rule.yaml
   - service-monitor.yaml
+# Grafana's dashboard sidecar watches for ConfigMaps with this label and
+# imports the JSON; PromQL queries in that JSON read from Prometheus.
 configMapGenerator:
   - name: clichy-grafana-dashboard
     files:
