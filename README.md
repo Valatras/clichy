@@ -1,19 +1,83 @@
-# clichy
+# Clichy
 
-This project was created with [Better-T-Stack](https://github.com/AmanVarshney01/create-better-t-stack), a modern TypeScript stack that combines React, React Router, Fastify, and more.
+## Quelques mots sur le projet
 
-## Features
+Clichy est un projet scolaire réalisé dans le cadre de mon cours de **Distributed Systems à l'ECAM Brussels**.
 
-- **TypeScript** - For type safety and improved developer experience
-- **React Router** - Declarative routing for React
-- **TailwindCSS** - Utility-first CSS for rapid UI development
-- **Shared UI package** - shadcn/ui primitives live in `packages/ui`
-- **Fastify** - Fast, low-overhead web framework
-- **Node.js** - Runtime environment
-- **Prisma** - TypeScript-first ORM
-- **PostgreSQL** - Database engine
-- **Authentication** - Better-Auth
-- **Turborepo** - Optimized monorepo build system
+L'objectif de ce projet était avant tout de mieux comprendre les systèmes distribués, de découvrir l'orchestration avec Kubernetes et d'apprendre à utiliser les différents outils permettant de déployer, surveiller et maintenir une application dans une infrastructure réelle.
+
+Au-delà du développement de l'application elle-même, j'ai voulu profiter de ce projet pour explorer plusieurs concepts et technologies que l'on retrouve dans les infrastructures modernes :
+
+- La création et la gestion d'images avec Docker.
+- L'orchestration de conteneurs avec Kubernetes : Pods, Deployments, StatefulSets, Services, Ingress, etc.
+- La gestion du stockage persistant et des bases de données.
+- La mise en place d'une chaîne CI/CD pour automatiser les tests et les déploiements.
+- Le monitoring de l'infrastructure, la collecte de métriques et la configuration d'alertes.
+- L'exposition d'une application sur Internet à travers Cloudflare Tunnel et un nom de domaine, sans avoir à exposer directement mon réseau domestique.
+
+Un **Wiki** accompagne le projet afin de documenter plus en détail son architecture, les choix techniques et les différentes étapes de mise en place de l'infrastructure.
+
+## Mais concrètement, qu'est-ce que Clichy ?
+
+Clichy est une application web de gestion de photos et de vidéos, dans l'esprit de Google Photos.
+
+Son objectif est simple : **aider à optimiser l'espace de stockage occupé par nos photos et vidéos**, en identifiant les fichiers inutiles ou redondants qui finissent souvent par s'accumuler au fil du temps.
+
+Les solutions grand public comme Google Photos ou Apple Photos proposent déjà de nombreuses fonctionnalités de gestion et de recherche. Cependant, elles ne mettent pas nécessairement l'accent sur la détection et la suppression des redondances de manière aussi poussée que je le souhaiterais.
+
+C'est là que Clichy intervient. Pensé pour être déployé sur une infrastructure *on-premise* (sur site), il permet de garder le contrôle sur ses données tout en cherchant à identifier différents types de redondances :
+
+- **Photos dupliquées** : les mêmes photos téléchargées ou importées plusieurs fois.
+- **Photos similaires** : les nombreuses prises de vue d'une même scène, souvent réalisées dans l'espoir de trouver « la prise parfaite ».
+- **Photos floues** : les clichés dont la qualité est insuffisante et qui finissent souvent oubliés dans nos albums.
+
+L'idée n'est pas simplement de stocker ses photos ailleurs, mais de disposer d'un outil permettant de mieux gérer sa collection et d'éviter de gaspiller inutilement son espace de stockage.
+
+## La stack technique
+
+Le projet s'articule autour de trois grandes catégories : l'application, l'infrastructure et le déploiement.
+
+### Application
+
+Les technologies utilisées pour développer l'application et gérer ses différents services :
+
+- **TypeScript** — Langage principal, pour bénéficier du typage statique et d'une meilleure expérience de développement.
+- **React** — Bibliothèque utilisée pour construire l'interface utilisateur.
+- **React Router** — Gestion du routage de l'application.
+- **TailwindCSS** — Framework CSS utilitaire pour construire rapidement l'interface.
+- **shadcn/ui** — Primitives et composants d'interface partagés dans le package `packages/ui`.
+- **Fastify** — Framework backend léger et performant pour exposer l'API.
+- **Node.js** — Environnement d'exécution JavaScript côté serveur.
+- **Prisma** — ORM permettant de gérer les interactions avec la base de données.
+- **PostgreSQL** — Base de données relationnelle.
+- **Better Auth** — Gestion de l'authentification.
+- **Redis** — Utilisé notamment pour la gestion des tâches en arrière-plan.
+- **BullMQ** — Gestion des files de tâches et des workers.
+- **Turborepo** — Gestion du monorepo et optimisation des tâches de build.
+
+### Infrastructure
+
+Les technologies utilisées pour déployer et faire fonctionner l'application :
+
+- **K3s / Kubernetes** — Orchestration des conteneurs sur une machine Linux. J'ai pris k3s car il est très light et que je n'ai pas énormément de ressources sur la machine qui l'héberge... 😅
+- **Traefik** — Ingress Controller permettant de router le trafic vers les différents services du cluster.
+- **Docker** — Construction et distribution des images des applications.
+- **Prometheus** — Collecte et stockage des métriques de l'infrastructure.
+- **Grafana** — Visualisation des métriques et suivi de l'état des services.
+- **Headlamp** — Interface web permettant de visualiser et de gérer les ressources Kubernetes, notamment le scaling manuel des applications.
+
+### Déploiement et outils
+
+Les outils utilisés pour automatiser le développement, les déploiements et documenter le projet :
+
+- **Git** — Gestion du versioning.
+- **GitHub Actions** — Automatisation des workflows CI/CD : tests, builds et déploiements.
+- **GitHub Wiki** — Documentation technique détaillée du projet.
+- **Cloudflare Tunnel** — Exposition sécurisée des services sur Internet, sans ouverture de ports entrants sur le routeur domestique.
+
+---
+
+*Ce projet évolue au fil de mes expérimentations et de mes apprentissages. Certaines fonctionnalités et certains choix d'architecture sont donc susceptibles d'évoluer. Aussi il est voué à ne plus être déployé sur internet une fois l'évaluation terminé.*
 
 ## Getting Started
 
