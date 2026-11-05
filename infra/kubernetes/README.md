@@ -151,7 +151,84 @@ overlay; this migrates existing Deployments without treating HPA-selected
 replicas as desired Git state. The image update and rollout checks remain
 unchanged.
 
+## Database schema migrations
+
+The Test deployment workflow runs `prisma migrate deploy` against the Test
+PostgreSQL Service before applying the app rollout. It reads `DATABASE_URL`
+from the existing Kubernetes Secret into the migration process and uses a
+localhost-only port-forward; it does not print the value. Add schema changes
+as committed Prisma migrations. Do not use `prisma db push` or `migrate reset`
+for persistent Dev/Test data.
+
+Dev is not deployed by that workflow. After adding a migration, apply it to
+Dev explicitly. One option is to port-forward its database and run Prisma using
+the Dev Secret URL rewritten to the local forwarded port:
+
+```bash
+kubectl port-forward --address 127.0.0.1 \
+  -n clichy-dev service/clichy-postgres 25432:5432
+```
+
+In another terminal at the repository root, with the K3s kubeconfig selected:
+
+```bash
+DATABASE_URL="$(kubectl get secret clichy-server-secrets \
+  -n clichy-dev -o json |
+  node -e '
+    let input = "";
+    process.stdin.on("data", (chunk) => input += chunk);
+    process.stdin.on("end", () => {
+      const secret = JSON.parse(input);
+      const url = new URL(
+        Buffer.from(secret.data.DATABASE_URL, "base64").toString(),
+      );
+      url.hostname = "127.0.0.1";
+      url.port = "25432";
+      process.stdout.write(url.toString());
+    });
+  ')"
+export DATABASE_URL
+pnpm --filter @clichy/db exec prisma migrate deploy
+unset DATABASE_URL
+```
+
+The Test Secret's `DATABASE_URL` was corrected in the live cluster to match
+its existing PostgreSQL credentials and database. When managing Secret
+manifests, use either valid base64 under `data` or plaintext under
+`stringData`; do not put base64-encoded values in `stringData`.
+
 ## Prometheus and Grafana
+
+### Where collection and display are configured
+
+The flow is **exporter/application → ServiceMonitor → Prometheus → Grafana**:
+
+1. Kubernetes components expose their own metrics. The installed
+   `kube-prometheus-stack` release configures Prometheus to scrape Kubernetes
+   and node exporters (such as kube-state-metrics and kubelet/cAdvisor).
+2. The Server implements application metrics in
+   [`apps/server/src/metrics.ts`](../../apps/server/src/metrics.ts). Its
+   `/metrics` endpoint is selected by
+   [`monitoring/service-monitor.yaml`](./monitoring/service-monitor.yaml):
+   that resource tells Prometheus which namespaces and labeled Service to
+   scrape, which named port/path to request, and how often.
+3. Prometheus Operator discovers ServiceMonitors and PrometheusRules whose
+   `release: prometheus-stack` label matches the installed Prometheus
+   resource's selectors. The Clichy rule expressions in
+   [`monitoring/prometheus-rule.yaml`](./monitoring/prometheus-rule.yaml)
+   evaluate already-collected time series and create alerts; they do not
+   configure scraping.
+4. The dashboard JSON in
+   [`monitoring/clichy-dashboard.json`](./monitoring/clichy-dashboard.json)
+   contains PromQL queries. Kustomize places it in a ConfigMap labeled
+   `grafana_dashboard=1`; the installed Grafana sidecar imports it, and Grafana
+   runs those queries against Prometheus when displaying panels.
+
+Headlamp is separate: it reads current Kubernetes API resources and, where
+available, Metrics Server's resource metrics. It does not query Prometheus or
+display the Clichy Grafana dashboard. Metrics Server supplies CPU/memory
+resource metrics for `kubectl top` and CPU-based HPA; Prometheus stores
+time-series for Grafana dashboards and alert evaluation.
 
 The monitoring Kustomize package is applied by the existing Test deployment
 workflow and can also be applied manually:
