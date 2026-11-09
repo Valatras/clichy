@@ -182,16 +182,6 @@ jobs:
           kubectl rollout status deployment/clichy-server --namespace=clichy-test --timeout=180s
           kubectl rollout status deployment/clichy-web --namespace=clichy-test --timeout=180s
 
-      - name: Verify pods are ready
-        run: |
-          kubectl wait --for=condition=Ready pod \
-            --selector=app=clichy-server \
-            --namespace=clichy-test \
-            --timeout=180s
-          kubectl wait --for=condition=Ready pod \
-            --selector=app=clichy-web \
-            --namespace=clichy-test \
-            --timeout=180s
 
       - name: Show deployment and pod status
         if: always()
