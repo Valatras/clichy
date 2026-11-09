@@ -79,283 +79,112 @@ Les outils utilisés pour automatiser le développement, les déploiements et do
 
 *Ce projet évolue au fil de mes expérimentations et de mes apprentissages. Certaines fonctionnalités et certains choix d'architecture sont donc susceptibles d'évoluer. Aussi il est voué à ne plus être déployé sur internet une fois l'évaluation terminé.*
 
-## Getting Started
 
-First, install the dependencies:
+## Architecture
+
+- [`apps/web/`](./apps/web/README.md) : interface React avec React Router.
+- [`apps/server/`](./apps/server/README.md) : API Fastify pour l'authentification,
+  les photos et les métriques.
+- [`packages/db/`](./packages/db/README.md) : schéma Prisma et PostgreSQL.
+- [`infra/`](./infra/README.md) : images Docker, manifests Kubernetes et outils
+  de déploiement.
+
+Le dépôt est un monorepo pnpm orchestré par Turborepo. En développement, le
+frontend écoute sur `http://localhost:5173`, l'API sur
+`http://localhost:3000` et PostgreSQL sur le port `5432`.
+
+## Développement local
+
+Prérequis : Git, Node.js 24, pnpm 12 et Docker avec Compose.
 
 ```bash
 pnpm install
+pnpm run db:start
 ```
 
-## Database Setup
+Créer `apps/server/.env` (ne pas le committer) avec les valeurs de
+développement suivantes, en remplaçant le secret par une valeur aléatoire d'au
+moins 32 caractères :
 
-Generate the Prisma client before development, typechecking, or building, including in CI and deployment builds. Run this again after changing the Prisma schema:
+```dotenv
+NODE_ENV=development
+BETTER_AUTH_SECRET=remplacer-par-une-cle-aleatoire-d-au-moins-32-caracteres
+BETTER_AUTH_URL=http://localhost:3000
+CORS_ORIGIN=http://localhost:5173
+DATABASE_URL=postgresql://postgres:password@localhost:5432/clichy?schema=public
+PHOTO_STORAGE_PATH=./data/photos
+```
+
+Créer aussi `apps/web/.env` :
+
+```dotenv
+NODE_ENV=development
+VITE_SERVER_URL=http://localhost:3000
+```
+
+Après avoir créé les fichiers d'environnement, générer le client Prisma :
 
 ```bash
 pnpm run db:generate
 ```
 
-This project uses PostgreSQL with Prisma.
-
-1. Make sure you have a PostgreSQL database set up.
-2. Update your `apps/server/.env` file with your PostgreSQL connection details.
-
-3. Apply the committed Prisma migrations to your database:
+Le dépôt ne fournit pas encore de migration initiale. Lors de la première
+installation sur une base vide, créer cette migration puis la committer avant
+de lancer l'application :
 
 ```bash
-pnpm --filter @clichy/db db:migrate:deploy
+pnpm run db:migrate
 ```
 
-For persistent environments, use `prisma migrate deploy` rather than `db:push`. Supply `DATABASE_URL` through a secure environment or secret manager; do not commit it. Create new migrations during development with `pnpm run db:migrate`.
-
-Then, run the development server:
+Ensuite, démarrer l'application :
 
 ```bash
 pnpm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173) in your browser to see the web application.
-The API is running at [http://localhost:3000](http://localhost:3000).
+Les scripts de base de données et leur usage sont décrits dans
+[`packages/db/README.md`](./packages/db/README.md).
 
-## Kubernetes Databases
+## Déploiement sur un serveur domestique
 
-The Kubernetes environments use isolated databases and Secrets. The PostgreSQL Service listens on port `5432` inside each namespace.
+Le déploiement cible un serveur Linux exécutant K3s. Le parcours conseillé est
+de pousser sur `master` : GitHub Actions vérifie et construit le projet, publie
+les images dans GHCR, puis déploie l'environnement Test sur le serveur à l'aide
+d'un runner GitHub Actions auto-hébergé.
 
-For Headlamp access, Kubernetes scaling, and monitoring operations, see the
-[administrator Headlamp guide](./infra/kubernetes/administrator_headlamp_guide.md).
+1. Installer K3s, Helm et la stack Prometheus sur le serveur.
+2. Créer les secrets Kubernetes hors du dépôt avec le script de préparation.
+3. Enregistrer un runner Linux auto-hébergé sur le dépôt GitHub et lui donner
+   accès à `kubectl`, Docker et pnpm.
+4. Pousser les changements sur `master`. Le workflow déploie Test après la
+   construction et l'application des migrations.
 
-| Environment | Namespace | Database | Local port-forward | Status |
-| --- | --- | --- | --- | --- |
-| Dev | `clichy-dev` | `clichy_dev` | `25432` | Configured |
-| Test | `clichy-test` | `clichy_test` | `25433` | Configured |
-| Prod | `clichy-prod` | `clichy_prod` | `25434` | Not deployed; provision a Secret and confirm the production hostname/TLS first |
-
-Each configured namespace needs a `clichy-server-secrets` Secret with `DATABASE_URL`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `BETTER_AUTH_SECRET`. Keep these values outside Git. `DATABASE_URL` must use that environment's credentials and database name, with reserved password characters URL-encoded. Changing `POSTGRES_DB` does not create or rename a database in an already-initialized PostgreSQL volume.
-
-## Preparing a k3s cluster
-
-The manifests are in `infra/kubernetes/overlays/`. The `dev` overlay uses the k3s default `local-path` StorageClass for PostgreSQL and photos and expects the default Traefik ingress controller. These defaults are suitable for a single-node development cluster; the node-local volumes are not a backup or high-availability solution.
-
-### Select the k3s context
-
-On the k3s server, verify the cluster, storage class, and Traefik installation:
+Le guide complet, les commandes et les limites de cette configuration sont
+dans [`infra/kubernetes/README.md`](./infra/kubernetes/README.md). Pour déployer
+manuellement une image déjà publiée :
 
 ```bash
-sudo k3s kubectl get nodes
-sudo k3s kubectl get storageclass
-sudo k3s kubectl get pods -n kube-system | grep traefik
+./infra/kubernetes/scripts/deploy.sh dev sha-<sha-du-commit>
 ```
 
-On the k3s server, create a dedicated kubeconfig rather than overwriting the Docker Desktop context:
+Le domaine et Cloudflare Tunnel ne sont pas configurés par le dépôt. Les
+overlays actuels utilisent des noms de développement ; ne pas exposer
+l'interface Kubernetes, PostgreSQL ou Prometheus sur Internet. Préparer
+l'Ingress, les URL d'authentification/CORS et le routage du tunnel avant
+d'utiliser un vrai nom de domaine.
 
-```bash
-mkdir -p "$HOME/.kube"
-sudo cp /etc/rancher/k3s/k3s.yaml "$HOME/.kube/clichy-k3s.yaml"
-sudo chown "$(id -u):$(id -g)" "$HOME/.kube/clichy-k3s.yaml"
-chmod 600 "$HOME/.kube/clichy-k3s.yaml"
-```
+## Commandes pnpm utiles
 
-If kubectl will run from another machine, securely transfer this kubeconfig to that machine first. If connecting remotely, replace its `127.0.0.1` API address with the k3s server's reachable IP, then select and verify this dedicated config:
+| Commande | Description |
+| --- | --- |
+| `pnpm run dev` | Démarre les applications en développement |
+| `pnpm run build` | Construit les applications |
+| `pnpm run check-types` | Vérifie les types TypeScript |
+| `pnpm --filter server test` | Lance les tests du serveur |
+| `pnpm run db:start` | Démarre PostgreSQL avec Docker Compose |
+| `pnpm run db:generate` | Génère le client Prisma |
+| `pnpm run db:migrate` | Crée une migration de développement |
+| `pnpm --filter @clichy/db db:migrate:deploy` | Applique les migrations validées |
 
-```bash
-K3S_SERVER_IP=192.0.2.10 # Replace with the k3s server's reachable IP.
-KUBECONFIG="$HOME/.kube/clichy-k3s.yaml" kubectl config set-cluster default \
-  --server="https://${K3S_SERVER_IP}:6443"
-export KUBECONFIG="$HOME/.kube/clichy-k3s.yaml"
-kubectl config current-context
-kubectl get nodes
-```
-
-Do not continue unless `kubectl config current-context` and `kubectl get nodes` identify k3s. Protect this kubeconfig: it grants cluster-admin access.
-
-### Create namespace-local secrets
-
-The application and private GHCR images both need Secrets in the target namespace. Do this once per namespace (here, `clichy-dev`) before applying its overlay:
-
-```bash
-kubectl apply -f infra/kubernetes/overlays/dev/namespace.yaml
-
-mkdir -p "$HOME/.config/clichy"
-chmod 700 "$HOME/.config/clichy"
-umask 077
-touch "$HOME/.config/clichy/dev-secrets.env"
-chmod 600 "$HOME/.config/clichy/dev-secrets.env"
-```
-
-Edit `$HOME/.config/clichy/dev-secrets.env` with the five required key/value pairs: `DATABASE_URL`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `BETTER_AUTH_SECRET`. Use `clichy-postgres` as the database host and `clichy_dev` as the dev database name. Generate a unique auth secret (for example, `openssl rand -base64 32`); URL-encode reserved characters in the database password within `DATABASE_URL`. Keep this file outside the repository.
-
-Then create or update the Kubernetes Secret:
-
-```bash
-set -o pipefail
-kubectl create secret generic clichy-server-secrets \
-  --namespace=clichy-dev \
-  --from-env-file="$HOME/.config/clichy/dev-secrets.env" \
-  --dry-run=client -o yaml | kubectl apply -f -
-```
-
-Create the GHCR pull Secret using a GitHub token authorized to read the `valatras/clichy-server` and `valatras/clichy-web` packages. The token is read without echoing and piped to kubectl rather than passed as a command-line argument:
-
-
-```bash
-(
-set -o pipefail
-read -rp "GitHub username: " GHCR_USERNAME
-read -srp "GHCR read:packages token: " GHCR_TOKEN
-printf "\n"
-printf "%s" "$GHCR_TOKEN" |
-  GHCR_USERNAME="$GHCR_USERNAME" python3 -c '
-import base64, json, os, sys
-username = os.environ["GHCR_USERNAME"]
-token = sys.stdin.read()
-auth = base64.b64encode(f"{username}:{token}".encode()).decode()
-json.dump({"auths": {"ghcr.io": {
-    "username": username, "password": token, "auth": auth
-}}}, sys.stdout)
-' |
-  kubectl create secret generic ghcr-pull-secret \
-    --namespace=clichy-dev \
-    --type=kubernetes.io/dockerconfigjson \
-    --from-file=.dockerconfigjson=/dev/stdin \
-    --dry-run=client -o yaml |
-  kubectl apply -f -
-)
-```
-
-Do not enable shell tracing (`set -x`) while entering credentials. `imagePullSecrets` is configured for the server and web Deployments in the `dev`, `test`, and `prod` overlays; create `ghcr-pull-secret` separately in every namespace you deploy.
-
-### Deploy Dev
-
-The CI workflow publishes immutable `sha-<commit>` tags to GHCR. Set `IMAGE_TAG` to a tag from a successful `master` workflow run:
-
-```bash
-kubectl apply -k infra/kubernetes/overlays/dev
-export IMAGE_TAG=sha-REPLACE_WITH_COMMIT_SHA
-kubectl set image deployment/clichy-server \
-  server="ghcr.io/valatras/clichy-server:${IMAGE_TAG}" -n clichy-dev
-kubectl set image deployment/clichy-web \
-  web="ghcr.io/valatras/clichy-web:${IMAGE_TAG}" -n clichy-dev
-kubectl rollout status deployment/clichy-server -n clichy-dev --timeout=180s
-kubectl rollout status deployment/clichy-web -n clichy-dev --timeout=180s
-kubectl get pods,ingress,pvc -n clichy-dev
-unset IMAGE_TAG
-```
-
-The overlay serves HTTP on `clichy.localhost`. For access from another machine, point that hostname to the k3s node's IP (for example, add `<K3S_SERVER_IP> clichy.localhost` to the client's hosts file) and allow inbound HTTP to the node. `localhost` by itself resolves to the client machine, not a remote k3s node.
-
-### Connect and migrate Dev or Test
-
-In a first terminal, start a port-forward for the environment. For Dev:
-
-```bash
-kubectl port-forward -n clichy-dev svc/clichy-postgres 25432:5432
-```
-
-For Test, use `kubectl port-forward -n clichy-test svc/clichy-postgres 25433:5432`.
-
-In a second terminal, set the namespace and matching local port. The command below reads credentials directly from the Kubernetes Secret, rewrites only the connection host/port, and does not print the URL:
-
-```bash
-export NAMESPACE=clichy-test
-export LOCAL_PORT=25433
-export DATABASE_URL="$(
-  kubectl get secret clichy-server-secrets -n "$NAMESPACE" -o json |
-    node -e '
-      let input = "";
-      process.stdin.setEncoding("utf8");
-      process.stdin.on("data", chunk => input += chunk);
-      process.stdin.on("end", () => {
-        const data = JSON.parse(input).data;
-        const decode = key => Buffer.from(data[key], "base64").toString("utf8");
-        const url = new URL(decode("DATABASE_URL"));
-        url.hostname = "127.0.0.1";
-        url.port = process.env.LOCAL_PORT;
-        url.username = decode("POSTGRES_USER");
-        url.password = decode("POSTGRES_PASSWORD");
-        url.pathname = "/" + decode("POSTGRES_DB");
-        if (!url.searchParams.has("schema")) url.searchParams.set("schema", "public");
-        process.stdout.write(url.toString());
-      });
-    '
-)"
-```
-
-Connect with `psql "$DATABASE_URL"` or apply the checked-in Prisma migrations:
-
-```bash
-pnpm --filter @clichy/db db:migrate:deploy
-unset DATABASE_URL NAMESPACE LOCAL_PORT
-```
-
-Use `NAMESPACE=clichy-dev` and `LOCAL_PORT=25432` for Dev. Prod is not currently provisioned in the cluster; do not use the example hostname in its overlay as a real production endpoint. Before enabling it, create a namespace-local Secret, configure the real hostname and TLS, then deploy its overlay and use local port `25434` for access.
-
-The Test API currently mounts the existing `clichy-server-photos` PVC as a temporary fallback. The overlay's NFS PV refers to host `valtask`, which the Kubernetes node cannot resolve. Reapplying the Test overlay will restore that broken NFS claim; configure a resolvable NFS host before doing so. No PV, PVC, or photo data was changed for the database reset.
-
-The CI deployment does not run migrations. `db:migrate:deploy` runs `prisma migrate deploy` and applies committed migrations without resetting data. Create migrations during development with `pnpm run db:migrate`; do not use `db:push` for persistent environments.
-
-See the [Kubernetes administration, autoscaling, and monitoring guide](./infra/kubernetes/README.md) for Headlamp, Test HPAs, the Clichy Grafana dashboard, Prometheus alert rules, and cluster operation commands.
-
-## UI Customization
-
-React web apps in this stack share shadcn/ui primitives through `packages/ui`.
-
-- Change design tokens and global styles in `packages/ui/src/styles/globals.css`
-- Update shared primitives in `packages/ui/src/components/*`
-- Adjust shadcn aliases or style config in `packages/ui/components.json` and `apps/web/components.json`
-
-### Add more shared components
-
-Run this from the project root to add more primitives to the shared UI package:
-
-```bash
-npx shadcn@latest add accordion dialog popover sheet table -c packages/ui
-```
-
-Import shared components like this:
-
-```tsx
-import { Button } from "@clichy/ui/components/button";
-```
-
-### Add app-specific blocks
-
-If you want to add app-specific blocks instead of shared primitives, run the shadcn CLI from `apps/web`.
-
-## Environment Configuration
-
-Each app owns its environment schema in `.env.schema`. Varlock generates `src/env.ts` during installation; run `pnpm run env:generate` after changing a schema. Commit schemas, and keep secrets in ignored env files or your deployment platform.
-
-Import the generated `ENV` accessor in application code. Shared database and auth packages receive configuration or initialized clients from the application. See [Varlock's monorepo guide](https://varlock.dev/guides/monorepos/).
-
-Bun's automatic env loading is disabled in `bunfig.toml`; the framework integration or server bootstrap loads Varlock. Node deployments must include Varlock and its dependencies alongside the app schema.
-
-Run standalone Node/Bun tools that use Varlock from the owning app directory so they load that app's schema and env files. `env:generate` only generates TypeScript files; it does not initialize environment values in a subsequent command.
-
-## Project Structure
-
-```
-clichy/
-├── apps/
-│   ├── web/         # Frontend application (React + React Router)
-│   └── server/      # Backend API (Fastify)
-├── packages/
-│   ├── ui/          # Shared shadcn/ui components and styles
-│   ├── auth/        # Authentication configuration & logic
-│   └── db/          # Database schema & queries
-```
-
-## Available Scripts
-
-- `pnpm run dev`: Start all applications in development mode
-- `pnpm run build`: Build all applications
-- `pnpm run dev:web`: Start only the web application
-- `pnpm run dev:server`: Start only the server
-- `pnpm run check-types`: Check TypeScript types across all apps
-- `pnpm --filter @clichy/db db:migrate:deploy`: Apply committed Prisma migrations
-- `pnpm run db:migrate`: Create and apply a migration during development
-- `pnpm run db:generate`: Generate database client/types
-- `pnpm run db:studio`: Open database studio UI
-
-## Better Auth Schema Generation
-
-After changing auth plugins or schema options, run `pnpm run auth:generate` from the project root. The script runs the Better Auth CLI through `varlock run` from the owning app directory, loading the auth instance from `src/services.ts`. Review the schema changes, then use your ORM's migration workflow to apply them.
+`db:push` et `db:reset` sont réservés au développement local : ne pas les
+utiliser sur une base persistante.
