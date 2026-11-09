@@ -17,25 +17,11 @@ if ! command -v sudo >/dev/null 2>&1 && [[ "$EUID" -ne 0 ]]; then
   exit 1
 fi
 
-run_as_root() {
-  if [[ "$EUID" -eq 0 ]]; then
-    "$@"
-  else
-    sudo "$@"
-  fi
-}
+curl -fsSL -o get_helm.sh \
+  https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4
 
-run_as_root apt-get update
-run_as_root apt-get install -y apt-transport-https ca-certificates curl gpg
-run_as_root install -d -m 0755 /usr/share/keyrings
-curl -fsSL https://baltocdn.com/helm/signing.asc |
-  gpg --dearmor |
-  run_as_root tee /usr/share/keyrings/helm.gpg >/dev/null
-run_as_root chmod 0644 /usr/share/keyrings/helm.gpg
-printf '%s\n' \
-  'deb [signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main' |
-  run_as_root tee /etc/apt/sources.list.d/helm-stable-debian.list >/dev/null
-run_as_root apt-get update
-run_as_root apt-get install -y helm
+chmod 700 get_helm.sh
+
+./get_helm.sh
 
 helm version --short

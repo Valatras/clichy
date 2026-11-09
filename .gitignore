@@ -30,6 +30,9 @@ infra/kubernetes/server_secrets.yaml
 *~
 .DS_Store
 
+# Helm
+get_helm.sh
+
 # Logs
 logs
 .evlog/
