@@ -22,21 +22,42 @@ Sur le serveur Linux, installer K3s depuis son canal officiel :
 curl -sfL https://get.k3s.io | sh -
 ```
 
-Préparer un kubeconfig utilisateur et vérifier le cluster :
+Préparer un kubeconfig utilisateur :
 
 ```bash
 mkdir -p "$HOME/.kube"
 sudo cp /etc/rancher/k3s/k3s.yaml "$HOME/.kube/config"
 sudo chown "$(id -u):$(id -g)" "$HOME/.kube/config"
 chmod 600 "$HOME/.kube/config"
+```
+
+**Configurer l'accès utilisateur à Kubernetes**
+
+Par défaut, K3s configure `kubectl` pour utiliser `/etc/rancher/k3s/k3s.yaml`. Ce fichier étant réservé à root, il faut explicitement indiquer à `kubectl` d'utiliser la copie située dans le répertoire personnel :
+
+```bash
+export KUBECONFIG="$HOME/.kube/config"
+```
+
+Pour rendre cette configuration permanente avec Zsh :
+
+```bash
+echo 'export KUBECONFIG="$HOME/.kube/config"' >> ~/.zshrc
+source ~/.zshrc
+```
+
+Ou si on utilise Bash, ajouter plutôt cette ligne dans `~/.bashrc`.
+
+Vérifier ensuite l'accès au cluster :
+
+```bash
+kubectl config current-context
 kubectl get nodes
 kubectl get storageclass
 kubectl get pods -n kube-system
 ```
 
-Le kubeconfig K3s donne des droits administrateur sur le cluster : le protéger
-et ne pas le committer. K3s installe normalement Traefik et le StorageClass
-`local-path`, attendus par les manifests Clichy.
+Le kubeconfig K3s donne des droits administrateur sur le cluster : le protéger et ne pas le committer. K3s installe normalement Traefik et le StorageClass `local-path`, attendus par les manifests Clichy.
 
 ## 2. Installer Helm et les outils d'administration
 
