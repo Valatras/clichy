@@ -1,5 +1,9 @@
 grafana:
   enabled: true
+  admin:
+    existingSecret: clichy-grafana-admin
+    userKey: admin-user
+    passwordKey: admin-password
   grafana.ini:
     server:
       domain: valtask

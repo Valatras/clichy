@@ -5,8 +5,6 @@ resources:
   - namespace.yaml
   - ../../base
   - hpa.yaml
-  # - photos-pv.yaml
-  # - photos-pvc.yaml
 configMapGenerator:
   - name: clichy-server-config
     literals:
