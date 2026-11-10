@@ -7,7 +7,7 @@ hôte d'origine (`/api/auth`, `/photos`).
 ## Développement
 
 Configurer `apps/web/.env` comme indiqué dans le
-[README principal](../../README.md#développement-local), puis lancer depuis la
+[README principal](../../README.md#démarrage-local), puis lancer depuis la
 racine :
 
 ```bash
@@ -25,5 +25,5 @@ Les composants d'interface partagés sont dans [`packages/ui/`](../../packages/u
 Pour le test privé via Tailscale, le header contient provisoirement des liens
 vers Grafana (`http://valtask:3000`) et Headlamp (`http://valtask:4466`). Ils
 supposent que le nom `valtask` résout vers le serveur et que les entrypoints
-Traefik LAN sont configurés comme indiqué dans le
-[guide K3s](../../infra/kubernetes/README.md#accès-de-test-par-tailscale).
+Traefik sont configurés comme indiqué dans le
+[guide K3s](../../infra/kubernetes/README.md).

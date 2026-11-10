@@ -28,8 +28,8 @@ pnpm run db:migrate
 
 Cette commande utilise la `DATABASE_URL` de développement et crée un nouveau
 répertoire SQL dans `prisma/migrations/`. Vérifier puis committer la migration.
-Le dépôt ne contient pas encore de migration initiale : en créer une avant de
-déployer sur une base vierge.
+Le dépôt contient une migration initiale dans `prisma/migrations/`. Vérifier
+que toute nouvelle base applique bien l'ensemble des migrations versionnées.
 
 Les environnements persistants appliquent uniquement les migrations
 commitées :

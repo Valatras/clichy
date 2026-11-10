@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../.." && pwd)"
 
 usage() {
-  echo "Usage: $0 dev|test|prod sha-<commit>" >&2
+  echo "Usage: $0 dev|test sha-<commit>" >&2
   exit 2
 }
 
@@ -13,9 +13,14 @@ ENVIRONMENT="$1"
 IMAGE_TAG="$2"
 
 case "$ENVIRONMENT" in
-  dev|test|prod) ;;
+  dev|test) ;;
   *) usage ;;
 esac
+
+if ! command -v kubectl >/dev/null 2>&1; then
+  echo "La commande requise 'kubectl' est absente." >&2
+  exit 1
+fi
 
 if [[ ! "$IMAGE_TAG" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]]; then
   echo "Tag d'image invalide : $IMAGE_TAG" >&2

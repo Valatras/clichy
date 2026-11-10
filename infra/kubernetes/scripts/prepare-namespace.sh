@@ -30,6 +30,18 @@ done
 context="$(kubectl config current-context)"
 echo "Contexte Kubernetes : $context"
 kubectl get nodes
+if [[ -L "$SECRET_FILE" ]]; then
+  echo "$SECRET_FILE est un lien symbolique ; il ne sera pas utilisé." >&2
+  exit 1
+fi
+
+if [[ -f "$SECRET_FILE" ]]; then
+  echo "Le fichier existant $SECRET_FILE sera conservé localement."
+  echo "Ses valeurs seront appliquées aux Secrets Kubernetes de $NAMESPACE."
+else
+  echo "Le script créera un fichier de secrets protégé dans $SECRET_DIR."
+fi
+echo "Il créera ou mettra à jour les Secrets applicatifs/GHCR et PostgreSQL dans $NAMESPACE."
 read -r -p "Préparer les secrets de $NAMESPACE sur ce cluster ? [y/N] " answer
 if [[ ! "$answer" =~ ^[Yy]$ ]]; then
   echo "Opération annulée."

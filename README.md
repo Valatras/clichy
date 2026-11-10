@@ -33,166 +33,69 @@ C'est là que Clichy intervient. Pensé pour être déployé sur une infrastruct
 
 L'idée n'est pas simplement de stocker ses photos ailleurs, mais de disposer d'un outil permettant de mieux gérer sa collection et d'éviter de gaspiller inutilement son espace de stockage.
 
-## La stack technique
 
-Le projet s'articule autour de trois grandes catégories : l'application, l'infrastructure et le déploiement.
+## Technologies
 
-### Application
+- **Application :** TypeScript, React, React Router, Fastify, Better Auth,
+  Prisma et PostgreSQL.
+- **Monorepo :** pnpm et Turborepo.
+- **Déploiement :** images OCI construites avec Docker par GitHub Actions,
+  publiées dans GHCR et exécutées sur K3s avec Traefik.
+- **Administration et monitoring :** Headlamp, Prometheus et Grafana.
+- **Accès distant actuel :** Tailscale, privé au tailnet.
 
-Les technologies utilisées pour développer l'application et gérer ses différents services :
+Redis, BullMQ et Cloudflare Tunnel ne font pas partie du déploiement actuel.
+Cloudflare Tunnel est une étape envisagée, mais n'est pas configurée par ce
+dépôt. L'application n'est pas destinée à être accessible publiquement dans
+l'état présent.
 
-- **TypeScript** — Langage principal, pour bénéficier du typage statique et d'une meilleure expérience de développement.
-- **React** — Bibliothèque utilisée pour construire l'interface utilisateur.
-- **React Router** — Gestion du routage de l'application.
-- **TailwindCSS** — Framework CSS utilitaire pour construire rapidement l'interface.
-- **shadcn/ui** — Primitives et composants d'interface partagés dans le package `packages/ui`.
-- **Fastify** — Framework backend léger et performant pour exposer l'API.
-- **Node.js** — Environnement d'exécution JavaScript côté serveur.
-- **Prisma** — ORM permettant de gérer les interactions avec la base de données.
-- **PostgreSQL** — Base de données relationnelle.
-- **Better Auth** — Gestion de l'authentification.
-- **Redis** — Utilisé notamment pour la gestion des tâches en arrière-plan.
-- **BullMQ** — Gestion des files de tâches et des workers.
-- **Turborepo** — Gestion du monorepo et optimisation des tâches de build.
+## Démarrage local
 
-### Infrastructure
-
-Les technologies utilisées pour déployer et faire fonctionner l'application :
-
-- **K3s / Kubernetes** — Orchestration des conteneurs sur une machine Linux. J'ai pris k3s car il est très light et que je n'ai pas énormément de ressources sur la machine qui l'héberge... 😅
-- **Traefik** — Ingress Controller permettant de router le trafic vers les différents services du cluster.
-- **Docker** — Construction et distribution des images des applications.
-- **Prometheus** — Collecte et stockage des métriques de l'infrastructure.
-- **Grafana** — Visualisation des métriques et suivi de l'état des services.
-- **Headlamp** — Interface web permettant de visualiser et de gérer les ressources Kubernetes, notamment le scaling manuel des applications.
-
-### Déploiement et outils
-
-Les outils utilisés pour automatiser le développement, les déploiements et documenter le projet :
-
-- **Git** — Gestion du versioning.
-- **GitHub Actions** — Automatisation des workflows CI/CD : tests, builds et déploiements.
-- **GitHub Wiki** — Documentation technique détaillée du projet.
-- **Cloudflare Tunnel** — Exposition sécurisée des services sur Internet, sans ouverture de ports entrants sur le routeur domestique.
-
----
-
-*Ce projet évolue au fil de mes expérimentations et de mes apprentissages. Certaines fonctionnalités et certains choix d'architecture sont donc susceptibles d'évoluer. Aussi il est voué à ne plus être déployé sur internet une fois l'évaluation terminé.*
-
-
-## Architecture
-
-- [`apps/web/`](./apps/web/README.md) : interface React avec React Router.
-- [`apps/server/`](./apps/server/README.md) : API Fastify pour l'authentification,
-  les photos et les métriques.
-- [`packages/db/`](./packages/db/README.md) : schéma Prisma et PostgreSQL.
-- [`infra/`](./infra/README.md) : images Docker, manifests Kubernetes et outils
-  de déploiement.
-
-Le dépôt est un monorepo pnpm orchestré par Turborepo. En développement, le
-frontend écoute sur `http://localhost:5173`, l'API sur
-`http://localhost:3000` et PostgreSQL sur le port `5432`.
-
-## Développement local
-
-Prérequis : Git, Node.js 24, pnpm 12 et Docker avec Compose.
+Prérequis : Node.js 24, pnpm 12.8.1 et Docker Compose pour la base locale.
+Depuis la racine :
 
 ```bash
 pnpm install
 pnpm run db:start
 ```
 
-Créer `apps/server/.env` (ne pas le committer) avec les valeurs de
-développement suivantes, en remplaçant le secret par une valeur aléatoire d'au
-moins 32 caractères :
+Configurer `apps/server/.env` avec les valeurs de développement :
 
 ```dotenv
 NODE_ENV=development
-BETTER_AUTH_SECRET=remplacer-par-une-cle-aleatoire-d-au-moins-32-caracteres
+BETTER_AUTH_SECRET=une-cle-aleatoire-d-au-moins-32-caracteres
 BETTER_AUTH_URL=http://localhost:3000
 CORS_ORIGIN=http://localhost:5173
 DATABASE_URL=postgresql://postgres:password@localhost:5432/clichy?schema=public
 PHOTO_STORAGE_PATH=./data/photos
 ```
 
-Créer aussi `apps/web/.env` :
+Configurer `apps/web/.env` :
 
 ```dotenv
 NODE_ENV=development
 VITE_SERVER_URL=http://localhost:3000
 ```
 
-Après avoir créé les fichiers d'environnement, générer le client Prisma :
+Puis générer le client Prisma, appliquer les migrations locales et démarrer
+l'application :
 
 ```bash
 pnpm run db:generate
-```
-
-Le dépôt ne fournit pas encore de migration initiale. Lors de la première
-installation sur une base vide, créer cette migration puis la committer avant
-de lancer l'application :
-
-```bash
 pnpm run db:migrate
-```
-
-Ensuite, démarrer l'application :
-
-```bash
 pnpm run dev
 ```
 
-Les scripts de base de données et leur usage sont décrits dans
-[`packages/db/README.md`](./packages/db/README.md).
+L'interface de développement est disponible sur `http://localhost:5173` et
+l'API sur `http://localhost:3000`. Ne pas réutiliser les identifiants Compose
+sur un serveur. Voir les README de [l'API](./apps/server/README.md), du
+[frontend](./apps/web/README.md) et de la [base de données](./packages/db/README.md).
 
-## Déploiement sur un serveur domestique
+## Infrastructure
 
-Le déploiement cible un serveur Linux exécutant K3s. Le parcours conseillé est
-de pousser sur `master` : GitHub Actions vérifie et construit le projet, publie
-les images dans GHCR, puis déploie l'environnement Test sur le serveur à l'aide
-d'un runner GitHub Actions auto-hébergé.
+Le guide d'installation complet pour Ubuntu Server, K3s, Tailscale, Traefik,
+Helm, le runner GitHub Actions, le stockage, le monitoring et le dépannage se
+trouve dans [infra/kubernetes/README.md](./infra/kubernetes/README.md).
 
-1. Installer K3s, Helm et la stack Prometheus sur le serveur.
-2. Créer les secrets Kubernetes hors du dépôt avec le script de préparation.
-3. Enregistrer un runner Linux auto-hébergé sur le dépôt GitHub et lui donner
-   accès à `kubectl`, Docker et pnpm.
-4. Pousser les changements sur `master`. Le workflow déploie Test après la
-   construction et l'application des migrations.
-
-Le guide complet, les commandes et les limites de cette configuration sont
-dans [`infra/kubernetes/README.md`](./infra/kubernetes/README.md). Pour déployer
-manuellement une image déjà publiée :
-
-```bash
-./infra/kubernetes/scripts/deploy.sh dev sha-<sha-du-commit>
-```
-
-Le domaine et Cloudflare Tunnel ne sont pas configurés par le dépôt. L'overlay
-Dev conserve un hôte `.localhost`, tandis que Test utilise `valtask` sur
-Tailscale. Ne pas exposer l'interface Kubernetes, Headlamp, Grafana,
-PostgreSQL ou Prometheus sur Internet. Préparer l'Ingress, les URL
-d'authentification/CORS et le routage du tunnel avant d'utiliser un vrai nom
-de domaine.
-
-Pour un essai privé par Tailscale, l'overlay Test utilise l'hôte `valtask`.
-Après avoir configuré les entrypoints Traefik et déployé Test, ouvrir
-`http://valtask`. Les liens temporaires Grafana et Headlamp du header ouvrent
-respectivement `http://valtask:3000` et `http://valtask:4466`. Voir le
-[guide K3s](./infra/kubernetes/README.md#accès-de-test-par-tailscale) avant
-d'activer ces ports.
-
-## Commandes pnpm utiles
-
-| Commande | Description |
-| --- | --- |
-| `pnpm run dev` | Démarre les applications en développement |
-| `pnpm run build` | Construit les applications |
-| `pnpm run check-types` | Vérifie les types TypeScript |
-| `pnpm --filter server test` | Lance les tests du serveur |
-| `pnpm run db:start` | Démarre PostgreSQL avec Docker Compose |
-| `pnpm run db:generate` | Génère le client Prisma |
-| `pnpm run db:migrate` | Crée une migration de développement |
-| `pnpm --filter @clichy/db db:migrate:deploy` | Applique les migrations validées |
-
-`db:push` et `db:reset` sont réservés au développement local : ne pas les
-utiliser sur une base persistante.
+Le dépôt décrit les déploiements `dev`, `test` et un overlay `prod` encore
+incomplet. Le workflow CI déploie uniquement Test dans `clichy-test`.

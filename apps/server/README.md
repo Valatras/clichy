@@ -9,7 +9,7 @@ au cluster.
 ## Développement
 
 Depuis la racine du dépôt, configurer `apps/server/.env` comme indiqué dans le
-[README principal](../../README.md#développement-local), démarrer PostgreSQL,
+[README principal](../../README.md#démarrage-local), démarrer PostgreSQL,
 puis lancer :
 
 ```bash

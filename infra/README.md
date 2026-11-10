@@ -1,22 +1,22 @@
-# Infrastructure
+# Infrastructure Clichy
 
-L'infrastructure de Clichy vise un serveur Linux mono-nœud :
+Le déploiement visé est un cluster K3s mono-nœud sur Ubuntu Server, avec
+Traefik intégré, accès privé au tailnet Tailscale et images applicatives
+publiées dans GHCR.
 
-- [`docker_clichy_server/`](./docker_clichy_server/) construit l'image Node.js
-  de l'API.
-- [`docker_clichy_web/`](./docker_clichy_web/) construit le serveur web React
-  Router.
-- [`kubernetes/`](./kubernetes/README.md) contient les overlays Kustomize,
-  les scripts d'installation et les procédures de déploiement K3s.
-- [`nfs/`](./nfs/) contient des scripts d'exemple pour un serveur NFS local ;
-  ils ne sont pas requis avec les volumes locaux par défaut de K3s.
+## État des composants
 
-Les images de production sont construites par GitHub Actions et publiées dans
-GHCR. Le pipeline déploie actuellement l'environnement Test seulement. La
-configuration `prod` est un point de départ, pas un déploiement prêt pour un
-nom de domaine : remplacer son hôte fictif, préparer le TLS et vérifier le
-stockage avant de l'utiliser.
+- **En place dans le dépôt :** images Docker de l'API et du frontend,
+  manifests Kustomize, PostgreSQL, stockage photo sur PVC, configuration
+  Traefik pour Clichy/Grafana/Headlamp, Helm pour le monitoring et Headlamp.
+- **Automatisé :** CI et publication d'images par runner GitHub hébergé ;
+  migrations et déploiement de Test par runner auto-hébergé.
+- **Non intégré :** le volume LVM `/srv/clichy` signalé sur `valtask`. Les PVC
+  utilisent le StorageClass Kubernetes `local-path` ; voir la section
+  stockage du [guide K3s](./kubernetes/README.md#stockage-persistance-et-sauvegardes).
+- **À venir :** exposition de la seule application via Cloudflare Tunnel et
+  configuration d'un domaine/TLS. Aucun service d'administration ne doit
+  devenir public.
 
-Pour le premier déploiement sur un serveur domestique, suivre le
-[guide K3s](./kubernetes/README.md). Il décrit K3s, Helm, Prometheus, les
-secrets GHCR/Kubernetes et le runner auto-hébergé.
+Les scripts et guides de préparation d'un hôte Ubuntu ainsi que les commandes
+de maintenance sont documentés dans le [guide d'installation K3s](./kubernetes/README.md).
