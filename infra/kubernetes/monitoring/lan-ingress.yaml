@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: clichy-grafana-lan
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: grafana
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: valtask
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: prometheus-stack-grafana
+                port:
+                  number: 80

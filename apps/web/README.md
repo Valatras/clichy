@@ -21,3 +21,9 @@ Les routes publiques et le déploiement K3s sont détaillés dans le
 [guide d'infrastructure](../../infra/kubernetes/README.md).
 
 Les composants d'interface partagés sont dans [`packages/ui/`](../../packages/ui/).
+
+Pour le test privé via Tailscale, le header contient provisoirement des liens
+vers Grafana (`http://valtask:3000`) et Headlamp (`http://valtask:4466`). Ils
+supposent que le nom `valtask` résout vers le serveur et que les entrypoints
+Traefik LAN sont configurés comme indiqué dans le
+[guide K3s](../../infra/kubernetes/README.md#accès-de-test-par-tailscale).

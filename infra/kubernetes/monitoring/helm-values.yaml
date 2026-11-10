@@ -1,5 +1,10 @@
 grafana:
   enabled: true
+  grafana.ini:
+    server:
+      domain: valtask
+      root_url: http://valtask:3000/
+      serve_from_sub_path: false
   persistence:
     enabled: true
     type: pvc

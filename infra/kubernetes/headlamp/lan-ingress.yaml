@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: headlamp-lan
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: headlamp
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: valtask
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: headlamp
+                port:
+                  number: 80

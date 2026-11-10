@@ -167,11 +167,19 @@ manuellement une image déjà publiée :
 ./infra/kubernetes/scripts/deploy.sh dev sha-<sha-du-commit>
 ```
 
-Le domaine et Cloudflare Tunnel ne sont pas configurés par le dépôt. Les
-overlays actuels utilisent des noms de développement ; ne pas exposer
-l'interface Kubernetes, PostgreSQL ou Prometheus sur Internet. Préparer
-l'Ingress, les URL d'authentification/CORS et le routage du tunnel avant
-d'utiliser un vrai nom de domaine.
+Le domaine et Cloudflare Tunnel ne sont pas configurés par le dépôt. L'overlay
+Dev conserve un hôte `.localhost`, tandis que Test utilise `valtask` sur
+Tailscale. Ne pas exposer l'interface Kubernetes, Headlamp, Grafana,
+PostgreSQL ou Prometheus sur Internet. Préparer l'Ingress, les URL
+d'authentification/CORS et le routage du tunnel avant d'utiliser un vrai nom
+de domaine.
+
+Pour un essai privé par Tailscale, l'overlay Test utilise l'hôte `valtask`.
+Après avoir configuré les entrypoints Traefik et déployé Test, ouvrir
+`http://valtask`. Les liens temporaires Grafana et Headlamp du header ouvrent
+respectivement `http://valtask:3000` et `http://valtask:4466`. Voir le
+[guide K3s](./infra/kubernetes/README.md#accès-de-test-par-tailscale) avant
+d'activer ces ports.
 
 ## Commandes pnpm utiles
 

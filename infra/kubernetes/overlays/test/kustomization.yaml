@@ -11,8 +11,8 @@ configMapGenerator:
   - name: clichy-server-config
     literals:
       - NODE_ENV=production
-      - BETTER_AUTH_URL=http://clichy-test.localhost
-      - CORS_ORIGIN=http://clichy-test.localhost
+      - BETTER_AUTH_URL=http://valtask
+      - CORS_ORIGIN=http://valtask
       - PHOTO_STORAGE_PATH=/data/photos
   - name: clichy-web-config
     literals:
@@ -69,4 +69,4 @@ patches:
     patch: |-
       - op: replace
         path: /spec/rules/0/host
-        value: clichy-test.localhost
+        value: valtask

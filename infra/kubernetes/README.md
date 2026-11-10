@@ -66,13 +66,15 @@ exécutés depuis la racine du dépôt :
 
 ```bash
 ./infra/kubernetes/scripts/install-helm.sh
+./infra/kubernetes/scripts/configure-lan-access.sh
 ./infra/kubernetes/scripts/install-monitoring.sh
 ```
 
-Le second script installe `kube-prometheus-stack` dans le namespace
-`monitoring`, avec des valeurs adaptées à un petit cluster, puis applique le
-dashboard, les règles et le `ServiceMonitor` Clichy. La version Helm est fixée
-à `93.1.1` ; pour en choisir une autre, définir
+`configure-lan-access.sh` ajoute les entrypoints Grafana/Headlamp au Traefik
+fourni par K3s. `install-monitoring.sh` installe `kube-prometheus-stack` dans
+le namespace `monitoring`, avec des valeurs adaptées à un petit cluster, puis
+applique le dashboard, les règles et le `ServiceMonitor` Clichy. La version
+Helm est fixée à `93.1.1` ; pour en choisir une autre, définir
 `PROMETHEUS_STACK_CHART_VERSION` avant l'exécution. Si une release
 `prometheus-stack` existe déjà, le script s'arrête pour éviter d'écraser ses
 valeurs silencieusement. Après avoir examiné `helm get values prometheus-stack
@@ -81,7 +83,9 @@ valeurs silencieusement. Après avoir examiné `helm get values prometheus-stack
 
 Headlamp est facultatif. Il offre une interface d'administration Kubernetes,
 mais son compte a des droits d'administration sur les namespaces Clichy. Ne
-pas exposer son service sur Internet :
+pas exposer son service sur Internet. L'accès temporaire via Tailscale est
+décrit dans la section [Accès de test par Tailscale](#accès-de-test-par-tailscale) ;
+le port-forward local reste disponible :
 
 ```bash
 ./infra/kubernetes/scripts/install-headlamp.sh
@@ -91,6 +95,68 @@ kubectl port-forward -n headlamp svc/headlamp 4466:80
 Ouvrir `http://localhost:4466`. Des instructions détaillées sur Headlamp, le
 monitoring et le dépannage sont également dans
 [`administrator_headlamp_guide.md`](./administrator_headlamp_guide.md).
+
+## Accès de test par Tailscale
+
+L'overlay Test est configuré pour le nom Tailscale `valtask`. Depuis un client
+connecté au même tailnet, vérifier que le nom résout vers le serveur :
+
+```bash
+tailscale ping valtask
+getent hosts valtask
+```
+
+Le nom doit pointer vers l'adresse Tailscale du serveur (actuellement
+`100.108.232.50`). Si MagicDNS n'est pas activé, activer MagicDNS dans le
+tailnet ou ajouter temporairement cette entrée au fichier `hosts` du client :
+
+```text
+100.108.232.50 valtask
+```
+
+Configurer les deux ports additionnels sur le Traefik intégré à K3s, une seule
+fois. Le script affiche le contexte courant et demande confirmation avant de
+modifier le cluster :
+
+```bash
+./infra/kubernetes/scripts/configure-lan-access.sh
+```
+
+Le script applique un `HelmChartConfig` au chart Traefik de K3s et attend son
+redémarrage. Puis installer ou mettre à jour les Ingress correspondants :
+
+```bash
+./infra/kubernetes/scripts/install-monitoring.sh
+./infra/kubernetes/scripts/install-headlamp.sh
+```
+
+Les services sont alors accessibles par ces URL depuis le tailnet :
+
+| Service | URL |
+| --- | --- |
+| Clichy Test | `http://valtask` |
+| Grafana | `http://valtask:3000` |
+| Headlamp | `http://valtask:4466` |
+
+Le header de l'application contient temporairement des liens vers Grafana et
+Headlamp. Ces liens ciblent le nom `valtask`; ils ne sont pas destinés à un
+déploiement public ou à un futur domaine Cloudflare.
+
+Les ports Traefik `80`, `3000` et `4466` sont publiés par le ServiceLB K3s sur
+les interfaces du nœud, pas uniquement sur `tailscale0`. Ne pas configurer de
+redirection de ports sur le routeur. Si UFW est actif et bloque les connexions
+entrantes par défaut, autoriser uniquement l'interface Tailscale :
+
+```bash
+sudo ufw allow in on tailscale0 to any port 80 proto tcp comment 'Clichy Test via Tailscale'
+sudo ufw allow in on tailscale0 to any port 3000 proto tcp comment 'Grafana via Tailscale'
+sudo ufw allow in on tailscale0 to any port 4466 proto tcp comment 'Headlamp via Tailscale'
+```
+
+Vérifier également les ACL du tailnet. Le trafic HTTP reste chiffré dans le
+tunnel Tailscale. Headlamp est une interface d'administration et Grafana ne
+doit pas conserver de mot de passe par défaut si d'autres utilisateurs peuvent
+atteindre le serveur.
 
 ## 3. Préparer les secrets d'un namespace
 
@@ -178,17 +244,17 @@ Ne pas utiliser `db:push` pour initialiser une base persistante ; voir le guide
 
 ## Accès au réseau local et futur tunnel
 
-L'Ingress K3s utilise Traefik et des hôtes de développement, par exemple
-`clichy-test.localhost`. Depuis un autre ordinateur, `localhost` désigne cet
-ordinateur et non le serveur. Pour un essai LAN, utiliser une entrée DNS locale
-ou un nom résolu vers l'adresse LAN du serveur, puis remplacer l'hôte de
-l'Ingress et `BETTER_AUTH_URL`/`CORS_ORIGIN` dans l'overlay correspondant.
+L'overlay Dev conserve `clichy.localhost`, qui est utile seulement depuis
+l'ordinateur où tourne le navigateur ou via une entrée `hosts` configurée.
+L'overlay Test utilise le nom Tailscale `valtask` ; voir la section
+[Accès de test par Tailscale](#accès-de-test-par-tailscale). `localhost`
+depuis un autre ordinateur désigne cet ordinateur et non le serveur.
 
 Le dépôt ne configure pas Cloudflare Tunnel. Pour l'étape ultérieure, faire
 pointer le tunnel vers l'Ingress Traefik et mettre à jour ensemble le nom
 d'hôte, les URL d'authentification/CORS et le TLS selon le mode retenu. Ne pas
-exposer les ports `6443` (Kubernetes), `5432` (PostgreSQL), `9090` (Prometheus)
-ou `4466` (Headlamp) à Internet.
+exposer les ports `6443` (Kubernetes), `5432` (PostgreSQL), `9090` (Prometheus),
+`3000` (Grafana) ou `4466` (Headlamp) à Internet.
 
 ## Vérifications et accès aux outils
 
