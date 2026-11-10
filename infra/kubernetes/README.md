@@ -85,7 +85,8 @@ Headlamp est facultatif. Il offre une interface d'administration Kubernetes,
 mais son compte a des droits d'administration sur les namespaces Clichy. Ne
 pas exposer son service sur Internet. L'accès temporaire via Tailscale est
 décrit dans la section [Accès de test par Tailscale](#accès-de-test-par-tailscale) ;
-le port-forward local reste disponible :
+le script crée au besoin les namespaces Dev et Test avant leurs RoleBindings.
+Le port-forward local reste disponible :
 
 ```bash
 ./infra/kubernetes/scripts/install-headlamp.sh

@@ -12,6 +12,8 @@ for command_name in helm kubectl; do
 done
 
 kubectl get nodes
+kubectl apply -f "$ROOT_DIR/infra/kubernetes/overlays/dev/namespace.yaml"
+kubectl apply -f "$ROOT_DIR/infra/kubernetes/overlays/test/namespace.yaml"
 kubectl apply -k "$ROOT_DIR/infra/kubernetes/headlamp"
 helm repo add headlamp https://kubernetes-sigs.github.io/headlamp/ --force-update
 helm repo update headlamp
