@@ -42,12 +42,12 @@ L'idée n'est pas simplement de stocker ses photos ailleurs, mais de disposer d'
 - **Déploiement :** images OCI construites avec Docker par GitHub Actions,
   publiées dans GHCR et exécutées sur K3s avec Traefik.
 - **Administration et monitoring :** Headlamp, Prometheus et Grafana.
-- **Accès distant actuel :** Tailscale, privé au tailnet.
+- **Accès :** Test et administration privés via LAN/Tailscale ; Prod via
+  Cloudflare Tunnel à `https://valtask.xyz`.
 
-Redis, BullMQ et Cloudflare Tunnel ne font pas partie du déploiement actuel.
-Cloudflare Tunnel est une étape envisagée, mais n'est pas configurée par ce
-dépôt. L'application n'est pas destinée à être accessible publiquement dans
-l'état présent.
+Redis et BullMQ ne font pas partie du déploiement actuel. Cloudflare Tunnel
+est configuré extérieurement au dépôt pour l'accès public de production ;
+aucun service d'administration n'est exposé par ce tunnel.
 
 ## Démarrage local
 
@@ -97,5 +97,7 @@ Le guide d'installation complet pour Ubuntu Server, K3s, Tailscale, Traefik,
 Helm, le runner GitHub Actions, le stockage, le monitoring et le dépannage se
 trouve dans [infra/kubernetes/README.md](./infra/kubernetes/README.md).
 
-Le dépôt décrit les déploiements `dev`, `test` et un overlay `prod` encore
-incomplet. Le workflow CI déploie uniquement Test dans `clichy-test`.
+Les environnements `dev`, `test` et `prod` ont des overlays distincts. Dev
+reste local, Test est privé sur `valtask` et le manifeste Prod cible
+`https://valtask.xyz`. Le workflow CI déploie automatiquement Test ; Prod
+n'est pas encore automatisé et nécessite une procédure manuelle approuvée.

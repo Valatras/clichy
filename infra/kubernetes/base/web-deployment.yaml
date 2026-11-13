@@ -3,6 +3,7 @@ kind: Deployment
 metadata:
   name: clichy-web
 spec:
+  revisionHistoryLimit: 2
   selector:
     matchLabels:
       app: clichy-web

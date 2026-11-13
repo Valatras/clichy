@@ -85,8 +85,8 @@ jobs:
           build-args: |
             VITE_SERVER_URL=http://localhost:3000
 
-  deploy:
-    name: Deploy to local Kubernetes
+  deploy-test:
+    name: Deploy to Test on valtask
     runs-on: [self-hosted, linux]
     needs: [ci, package]
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
@@ -108,6 +108,17 @@ jobs:
 
       - name: Install database workspace dependencies
         run: pnpm install --frozen-lockfile --filter @clichy/db...
+
+      - name: Verify the valtask cluster
+        run: |
+          set -euo pipefail
+          node_names="$(kubectl get nodes \
+            --output=jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}')"
+          if [[ "$node_names" != "valtask" ]]; then
+            printf 'Refusing to deploy Test: expected the single node valtask, got:\n%s\n' \
+              "$node_names" >&2
+            exit 1
+          fi
 
       - name: Apply database migrations to Test
         # Migrate before deploying code that may require the new schema.
@@ -152,6 +163,7 @@ jobs:
 
       - name: Apply Kubernetes manifests
         run: |
+          set -euo pipefail
           kubectl apply -k infra/kubernetes/monitoring
           for app in server web; do
             deployment="clichy-${app}"
@@ -166,16 +178,11 @@ jobs:
                 --create-annotation=true
             fi
           done
-          kubectl apply -k infra/kubernetes/overlays/test
-
-      - name: Update workloads to the published images
-        run: |
-          kubectl set image deployment/clichy-server \
-            server=ghcr.io/valatras/clichy-server:sha-${GITHUB_SHA} \
-            --namespace=clichy-test
-          kubectl set image deployment/clichy-web \
-            web=ghcr.io/valatras/clichy-web:sha-${GITHUB_SHA} \
-            --namespace=clichy-test
+          kubectl kustomize infra/kubernetes/overlays/test |
+            sed \
+              -e "s|ghcr.io/valatras/clichy-server:test|ghcr.io/valatras/clichy-server:sha-${GITHUB_SHA}|g" \
+              -e "s|ghcr.io/valatras/clichy-web:test|ghcr.io/valatras/clichy-web:sha-${GITHUB_SHA}|g" |
+            kubectl apply -f -
 
       - name: Wait for deployments to roll out
         run: |

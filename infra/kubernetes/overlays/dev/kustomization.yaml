@@ -23,28 +23,8 @@ replicas:
   - name: clichy-server
     count: 1
   - name: clichy-web
-    count: 2
+    count: 1
 patches:
-  - target:
-      group: apps
-      version: v1
-      kind: Deployment
-      name: clichy-server
-    patch: |-
-      - op: add
-        path: /spec/template/spec/imagePullSecrets
-        value:
-          - name: ghcr-pull-secret
-  - target:
-      group: apps
-      version: v1
-      kind: Deployment
-      name: clichy-web
-    patch: |-
-      - op: add
-        path: /spec/template/spec/imagePullSecrets
-        value:
-          - name: ghcr-pull-secret
   - target:
       group: networking.k8s.io
       version: v1

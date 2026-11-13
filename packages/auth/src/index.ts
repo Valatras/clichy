@@ -13,6 +13,8 @@ export function createAuth(
   database: Database,
   desktopOrigins: readonly string[] = [],
 ) {
+  const secureCookies = new URL(env.BETTER_AUTH_URL).protocol === "https:";
+
   return betterAuth({
     database: prismaAdapter(database, {
       provider: "postgresql",
@@ -23,8 +25,8 @@ export function createAuth(
     baseURL: env.BETTER_AUTH_URL,
     advanced: {
       defaultCookieAttributes: {
-        sameSite: "none",
-        secure: true,
+        sameSite: secureCookies ? "none" : "lax",
+        secure: secureCookies,
         httpOnly: true,
       },
     },

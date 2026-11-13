@@ -3,6 +3,7 @@ kind: Deployment
 metadata:
   name: clichy-server
 spec:
+  revisionHistoryLimit: 2
   selector:
     matchLabels:
       app: clichy-server

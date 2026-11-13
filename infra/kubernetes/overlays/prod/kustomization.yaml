@@ -8,22 +8,24 @@ configMapGenerator:
   - name: clichy-server-config
     literals:
       - NODE_ENV=production
-      - BETTER_AUTH_URL=https://clichy.example.com
-      - CORS_ORIGIN=https://clichy.example.com
+      - BETTER_AUTH_URL=https://valtask.xyz
+      - CORS_ORIGIN=https://valtask.xyz
       - PHOTO_STORAGE_PATH=/data/photos
   - name: clichy-web-config
     literals:
       - NODE_ENV=production
 images:
   - name: clichy-server
-    newTag: prod
+    newName: ghcr.io/valatras/clichy-server
+    newTag: sha-REPLACE_WITH_TESTED_GIT_SHA
   - name: clichy-web
-    newTag: prod
+    newName: ghcr.io/valatras/clichy-web
+    newTag: sha-REPLACE_WITH_TESTED_GIT_SHA
 replicas:
   - name: clichy-server
     count: 1
   - name: clichy-web
-    count: 2
+    count: 1
 patches:
   - target:
       group: apps
@@ -32,9 +34,42 @@ patches:
       name: clichy-server
     patch: |-
       - op: add
+        path: /spec/template/spec/securityContext
+        value:
+          runAsNonRoot: true
+          runAsUser: 10001
+          runAsGroup: 2000
+          supplementalGroups:
+            - 1000
+      - op: add
+        path: /spec/template/spec/containers/0/securityContext
+        value:
+          allowPrivilegeEscalation: false
+      - op: add
         path: /spec/template/spec/imagePullSecrets
         value:
           - name: ghcr-pull-secret
+      - op: replace
+        path: /spec/template/spec/containers/0/env/0/valueFrom/secretKeyRef/name
+        value: clichy-prod-secrets
+      - op: replace
+        path: /spec/template/spec/containers/0/env/1/valueFrom/secretKeyRef/name
+        value: clichy-prod-secrets
+  - target:
+      group: apps
+      version: v1
+      kind: StatefulSet
+      name: clichy-postgres
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/env/0/valueFrom/secretKeyRef/name
+        value: clichy-prod-secrets
+      - op: replace
+        path: /spec/template/spec/containers/0/env/1/valueFrom/secretKeyRef/name
+        value: clichy-prod-secrets
+      - op: replace
+        path: /spec/template/spec/containers/0/env/2/valueFrom/secretKeyRef/name
+        value: clichy-prod-secrets
   - target:
       group: apps
       version: v1
@@ -53,43 +88,4 @@ patches:
     patch: |-
       - op: replace
         path: /spec/rules/0/host
-        value: clichy.example.com
-  - target:
-      group: networking.k8s.io
-      version: v1
-      kind: Ingress
-      name: clichy-web
-    patch: |-
-      - op: add
-        path: /spec/tls
-        value:
-          - hosts:
-              - clichy.example.com
-            secretName: clichy-prod-tls
-  - target:
-      group: apps
-      version: v1
-      kind: Deployment
-      name: clichy-server
-    patch: |-
-      - op: replace
-        path: /spec/template/spec/containers/0/imagePullPolicy
-        value: Always
-  - target:
-      group: apps
-      version: v1
-      kind: Deployment
-      name: clichy-web
-    patch: |-
-      - op: replace
-        path: /spec/template/spec/containers/0/imagePullPolicy
-        value: Always
-  - target:
-      group: apps
-      version: v1
-      kind: StatefulSet
-      name: clichy-postgres
-    patch: |-
-      - op: replace
-        path: /spec/volumeClaimTemplates/0/spec/resources/requests/storage
-        value: 50Gi
+        value: valtask.xyz

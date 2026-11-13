@@ -1,35 +1,149 @@
 # Installer et exploiter Clichy sur Ubuntu Server
 
-Ce guide décrit le déploiement privé utilisé pour Clichy : un hôte Ubuntu
-Server 24.04 LTS nommé `valtask`, K3s mono-nœud, Traefik fourni par K3s, Helm,
-Tailscale, un runner GitHub Actions auto-hébergé et GHCR. Les informations
-propres à `valtask` (notamment le LV de 30 GB monté sur `/srv/clichy`).
+Ce guide décrit l'infrastructure Clichy : un hôte Ubuntu Server 24.04 LTS
+nommé `valtask`, K3s mono-nœud, Traefik fourni par K3s, Helm, Tailscale, un
+runner GitHub Actions auto-hébergé et GHCR. Test et l'administration sont
+privés ; Prod passe par Cloudflare Tunnel. Les informations propres à
+`valtask` (notamment le LV de 30 GB monté sur `/srv/clichy`).
 
 ## État fonctionnel et limites
 
+| Environnement | Namespace et machine | Hostname / accès |
+| --- | --- | --- |
+| Dev | `clichy-dev`, cluster Kubernetes local uniquement | `http://clichy.localhost` |
+| Test | `clichy-test`, serveur `valtask` | `http://clichy-test.home.arpa`, LAN/Tailscale uniquement |
+| Prod | `clichy-prod`, serveur `valtask` | `https://valtask.xyz`, Internet via Cloudflare Tunnel |
+
 | Composant | État dans le dépôt |
 | --- | --- |
-| Clichy Test et PostgreSQL dans `clichy-test` | Déployés par le workflow sur un push `master` |
-| Ingress Clichy | Hôte `valtask`, entrypoint Traefik `web` (port 80) |
+| Test et PostgreSQL | Déploiement automatique après succès CI sur `master` |
+| Prod | Manifest prêt, aucun déploiement automatique activé |
 | Grafana | Ingress privé Tailscale, port 3000, entrypoint `grafana` |
 | Headlamp | Ingress privé Tailscale dans `headlamp`, port 4466, entrypoint `headlamp` |
 | Prometheus | Service interne au cluster ; pas d'Ingress |
-| K3s API et PostgreSQL | Non publiés par Ingress |
-| `dev` | Overlay disponible, pas de déploiement automatisé |
-| `prod` | Overlay d'exemple seulement ; domaine et TLS fictifs, ne pas déployer |
-| Cloudflare Tunnel | Projeté, non configuré |
+| K3s API, PostgreSQL, monitoring et administration | Privés, non publiés par l'Ingress public |
+| Cloudflare Tunnel | Configuré hors dépôt pour router vers Traefik `web` |
 
-Les URL de service sont réservées aux clients connectés au tailnet :
+Les namespaces sont des frontières d'isolation logique, pas des machines ou
+des clusters différents. Test et Prod ont chacun leur StatefulSet PostgreSQL,
+leurs Secrets et leurs PVC propres dans leur namespace.
 
-| Service | URL |
+Les URL privées de service sont réservées aux clients connectés au LAN ou au
+tailnet :
+
+| Service privé | URL |
 | --- | --- |
-| Clichy Test | `http://valtask` |
+| Clichy Test | `http://clichy-test.home.arpa` |
 | Grafana | `http://valtask:3000` |
 | Headlamp | `http://valtask:4466` |
 
-Ce sont des URL HTTP internes au tailnet, pas des adresses Internet publiques.
-Le header de Clichy comporte actuellement des liens temporaires vers Grafana
-et Headlamp.
+Test et les outils d'administration ne sont accessibles que depuis le LAN ou
+Tailscale. Le DNS privé doit résoudre `clichy-test.home.arpa` vers `valtask`.
+Prod est accessible publiquement à `https://valtask.xyz`. Cloudflare termine
+HTTPS en amont et le tunnel transmet HTTP à Traefik sur l'entrypoint `web`.
+`www.valtask.xyz` ne sert pas une seconde application ; configurer sa
+redirection vers `https://valtask.xyz` dans Cloudflare.
+
+## Déployer les environnements
+
+### Dev — cluster local uniquement
+
+Le workflow GitHub ne déploie jamais Dev. Avant toute commande Kubernetes,
+vérifier le contexte actif et les nœuds : ne pas exécuter ces commandes avec
+le contexte K3s de `valtask`.
+
+```bash
+kubectl config current-context
+kubectl get nodes -o wide
+```
+
+Construire les images `clichy-server:dev` et `clichy-web:dev` localement, puis
+les charger dans le runtime du cluster utilisé :
+
+```bash
+docker build -f infra/docker_clichy_server/Dockerfile -t clichy-server:dev .
+docker build -f infra/docker_clichy_web/Dockerfile \
+  --build-arg VITE_SERVER_URL=http://clichy.localhost \
+  -t clichy-web:dev .
+kind load docker-image clichy-server:dev clichy-web:dev
+# ou, pour Minikube :
+minikube image load clichy-server:dev clichy-web:dev
+```
+
+Une fois les images présentes dans le cluster local, créer les identifiants
+de développement locaux et appliquer l'overlay :
+
+```bash
+kubectl apply -f infra/kubernetes/server_secrets.yaml
+kubectl apply -k infra/kubernetes/overlays/dev
+```
+
+Les URL Better Auth/CORS sont `http://clichy.localhost`, l'API utilise
+`NODE_ENV=development` et aucun Secret GHCR n'est requis. Le frontend reste une
+image compilée en mode production. Le fichier `server_secrets.yaml` est réservé
+au namespace Dev ; ne jamais le copier vers Test ou Prod. Accéder à l'Ingress
+depuis le poste local après avoir configuré le cluster pour exposer Traefik
+localement.
+
+### Test — valtask, privé
+
+La CI applique Test automatiquement après CI et publication des images sur un
+push `master`; les images appliquées portent `sha-<GITHUB_SHA>`. Le hostname
+est `clichy-test.home.arpa`, à résoudre uniquement par DNS LAN/Tailscale.
+L'Ingress conserve `/api/auth`, `/photos` et le frontend `/`. `BETTER_AUTH_URL`
+et `CORS_ORIGIN` sont tous deux `http://clichy-test.home.arpa`. Test n'utilise
+pas de host public ni de règle Cloudflare. Préparer séparément ses Secrets
+`clichy-server-secrets` et `ghcr-pull-secret` avec
+`prepare-namespace.sh test`; ne pas les réutiliser en Prod.
+
+Better Auth et Fastify approuvent cette origine exacte. Les attributs des
+cookies suivent le schéma de `BETTER_AUTH_URL` : HTTP utilise `SameSite=Lax`
+sans `Secure`, tandis que HTTPS utilise `SameSite=None; Secure`.
+
+### Prod — valtask, approbation manuelle requise
+
+L'overlay `prod` cible uniquement `valtask.xyz` via Traefik `web`, sans TLS
+Secret Kubernetes. Cloudflare termine le HTTPS public et transmet du HTTP au
+tunnel/Traefik. Il ne contient pas de règle `www` : effectuer cette redirection
+vers `https://valtask.xyz` avec une règle Cloudflare.
+
+Aucun job de déploiement Prod n'est activé dans la CI. Avant de l'activer,
+configurer un GitHub Environment `production` avec approbateurs requis et
+déclencher la promotion manuellement. Elle doit sélectionner le même SHA
+complet (`sha-<40 caractères hexadécimaux>`) actuellement validé/déployé en
+Test, migrer la base Prod avec cette version avant de déployer son application,
+puis attendre les rollouts. Ne pas ajouter de déploiement automatique sur
+`master`.
+
+Avant le premier déploiement, créer dans `clichy-prod` un Secret distinct
+`clichy-prod-secrets` avec les clés `DATABASE_URL`, `BETTER_AUTH_SECRET`,
+`POSTGRES_DB`, `POSTGRES_USER` et `POSTGRES_PASSWORD`, et un
+`ghcr-pull-secret` propre à Prod. Le `DATABASE_URL` doit viser
+`clichy-postgres:5432` dans ce namespace. Générer les credentials indépendamment
+de Test, les injecter depuis un gestionnaire de secrets et ne pas les committer
+ni afficher dans les logs. Les deux tags `newTag` de l'overlay doivent être
+remplacés par le SHA Git exact approuvé en Test avant toute application.
+
+Vérifier l'état réel de `valtask` avant l'application. L'ancien overlay Prod
+demandait `50Gi` pour le volume PostgreSQL ; le nouvel overlay reprend la
+demande `10Gi` de la base. Si un StatefulSet ou un PVC Prod existe déjà, ne pas
+appliquer avant d'avoir comparé la taille et planifié la migration : un
+`volumeClaimTemplate` existant est immuable et un PVC ne doit pas être recréé
+pour réduire sa capacité.
+
+```bash
+kubectl get statefulset,pvc -n clichy-prod -o wide
+kubectl get pv -o wide
+kubectl describe node valtask
+kubectl top node valtask
+df -h /srv/clichy /var/lib/rancher/k3s/storage
+```
+
+L'overlay demande une seule réplique de chaque application et PostgreSQL,
+conserve les requêtes/limites ainsi que les sondes du Deployment de base, et
+utilise les PVC de 10Gi par défaut pour PostgreSQL et les photos. Prod n'a pas
+d'HPA. Vérifier la capacité, les sauvegardes, les secrets et la stratégie de
+migration ci-dessous avant d'autoriser la première promotion.
 
 ## Installation sur un Ubuntu Server neuf
 
@@ -314,7 +428,9 @@ Le workflow utilise deux types de runner :
   Buildx y construit les images et le `GITHUB_TOKEN` avec la permission
   `packages: write` les publie dans GHCR.
 - `deploy` s'exécute uniquement sur push vers `master`, avec les labels
-  `self-hosted` et `linux`. Il utilise Node.js 24, pnpm, `kubectl` et le
+  `self-hosted` et `linux`. Avant toute migration ou application, le workflow
+  vérifie que le cluster n'a qu'un nœud nommé `valtask`. Il utilise Node.js 24,
+  pnpm, `kubectl` et le
   kubeconfig pour appliquer les migrations à Test puis déployer les deux
   images.
 
@@ -375,7 +491,7 @@ de code de pull request non fiable sur ce runner et ne pas exécuter le service
 runner comme root. Les pull requests du workflow sont traitées par les runners
 hébergés.
 
-Aucun secret GitHub supplémentaire n'est référencé par le workflow actuel.
+Le workflow de déploiement Test ne référence aucun Secret GitHub additionnel.
 `GITHUB_TOKEN` est fourni automatiquement pour GHCR ; le jeton GHCR de lecture
 est conservé dans `ghcr-pull-secret` Kubernetes. Sur le serveur, vérifier que
 le runner apparaît **Idle/Online** dans GitHub et que son compte peut exécuter :
@@ -403,12 +519,13 @@ kubectl get deployments,pods,pvc,ingress -n clichy-test -o wide
 kubectl get hpa -n clichy-test
 kubectl rollout status deployment/clichy-server -n clichy-test
 kubectl rollout status deployment/clichy-web -n clichy-test
-curl -fsS -I http://valtask/
+curl -fsS -I http://clichy-test.home.arpa/
 ```
 
-Les `dev` et `prod` ne sont pas déployés par ce workflow. Le script manuel
-`deploy.sh` accepte uniquement `dev` ou `test` et ne réalise pas les
-migrations ; pour Test, laisser le workflow gérer les migrations.
+Dev n'est jamais déployé par ce workflow. Prod ne possède pas encore de job de
+déploiement. Le script manuel `deploy.sh` n'accepte que Test et un tag SHA Git
+complet ; il ne réalise pas les migrations. Pour Test, laisser le workflow
+gérer les migrations.
 
 ## Traefik, Ingress et vérification des URL
 
@@ -420,17 +537,18 @@ kubectl get ingress -n monitoring -o yaml
 kubectl get ingress -n headlamp -o yaml
 ```
 
-Le résultat attendu est Clichy `clichy-web` dans `clichy-test` sur `web`,
+Le résultat attendu est Clichy Test `clichy-web` dans `clichy-test` sur `web`,
 Grafana dans `monitoring` sur `grafana`, et Headlamp `headlamp-lan` dans
-`headlamp` sur `headlamp`. Headlamp et son Service partagent le namespace
-`headlamp`.
+`headlamp` sur `headlamp`. L'Ingress de Prod, lorsqu'il sera appliqué, utilise
+également l'entrypoint `web` et un host distinct `valtask.xyz`. Headlamp et son
+Service partagent le namespace `headlamp`.
 
 Depuis le serveur ou un client connecté au tailnet :
 
 ```bash
 getent hosts valtask
 tailscale ping valtask
-curl -fsS -I http://valtask/
+curl -fsS -I http://clichy-test.home.arpa/
 curl -fsS http://valtask:3000/api/health
 curl -fsS -I http://valtask:4466/
 ```
@@ -438,6 +556,20 @@ curl -fsS -I http://valtask:4466/
 Le endpoint de santé Grafana permet de vérifier son démarrage. Headlamp peut
 rediriger vers sa page d'authentification. Un HTTP réussi ne signifie pas que
 l'utilisateur est authentifié dans Headlamp/Grafana.
+
+Pour diagnostiquer un Ingress qui ne répond pas, contrôler d'abord le host, la
+règle et son entrypoint, puis les services et endpoints :
+
+```bash
+kubectl describe ingress clichy-web -n clichy-test
+kubectl get services,endpoints -n clichy-test -o wide
+kubectl logs -n kube-system deployment/traefik --tail=100
+curl -v http://clichy-test.home.arpa/
+```
+
+Le host de Test doit seulement résoudre en DNS privé vers `valtask`. Le host
+Prod `valtask.xyz` doit être routé par le tunnel Cloudflare vers le port 80 de
+Traefik ; le tunnel et ses règles DNS ne sont pas gérés par ce dépôt.
 
 Contrôler aussi les règles UFW et leur interface :
 
@@ -490,10 +622,13 @@ provisioner ; son répertoire de base peut différer si K3s a été personnalis�
 Les demandes de capacité sont des demandes Kubernetes et ne constituent pas
 forcément des quotas de fichiers sur le disque local. Pour Test et le
 monitoring, les demandes totalisent déjà environ `32Gi` (PostgreSQL 10, photos
-10, Prometheus 10, Grafana 2), sans compter l'OS. Le LV communiqué de 30 GB ne
-peut donc pas simplement héberger ces volumes sans revoir les tailles, libérer
-de l'espace ou agrandir le stockage. L'ajout d'un namespace Dev rajoute ses
-propres volumes DB/photos.
+10, Prometheus 10, Grafana 2), sans compter l'OS. Prod demande en plus `20Gi`
+(PostgreSQL 10, photos 10), soit environ `52Gi` au total pour Test, Prod et le
+monitoring. Le LV communiqué de 30 GB ne suffit pas à garantir ces demandes ;
+vérifier la capacité réellement disponible sur le chemin `local-path`, réduire
+ou déplacer les données de façon planifiée, ou agrandir le stockage avant
+d'activer Prod. Ne pas réduire des PVC existants par modification de manifest.
+L'ajout d'un namespace Dev rajoute ses propres volumes DB/photos.
 
 Avant d'intégrer `/srv/clichy`, décider du chemin de stockage K3s, de la
 capacité et d'une procédure de migration des PV déjà provisionnés. Changer le
@@ -507,6 +642,31 @@ ne sont pas des sauvegardes et un seul nœud n'offre ni réplication ni haute
 disponibilité. Les métriques historiques Prometheus peuvent être considérées
 séparément ; le dashboard et les règles Clichy sont versionnés dans Git.
 Aucune sauvegarde/restauration applicative automatique n'est fournie.
+
+## ReplicaSets et historique des rollouts
+
+Les Deployments Server/Web déclarent `revisionHistoryLimit: 2`. Kubernetes
+conserve le ReplicaSet actif et jusqu'à deux anciennes révisions pour permettre
+un rollback ; les anciennes révisions à zéro réplique ne sont donc pas des
+erreurs. Le contrôleur nettoie les anciennes révisions au fil des rollouts,
+pas nécessairement dès l'application du nouveau manifeste.
+
+Vérifier la limite, le propriétaire UID et les répliques avant toute conclusion :
+
+```bash
+kubectl get deployments -n clichy-test \
+  -o custom-columns='NAME:.metadata.name,HISTORY:.spec.revisionHistoryLimit,UID:.metadata.uid'
+kubectl get replicasets -n clichy-test \
+  -o custom-columns='NAME:.metadata.name,OWNER:.metadata.ownerReferences[0].name,OWNER-UID:.metadata.ownerReferences[0].uid,DESIRED:.spec.replicas,CURRENT:.status.replicas'
+kubectl get pods -n clichy-test --show-labels
+```
+
+Comparer l'UID `OWNER-UID` au UID du Deployment et vérifier les Pods portant
+les labels du ReplicaSet. Ne supprimer un ReplicaSet que si son ownerReference
+est réellement absent ou invalide, qu'aucun Pod ne lui appartient et qu'il
+n'est pas requis pour un rollback. Pour une ressource précise après ces
+vérifications, examiner d'abord `kubectl describe rs <nom> -n <namespace>`;
+ne pas supprimer en masse les ReplicaSets à zéro réplique.
 
 ## Monitoring et administration
 
@@ -561,6 +721,22 @@ Vérifier les erreurs `ImagePullBackOff` par le Secret GHCR, le statut des PVC,
 les sondes du conteneur, les secrets applicatifs et les événements. Ne pas
 supprimer de PVC/PV pour résoudre un problème de démarrage.
 
+Pour un PVC `Pending` ou un volume non monté, inspecter l'événement et le
+StorageClass avant toute modification :
+
+```bash
+kubectl get pvc -n clichy-test -o wide
+kubectl describe pvc <nom-du-pvc> -n clichy-test
+kubectl get pv -o wide
+kubectl describe pv <nom-du-pv>
+kubectl get storageclass
+```
+
+Ne pas supprimer ni recréer le StatefulSet, son PVC ou un PV pour contourner
+une erreur de stockage. Vérifier les `claimName`, le provisioner `local-path`,
+l'espace disque et les événements ; toute migration ou extension de volume
+doit être planifiée et sauvegardée.
+
 Pour vérifier le runner :
 
 ```bash
@@ -571,13 +747,14 @@ sudo journalctl -u 'actions.runner*' --since '30 minutes ago' --no-pager
 Le nom systemd exact est indiqué par `./svc.sh status`. Vérifier également
 l'état Online/Idle du runner dans les paramètres GitHub du dépôt.
 
-## Cloudflare Tunnel — prévu, pas configuré
+## Cloudflare Tunnel et exposition
 
-Le dépôt ne crée pas de tunnel Cloudflare, d'enregistrement DNS, de nom de
-domaine ou de certificats TLS. Avant une exposition publique éventuelle, il
-faudra choisir le hostname, configurer le TLS et mettre à jour ensemble
-`BETTER_AUTH_URL`, `CORS_ORIGIN`, l'hôte de l'Ingress et le routage du tunnel.
+Cloudflare Tunnel est configuré hors dépôt et doit router uniquement
+`valtask.xyz` vers Traefik sur le port HTTP 80 (`web`). Cloudflare termine
+HTTPS ; aucun certificat ni Secret TLS public n'est requis dans Kubernetes.
+Rediriger `www.valtask.xyz` vers `https://valtask.xyz` au niveau Cloudflare,
+sans ajouter une seconde règle applicative.
 
-Si cette étape est réalisée, n'exposer que l'application après revue de son
-authentification. Grafana, Headlamp, l'API Kubernetes, PostgreSQL, Prometheus
-et Alertmanager doivent rester privés au cluster/tailnet.
+Grafana, Headlamp, Prometheus, Alertmanager, PostgreSQL et l'API Kubernetes
+restent privés au cluster/tailnet. Ne pas ajouter de règle de tunnel ou
+d'Ingress public pour ces services.
