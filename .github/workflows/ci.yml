@@ -163,7 +163,7 @@ jobs:
 
       - name: Apply Kubernetes manifests
         run: |
-          set -euo pipefail
+          set -Eeuo pipefail
           kubectl apply -k infra/kubernetes/monitoring
           for app in server web; do
             deployment="clichy-${app}"
@@ -178,11 +178,41 @@ jobs:
                 --create-annotation=true
             fi
           done
-          kubectl kustomize infra/kubernetes/overlays/test |
-            sed \
-              -e "s|ghcr.io/valatras/clichy-server:test|ghcr.io/valatras/clichy-server:sha-${GITHUB_SHA}|g" \
-              -e "s|ghcr.io/valatras/clichy-web:test|ghcr.io/valatras/clichy-web:sha-${GITHUB_SHA}|g" |
-            kubectl apply -f -
+
+          render_dir="$(mktemp -d "$GITHUB_WORKSPACE/infra/kubernetes/.deploy.XXXXXX")"
+          rendered_file="$render_dir/rendered.yaml"
+          cleanup_render() {
+            rm -f -- "$render_dir/kustomization.yaml" "$rendered_file"
+            rmdir -- "$render_dir"
+          }
+          trap cleanup_render EXIT
+
+          cat >"$render_dir/kustomization.yaml" <<EOF
+          apiVersion: kustomize.config.k8s.io/v1beta1
+          kind: Kustomization
+          resources:
+            - ../overlays/test
+          images:
+            - name: ghcr.io/valatras/clichy-server
+              newTag: sha-${GITHUB_SHA}
+            - name: ghcr.io/valatras/clichy-web
+              newTag: sha-${GITHUB_SHA}
+          EOF
+
+          kubectl kustomize "$render_dir" >"$rendered_file"
+          if grep -Fq 'REPLACE_WITH_TESTED_GIT_SHA' "$rendered_file"; then
+            echo "Rendered Test manifests contain an image SHA placeholder." >&2
+            exit 1
+          fi
+          for image in clichy-server clichy-web; do
+            expected_image="        image: ghcr.io/valatras/${image}:sha-${GITHUB_SHA}"
+            image_count="$(grep -Fxc -- "$expected_image" "$rendered_file" || true)"
+            if [[ "$image_count" != "1" ]]; then
+              echo "Rendered Test manifests must contain exactly one $image image for $GITHUB_SHA." >&2
+              exit 1
+            fi
+          done
+          kubectl apply --filename="$rendered_file"
 
       - name: Wait for deployments to roll out
         run: |

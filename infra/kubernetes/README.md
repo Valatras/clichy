@@ -44,6 +44,27 @@ HTTPS en amont et le tunnel transmet HTTP à Traefik sur l'entrypoint `web`.
 `www.valtask.xyz` ne sert pas une seconde application ; configurer sa
 redirection vers `https://valtask.xyz` dans Cloudflare.
 
+`clichy-test.home.arpa` est un nom privé et n'est pas résolu automatiquement
+par les postes clients. Sur chaque machine cliente, ajoutez au fichier hosts
+la correspondance suivante :
+
+```text
+192.168.129.10 clichy-test.home.arpa
+```
+
+Le fichier est `/etc/hosts` sous Linux/macOS et
+`C:\Windows\System32\drivers\etc\hosts` sous Windows (ouvrez l'éditeur avec
+les droits administrateur). `192.168.129.10` est l'adresse LAN d'exemple
+actuelle de `valtask` ; remplacez-la si l'adresse LAN du serveur change.
+Vérifiez l'accès depuis le poste client avec :
+
+```bash
+curl -I http://clichy-test.home.arpa
+```
+
+Ce hostname est réservé à l'accès privé au LAN/Tailscale. Ne l'ajoutez pas au
+tunnel Cloudflare public.
+
 ## Déployer les environnements
 
 ### Dev — cluster local uniquement
@@ -102,27 +123,134 @@ sans `Secure`, tandis que HTTPS utilise `SameSite=None; Secure`.
 
 ### Prod — valtask, approbation manuelle requise
 
-L'overlay `prod` cible uniquement `valtask.xyz` via Traefik `web`, sans TLS
-Secret Kubernetes. Cloudflare termine le HTTPS public et transmet du HTTP au
-tunnel/Traefik. Il ne contient pas de règle `www` : effectuer cette redirection
-vers `https://valtask.xyz` avec une règle Cloudflare.
+`dev`, `test` et `prod` sont des environnements séparés :
 
-Aucun job de déploiement Prod n'est activé dans la CI. Avant de l'activer,
-configurer un GitHub Environment `production` avec approbateurs requis et
-déclencher la promotion manuellement. Elle doit sélectionner le même SHA
-complet (`sha-<40 caractères hexadécimaux>`) actuellement validé/déployé en
-Test, migrer la base Prod avec cette version avant de déployer son application,
-puis attendre les rollouts. Ne pas ajouter de déploiement automatique sur
-`master`.
+- **Dev** (`clichy-dev`) est réservé au cluster local, aux images construites
+  localement et à `clichy.localhost`.
+- **Test** (`clichy-test`) est le déploiement privé sur `valtask`. Le workflow
+  GitHub Actions le met à jour automatiquement après les vérifications, tests,
+  builds et publication sur un push `master`.
+- **Prod** (`clichy-prod`) est l'environnement public de `valtask.xyz`.
+  Il possède sa propre base PostgreSQL, ses Secrets et ses PVC, et n'est pas
+  déployé automatiquement par la CI.
 
-Avant le premier déploiement, créer dans `clichy-prod` un Secret distinct
-`clichy-prod-secrets` avec les clés `DATABASE_URL`, `BETTER_AUTH_SECRET`,
-`POSTGRES_DB`, `POSTGRES_USER` et `POSTGRES_PASSWORD`, et un
-`ghcr-pull-secret` propre à Prod. Le `DATABASE_URL` doit viser
-`clichy-postgres:5432` dans ce namespace. Générer les credentials indépendamment
-de Test, les injecter depuis un gestionnaire de secrets et ne pas les committer
-ni afficher dans les logs. Les deux tags `newTag` de l'overlay doivent être
-remplacés par le SHA Git exact approuvé en Test avant toute application.
+Les namespaces isolent logiquement les ressources sur le même cluster mono-nœud ;
+ils ne sont pas des clusters séparés. Le workflow `.github/workflows/ci.yml`
+construit les images du serveur et du web avec Docker puis, pour un push sur
+`master`, les publie dans GHCR sous les tags
+`ghcr.io/valatras/clichy-server:sha-<GITHUB_SHA>` et
+`ghcr.io/valatras/clichy-web:sha-<GITHUB_SHA>`. Les pull requests exécutent CI,
+mais ne publient pas ces images.
+
+Promouvez en Prod le SHA complet d'un commit dont le déploiement Test a réussi,
+pas simplement la tête actuelle de `master`. Cette vérification garantit que
+les images de ce commit sont disponibles dans GHCR et que la version exacte
+a déjà passé le déploiement Test. Aucun job de déploiement Prod n'est activé
+dans la CI ; la promotion est une commande manuelle approuvée.
+
+#### Préparer les Secrets de Prod
+
+Créez d'abord le namespace puis stockez les valeurs dans un fichier local
+protégé, ou faites écrire ce fichier par votre gestionnaire de secrets. Ne
+placez jamais ces valeurs dans Git, dans cette documentation ou dans les logs :
+
+```bash
+kubectl apply -f infra/kubernetes/overlays/prod/namespace.yaml
+install -d -m 700 "$HOME/.config/clichy"
+umask 077
+${EDITOR:-vi} "$HOME/.config/clichy/prod-secrets.env"
+chmod 600 "$HOME/.config/clichy/prod-secrets.env"
+```
+
+Le fichier doit contenir exactement les clés nécessaires (avec des valeurs
+réelles fournies localement) : `BETTER_AUTH_SECRET`, `DATABASE_URL`,
+`POSTGRES_DB`, `POSTGRES_USER` et `POSTGRES_PASSWORD`. Le `DATABASE_URL` doit
+utiliser les mêmes identifiants que `POSTGRES_USER` et `POSTGRES_PASSWORD`,
+viser `clichy-postgres:5432` et la base `POSTGRES_DB` dans `clichy-prod`. Encodez
+les caractères spéciaux du mot de passe pour une URL PostgreSQL. Créez ou
+mettez à jour le Secret sans afficher son contenu :
+
+```bash
+set -o pipefail
+kubectl create secret generic clichy-prod-secrets \
+  --namespace=clichy-prod \
+  --from-env-file="$HOME/.config/clichy/prod-secrets.env" \
+  --dry-run=client -o yaml |
+  kubectl apply -f -
+```
+
+Créez également un jeton GitHub limité à `read:packages`. Le fichier Docker
+local suivant est protégé et n'est pas commité ; `docker login` lit le jeton
+sur stdin :
+
+```bash
+install -d -m 700 "$HOME/.config/clichy/docker"
+read -r -p "GHCR username: " GHCR_USERNAME
+read -r -s -p "GHCR token with read:packages: " GHCR_TOKEN
+printf '\n'
+printf '%s' "$GHCR_TOKEN" |
+  docker --config "$HOME/.config/clichy/docker" login ghcr.io \
+    --username "$GHCR_USERNAME" --password-stdin
+unset GHCR_TOKEN
+chmod 600 "$HOME/.config/clichy/docker/config.json"
+kubectl create secret generic ghcr-pull-secret \
+  --namespace=clichy-prod \
+  --type=kubernetes.io/dockerconfigjson \
+  --from-file=.dockerconfigjson="$HOME/.config/clichy/docker/config.json" \
+  --dry-run=client -o yaml |
+  kubectl apply -f -
+```
+
+Vérifiez les noms/types et les clés sans afficher aucune valeur :
+
+```bash
+kubectl describe secret clichy-prod-secrets -n clichy-prod
+kubectl describe secret ghcr-pull-secret -n clichy-prod
+```
+
+`clichy-prod-secrets` doit montrer les cinq clés listées ci-dessus ;
+`ghcr-pull-secret` doit être de type
+`kubernetes.io/dockerconfigjson` et contenir `.dockerconfigjson`. Le script
+refuse de déployer si un Secret, une clé ou le type du Secret GHCR manque.
+
+#### Déployer et vérifier Prod
+
+Utilisez le même SHA de 40 caractères hexadécimaux qui a déjà été déployé avec
+succès en Test. Le script applique uniquement l'overlay Prod après vérification
+des prérequis, fixe les deux images sur ce SHA, attend le rollout serveur/web,
+puis affiche les Deployments, Pods, PVC et Ingress :
+
+```bash
+./infra/kubernetes/scripts/deploy.sh prod sha-<40-character-git-sha>
+```
+
+Remplacez l'exemple par le SHA réel ; le script demande une confirmation avant
+de modifier le cluster. Pour Test, le même script accepte
+`./infra/kubernetes/scripts/deploy.sh test sha-<40-character-git-sha>`, mais
+la CI reste le chemin de déploiement normal et conserve sa migration préalable.
+
+Après le déploiement, vérifiez également PostgreSQL et l'Ingress :
+
+```bash
+kubectl rollout status statefulset/clichy-postgres -n clichy-prod --timeout=300s
+kubectl get deployments,statefulsets,pods,pvc,ingress -n clichy-prod -o wide
+kubectl describe ingress clichy-web -n clichy-prod
+curl -I https://valtask.xyz
+```
+
+Le script `deploy.sh` ne lance pas de migration Prisma. Appliquez les migrations
+Prod avec la version approuvée avant de promouvoir un changement de schéma ;
+ne réutilisez jamais les credentials de Test. Le Cloudflare Tunnel existant
+transmet uniquement le trafic public de `valtask.xyz` vers Traefik HTTP sur le
+port 80 (`web`), où Cloudflare termine HTTPS. Ne publiez pas Grafana, Headlamp,
+PostgreSQL ni les interfaces de gestion Kubernetes dans le tunnel.
+
+L'Ingress de Prod cible `valtask.xyz` sur l'entrypoint Traefik `web`, sans
+Secret TLS Kubernetes. Une réponse `404` de Traefik signifie souvent que le
+hostname ne correspond à aucune règle : contrôlez que l'Ingress `clichy-web`
+est bien dans `clichy-prod` et que son host est exactement `valtask.xyz`.
+Contrôlez aussi que le tunnel Cloudflare transmet vers le port 80 de Traefik.
+Ne modifiez pas l'Ingress de Test pour résoudre un problème de host Prod.
 
 Vérifier l'état réel de `valtask` avant l'application. L'ancien overlay Prod
 demandait `50Gi` pour le volume PostgreSQL ; le nouvel overlay reprend la
@@ -522,10 +650,10 @@ kubectl rollout status deployment/clichy-web -n clichy-test
 curl -fsS -I http://clichy-test.home.arpa/
 ```
 
-Dev n'est jamais déployé par ce workflow. Prod ne possède pas encore de job de
-déploiement. Le script manuel `deploy.sh` n'accepte que Test et un tag SHA Git
-complet ; il ne réalise pas les migrations. Pour Test, laisser le workflow
-gérer les migrations.
+Dev n'est jamais déployé par ce workflow. Aucun job Prod n'est activé ; le
+script manuel `deploy.sh` accepte Test ou Prod et un tag SHA Git complet, mais
+ne réalise pas les migrations. Pour Test, laisser le workflow gérer les
+migrations.
 
 ## Traefik, Ingress et vérification des URL
 
@@ -539,9 +667,9 @@ kubectl get ingress -n headlamp -o yaml
 
 Le résultat attendu est Clichy Test `clichy-web` dans `clichy-test` sur `web`,
 Grafana dans `monitoring` sur `grafana`, et Headlamp `headlamp-lan` dans
-`headlamp` sur `headlamp`. L'Ingress de Prod, lorsqu'il sera appliqué, utilise
-également l'entrypoint `web` et un host distinct `valtask.xyz`. Headlamp et son
-Service partagent le namespace `headlamp`.
+`headlamp` sur `headlamp`. L'Ingress de Prod, une fois déployé, utilise
+l'entrypoint `web` et le host distinct `valtask.xyz`. Headlamp et son Service
+partagent le namespace `headlamp`.
 
 Depuis le serveur ou un client connecté au tailnet :
 
