@@ -32,15 +32,34 @@ Le dépôt contient une migration initiale dans `prisma/migrations/`. Vérifier
 que toute nouvelle base applique bien l'ensemble des migrations versionnées.
 
 Les environnements persistants appliquent uniquement les migrations
-commitées :
+commitées. Depuis la racine du dépôt, l'assistant d'exploitation sélectionne
+le Secret, le Service et la base attendus, ouvre un port-forward limité à
+`127.0.0.1`, puis exécute la commande Prisma :
 
 ```bash
-pnpm --filter @clichy/db db:migrate:deploy
+./infra/kubernetes/scripts/migrate.sh test deploy
+./infra/kubernetes/scripts/migrate.sh prod deploy
 ```
 
-Le workflow GitHub Actions exécute cette commande sur Test avant le rollout.
-Une migration ajoutée doit être compatible avec les données et le code déjà
-déployés ; ne pas utiliser `db:push` ou `db:reset` sur Test/Prod.
+`deploy.sh` appelle ce script avant d'appliquer les manifests, et le workflow
+GitHub Actions utilise le même chemin pour Test puis Production. La commande
+directe `pnpm --filter @clichy/db db:migrate:deploy` est réservée à une
+exécution contrôlée où `DATABASE_URL` a été sélectionnée explicitement ; ne
+laissez jamais Prisma retomber sur une URL locale.
+
+Pour inspecter l'état sans appliquer de migration :
+
+```bash
+./infra/kubernetes/scripts/migrate.sh test status
+./infra/kubernetes/scripts/migrate.sh prod status
+```
+
+`prisma migrate status` peut retourner un code non nul si des migrations sont
+en attente ; cette commande est informative et n'est pas utilisée pour décider
+si le déploiement CI doit réussir. L'application réelle utilise
+`prisma migrate deploy` et son code de sortie. Une migration ajoutée doit être
+compatible avec les données et le code déjà déployés ; ne pas utiliser
+`db:push` ou `db:reset` sur Test/Prod.
 
 ## Autres commandes
 

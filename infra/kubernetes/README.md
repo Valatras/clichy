@@ -16,8 +16,8 @@ privés ; Prod passe par Cloudflare Tunnel. Les informations propres à
 
 | Composant | État dans le dépôt |
 | --- | --- |
-| Test et PostgreSQL | Déploiement automatique après succès CI sur `master` |
-| Prod | Manifest prêt, aucun déploiement automatique activé |
+| Test et PostgreSQL | Après CI/package sur `master`, migration puis déploiement par le runner |
+| Prod | Après succès du déploiement Test et approbation de l'environnement GitHub `production` |
 | Grafana | Ingress privé Tailscale, port 3000, entrypoint `grafana` |
 | Headlamp | Ingress privé Tailscale dans `headlamp`, port 4466, entrypoint `headlamp` |
 | Prometheus | Service interne au cluster ; pas d'Ingress |
@@ -131,8 +131,8 @@ sans `Secure`, tandis que HTTPS utilise `SameSite=None; Secure`.
   GitHub Actions le met à jour automatiquement après les vérifications, tests,
   builds et publication sur un push `master`.
 - **Prod** (`clichy-prod`) est l'environnement public de `valtask.xyz`.
-  Il possède sa propre base PostgreSQL, ses Secrets et ses PVC, et n'est pas
-  déployé automatiquement par la CI.
+  Il possède sa propre base PostgreSQL, ses Secrets et ses PVC ; le workflow le
+  déploie après Test et après approbation de l'environnement GitHub `production`.
 
 Les namespaces isolent logiquement les ressources sur le même cluster mono-nœud ;
 ils ne sont pas des clusters séparés. Le workflow `.github/workflows/ci.yml`
@@ -145,8 +145,27 @@ mais ne publient pas ces images.
 Promouvez en Prod le SHA complet d'un commit dont le déploiement Test a réussi,
 pas simplement la tête actuelle de `master`. Cette vérification garantit que
 les images de ce commit sont disponibles dans GHCR et que la version exacte
-a déjà passé le déploiement Test. Aucun job de déploiement Prod n'est activé
-dans la CI ; la promotion est une commande manuelle approuvée.
+a déjà passé le déploiement Test. Le job Prod ne s'exécute que pour un push sur
+`master`, attend le succès de Test et utilise l'environnement GitHub protégé
+`production`. Configurez-y des approbateurs obligatoires et limitez les branches
+de déploiement à `master` avant d'activer le workflow. Les pull requests ne
+déploient jamais sur le runner.
+
+Le runner installe les dépendances du workspace `@clichy/db` depuis le commit
+exact déployé, puis `scripts/deploy.sh` appelle
+`scripts/migrate.sh <environment> deploy` avant d'appliquer les manifests.
+L'image de l'application n'est pas une image de migration : le Dockerfile
+serveur ne copie pas explicitement les migrations Prisma ni la CLI Prisma dans
+son image d'exécution. Le runner utilise donc le schéma et les migrations
+versionnés dans le checkout.
+
+Les namespaces isolent aussi les bases : Test utilise le Secret
+`clichy-server-secrets`, le Service `clichy-postgres` dans `clichy-test` et la
+base `clichy_test`. Prod utilise `clichy-prod-secrets`, le Service
+`clichy-postgres` dans `clichy-prod` et la base `clichy_prod`. Le nom de Service
+est identique mais les objets et les endpoints sont isolés par namespace. Le
+script valide la base attendue à partir du `DATABASE_URL` sans afficher cette
+valeur et n'utilise jamais une URL locale de repli.
 
 #### Préparer les Secrets de Prod
 
@@ -155,6 +174,7 @@ protégé, ou faites écrire ce fichier par votre gestionnaire de secrets. Ne
 placez jamais ces valeurs dans Git, dans cette documentation ou dans les logs :
 
 ```bash
+set -euo pipefail
 kubectl apply -f infra/kubernetes/overlays/prod/namespace.yaml
 install -d -m 700 "$HOME/.config/clichy"
 umask 077
@@ -171,7 +191,7 @@ les caractères spéciaux du mot de passe pour une URL PostgreSQL. Créez ou
 mettez à jour le Secret sans afficher son contenu :
 
 ```bash
-set -o pipefail
+set -euo pipefail
 kubectl create secret generic clichy-prod-secrets \
   --namespace=clichy-prod \
   --from-env-file="$HOME/.config/clichy/prod-secrets.env" \
@@ -184,6 +204,7 @@ local suivant est protégé et n'est pas commité ; `docker login` lit le jeton
 sur stdin :
 
 ```bash
+set -euo pipefail
 install -d -m 700 "$HOME/.config/clichy/docker"
 read -r -p "GHCR username: " GHCR_USERNAME
 read -r -s -p "GHCR token with read:packages: " GHCR_TOKEN
@@ -216,16 +237,18 @@ refuse de déployer si un Secret, une clé ou le type du Secret GHCR manque.
 #### Déployer et vérifier Prod
 
 Utilisez le même SHA de 40 caractères hexadécimaux qui a déjà été déployé avec
-succès en Test. Le script applique uniquement l'overlay Prod après vérification
-des prérequis, fixe les deux images sur ce SHA, attend le rollout serveur/web,
-puis affiche les Deployments, Pods, PVC et Ingress :
+succès en Test. `deploy.sh` applique les migrations Prod en premier, arrête
+sur toute erreur, puis applique l'overlay avec les deux images fixées sur ce
+SHA et attend les rollouts serveur/web. Il affiche ensuite les Deployments,
+Pods, PVC et Ingress :
 
 ```bash
 ./infra/kubernetes/scripts/deploy.sh prod sha-<40-character-git-sha>
 ```
 
-Remplacez l'exemple par le SHA réel ; le script demande une confirmation avant
-de modifier le cluster. Pour Test, le même script accepte
+Checkout d'abord le commit SHA approuvé : le script refuse un tag qui ne
+correspond pas à `git rev-parse HEAD`. En usage manuel, il demande ensuite une
+confirmation avant de modifier le cluster. Pour Test, le même script accepte
 `./infra/kubernetes/scripts/deploy.sh test sha-<40-character-git-sha>`, mais
 la CI reste le chemin de déploiement normal et conserve sa migration préalable.
 
@@ -238,12 +261,50 @@ kubectl describe ingress clichy-web -n clichy-prod
 curl -I https://valtask.xyz
 ```
 
-Le script `deploy.sh` ne lance pas de migration Prisma. Appliquez les migrations
-Prod avec la version approuvée avant de promouvoir un changement de schéma ;
-ne réutilisez jamais les credentials de Test. Le Cloudflare Tunnel existant
-transmet uniquement le trafic public de `valtask.xyz` vers Traefik HTTP sur le
-port 80 (`web`), où Cloudflare termine HTTPS. Ne publiez pas Grafana, Headlamp,
-PostgreSQL ni les interfaces de gestion Kubernetes dans le tunnel.
+`deploy.sh` exécute les migrations avant toute application de l'overlay. Le
+même script est utilisé par le workflow sans terminal avec la confirmation
+explicite `CLICHY_DEPLOY_CONFIRM=yes`. Le Cloudflare Tunnel existant transmet uniquement
+le trafic public de `valtask.xyz` vers Traefik HTTP sur le port 80 (`web`), où
+Cloudflare termine HTTPS. Ne publiez pas Grafana, Headlamp, PostgreSQL ni les
+interfaces de gestion Kubernetes dans le tunnel.
+
+Pour inspecter manuellement les migrations sans les appliquer :
+
+```bash
+./infra/kubernetes/scripts/migrate.sh test status
+./infra/kubernetes/scripts/migrate.sh prod status
+```
+
+Le script affiche l'environnement, le namespace, le Secret, le Service et le
+nom de base attendu, sans afficher `DATABASE_URL`. Il vérifie que l'URL de Test
+cible `clichy_test` et celle de Prod cible `clichy_prod`. La commande Prisma
+`migrate status` peut renvoyer un code non nul si des migrations sont en attente ;
+elle est informative et n'est pas utilisée pour faire échouer le pipeline.
+L'application effective utilise `prisma migrate deploy` et son code de sortie.
+Pour appliquer des migrations seules, sans déployer l'application :
+
+```bash
+./infra/kubernetes/scripts/migrate.sh test deploy
+./infra/kubernetes/scripts/migrate.sh prod deploy
+```
+
+En cas d'échec, consulter la sortie du job GitHub Actions et vérifier les Pods,
+événements et journaux PostgreSQL sans afficher les Secrets :
+
+```bash
+kubectl get pods,events -n clichy-prod --sort-by=.metadata.creationTimestamp
+kubectl logs statefulset/clichy-postgres -n clichy-prod --all-containers --tail=100
+kubectl rollout history deployment/clichy-server -n clichy-prod
+kubectl rollout history deployment/clichy-web -n clichy-prod
+kubectl describe secret clichy-prod-secrets -n clichy-prod
+```
+
+Une migration en échec bloque l'application des nouveaux manifests ; corriger
+la migration ou les prérequis puis relancer le déploiement. Si les migrations
+ont réussi mais que le rollout échoue, inspecter l'historique et la compatibilité
+du schéma avant toute décision de rollback applicatif. Ne pas utiliser
+`prisma migrate reset`, `prisma db push` ni supprimer PVC/PV pour récupérer une
+base persistante.
 
 L'Ingress de Prod cible `valtask.xyz` sur l'entrypoint Traefik `web`, sans
 Secret TLS Kubernetes. Une réponse `404` de Traefik signifie souvent que le
@@ -555,12 +616,11 @@ Le workflow utilise deux types de runner :
 - `ci` et `package` s'exécutent sur `ubuntu-latest` hébergé par GitHub. Docker
   Buildx y construit les images et le `GITHUB_TOKEN` avec la permission
   `packages: write` les publie dans GHCR.
-- `deploy` s'exécute uniquement sur push vers `master`, avec les labels
-  `self-hosted` et `linux`. Avant toute migration ou application, le workflow
-  vérifie que le cluster n'a qu'un nœud nommé `valtask`. Il utilise Node.js 24,
-  pnpm, `kubectl` et le
-  kubeconfig pour appliquer les migrations à Test puis déployer les deux
-  images.
+- `deploy-test` et `deploy-prod` s'exécutent uniquement après un push vers
+  `master`, avec les labels `self-hosted` et `linux`. Le workflow vérifie le
+  commit checkouté et que le cluster n'a qu'un nœud nommé `valtask`. Node.js 24,
+  pnpm, `kubectl` et le kubeconfig du runner servent à migrer puis déployer
+  Test ; Prod attend ensuite l'approbation du GitHub Environment `production`.
 
 Docker n'est pas requis sur le serveur : K3s utilise `containerd`, et le job de
 déploiement ne construit pas d'image.
@@ -619,10 +679,11 @@ de code de pull request non fiable sur ce runner et ne pas exécuter le service
 runner comme root. Les pull requests du workflow sont traitées par les runners
 hébergés.
 
-Le workflow de déploiement Test ne référence aucun Secret GitHub additionnel.
-`GITHUB_TOKEN` est fourni automatiquement pour GHCR ; le jeton GHCR de lecture
-est conservé dans `ghcr-pull-secret` Kubernetes. Sur le serveur, vérifier que
-le runner apparaît **Idle/Online** dans GitHub et que son compte peut exécuter :
+Les jobs de déploiement ne nécessitent pas de Secret GitHub de base de données.
+`GITHUB_TOKEN` est fourni automatiquement pour publier les images GHCR ; les
+Secrets DB sont lus dans le namespace visé et le jeton GHCR de lecture reste dans
+`ghcr-pull-secret` Kubernetes. Sur le serveur, vérifier que le runner apparaît
+**Idle/Online** dans GitHub et que son compte peut exécuter :
 
 ```bash
 kubectl config current-context
@@ -635,9 +696,11 @@ kubectl get service clichy-postgres -n clichy-test
 
 Le dépôt contient une migration Prisma initiale. À chaque push vers `master`,
 le workflow exécute les vérifications/tests/build, publie les images
-`sha-<commit>` à GHCR, applique `prisma migrate deploy` sur Test via un
-port-forward local, applique les manifests, met à jour les images et attend
-les rollouts du serveur et du web.
+`sha-<commit>` à GHCR, vérifie que le runner a checkouté le même SHA, puis
+exécute `deploy.sh` pour chaque environnement. Le script applique d'abord
+`prisma migrate deploy` via un port-forward temporaire sur `127.0.0.1`, puis
+applique les manifests avec le même SHA et attend les rollouts. Test doit
+réussir avant que le job Production puisse attendre l'approbation.
 
 Une fois le runner en ligne, pousser une révision validée sur `master`, puis
 consulter **Actions → Clichy CI/CD**. Sur le serveur :
@@ -650,10 +713,13 @@ kubectl rollout status deployment/clichy-web -n clichy-test
 curl -fsS -I http://clichy-test.home.arpa/
 ```
 
-Dev n'est jamais déployé par ce workflow. Aucun job Prod n'est activé ; le
-script manuel `deploy.sh` accepte Test ou Prod et un tag SHA Git complet, mais
-ne réalise pas les migrations. Pour Test, laisser le workflow gérer les
-migrations.
+Dev n'est jamais déployé par ce workflow. Le job Prod est limité aux pushs
+`master`, dépend du succès de Test et utilise
+l'environnement `production`. Configurez cet environnement dans
+**Settings → Environments** avec approbateurs obligatoires et une règle de
+branche `master`. Pour une exécution manuelle contrôlée, `deploy.sh` accepte
+Test ou Prod et un tag SHA complet ; il applique également les migrations avant
+le déploiement.
 
 ## Traefik, Ingress et vérification des URL
 

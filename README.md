@@ -99,5 +99,9 @@ trouve dans [infra/kubernetes/README.md](./infra/kubernetes/README.md).
 
 Les environnements `dev`, `test` et `prod` ont des overlays distincts. Dev
 reste local, Test est privé sur `valtask` et le manifeste Prod cible
-`https://valtask.xyz`. Le workflow CI déploie automatiquement Test ; Prod
-n'est pas encore automatisé et nécessite une procédure manuelle approuvée.
+`https://valtask.xyz`. Sur un push validé vers `master`, le workflow déploie
+Test puis attend l'approbation de l'environnement GitHub `production` avant
+d'appliquer les migrations et de déployer le même SHA en Prod.
+
+L'incident de migration Prod résolu et les consignes de récupération sont
+consignés dans [docs/operations/known-issues.md](./docs/operations/known-issues.md).

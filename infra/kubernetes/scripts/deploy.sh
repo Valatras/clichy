@@ -2,6 +2,7 @@
 set -Eeuo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../.." && pwd)"
+SCRIPT_DIR="$ROOT_DIR/infra/kubernetes/scripts"
 
 usage() {
   echo "Usage: $0 test|prod sha-<40-character-git-sha>" >&2
@@ -28,8 +29,16 @@ if [[ ! "$IMAGE_TAG" =~ ^sha-[[:xdigit:]]{40}$ ]]; then
   exit 2
 fi
 
-if ! command -v kubectl >/dev/null 2>&1; then
-  die "kubectl is required but was not found in PATH."
+for command_name in git kubectl; do
+  if ! command -v "$command_name" >/dev/null 2>&1; then
+    die "Required command '$command_name' was not found in PATH."
+  fi
+done
+
+checked_out_sha="$(git -C "$ROOT_DIR" rev-parse HEAD)" ||
+  die "Could not determine the checked-out Git commit."
+if [[ "$IMAGE_TAG" != "sha-${checked_out_sha}" ]]; then
+  die "Image tag '$IMAGE_TAG' must match the checked-out commit sha-${checked_out_sha}."
 fi
 
 NAMESPACE="clichy-${ENVIRONMENT}"
@@ -47,10 +56,16 @@ if [[ "$node_names" != "valtask" ]]; then
 fi
 
 echo "Deploy $IMAGE_TAG to $NAMESPACE (context $context)."
-read -r -p "Continue? [y/N] " answer
-if [[ ! "$answer" =~ ^[Yy]$ ]]; then
-  echo "Deployment cancelled."
-  exit 1
+if [[ "${CLICHY_DEPLOY_CONFIRM:-}" == "yes" ]]; then
+  echo "Using explicit non-interactive deployment confirmation."
+else
+  if ! read -r -p "Continue? [y/N] " answer; then
+    die "Could not read deployment confirmation."
+  fi
+  if [[ ! "$answer" =~ ^[Yy]$ ]]; then
+    echo "Deployment cancelled."
+    exit 1
+  fi
 fi
 
 if [[ "$ENVIRONMENT" == "prod" ]]; then
@@ -96,6 +111,10 @@ if [[ "$ENVIRONMENT" == "prod" ]]; then
   if [[ "$pull_secret_type" != "kubernetes.io/dockerconfigjson" ]]; then
     die "Secret 'ghcr-pull-secret' in namespace '$NAMESPACE' must have type kubernetes.io/dockerconfigjson."
   fi
+fi
+
+if ! "$SCRIPT_DIR/migrate.sh" "$ENVIRONMENT" deploy; then
+  die "Database migration failed for $ENVIRONMENT; application manifests were not applied."
 fi
 
 render_dir="$(mktemp -d "$ROOT_DIR/infra/kubernetes/.deploy.XXXXXX")" ||

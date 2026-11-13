@@ -90,6 +90,9 @@ jobs:
     runs-on: [self-hosted, linux]
     needs: [ci, package]
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    concurrency:
+      group: clichy-test-deployment
+      cancel-in-progress: false
     permissions:
       contents: read
 
@@ -112,6 +115,12 @@ jobs:
       - name: Verify the valtask cluster
         run: |
           set -euo pipefail
+          checked_out_sha="$(git rev-parse HEAD)"
+          if [[ "$checked_out_sha" != "$GITHUB_SHA" ]]; then
+            printf 'Refusing to deploy: checked out %s, expected %s\n' \
+              "$checked_out_sha" "$GITHUB_SHA" >&2
+            exit 1
+          fi
           node_names="$(kubectl get nodes \
             --output=jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}')"
           if [[ "$node_names" != "valtask" ]]; then
@@ -120,50 +129,9 @@ jobs:
             exit 1
           fi
 
-      - name: Apply database migrations to Test
-        # Migrate before deploying code that may require the new schema.
+      - name: Prepare Test monitoring and deployment metadata
         run: |
           set -euo pipefail
-          kubectl port-forward --address 127.0.0.1 \
-            --namespace=clichy-test \
-            service/clichy-postgres 25433:5432 \
-            >"${RUNNER_TEMP}/clichy-test-postgres-port-forward.log" 2>&1 &
-          port_forward_pid=$!
-          trap 'kill "$port_forward_pid" 2>/dev/null || true' EXIT
-
-          for attempt in $(seq 1 30); do
-            if (echo > /dev/tcp/127.0.0.1/25433) >/dev/null 2>&1; then
-              break
-            fi
-            sleep 1
-          done
-          if ! (echo > /dev/tcp/127.0.0.1/25433) >/dev/null 2>&1; then
-            cat "${RUNNER_TEMP}/clichy-test-postgres-port-forward.log"
-            exit 1
-          fi
-
-          DATABASE_URL="$(kubectl get secret clichy-server-secrets \
-            --namespace=clichy-test \
-            --output=json |
-            node -e '
-              let input = "";
-              process.stdin.on("data", (chunk) => input += chunk);
-              process.stdin.on("end", () => {
-                const secret = JSON.parse(input);
-                const url = new URL(
-                  Buffer.from(secret.data.DATABASE_URL, "base64").toString(),
-                );
-                url.hostname = "127.0.0.1";
-                url.port = "25433";
-                process.stdout.write(url.toString());
-              });
-            ')"
-          export DATABASE_URL
-          pnpm --filter @clichy/db exec prisma migrate deploy
-
-      - name: Apply Kubernetes manifests
-        run: |
-          set -Eeuo pipefail
           kubectl apply -k infra/kubernetes/monitoring
           for app in server web; do
             deployment="clichy-${app}"
@@ -179,47 +147,59 @@ jobs:
             fi
           done
 
-          render_dir="$(mktemp -d "$GITHUB_WORKSPACE/infra/kubernetes/.deploy.XXXXXX")"
-          rendered_file="$render_dir/rendered.yaml"
-          cleanup_render() {
-            rm -f -- "$render_dir/kustomization.yaml" "$rendered_file"
-            rmdir -- "$render_dir"
-          }
-          trap cleanup_render EXIT
-
-          cat >"$render_dir/kustomization.yaml" <<EOF
-          apiVersion: kustomize.config.k8s.io/v1beta1
-          kind: Kustomization
-          resources:
-            - ../overlays/test
-          images:
-            - name: ghcr.io/valatras/clichy-server
-              newTag: sha-${GITHUB_SHA}
-            - name: ghcr.io/valatras/clichy-web
-              newTag: sha-${GITHUB_SHA}
-          EOF
-
-          kubectl kustomize "$render_dir" >"$rendered_file"
-          if grep -Fq 'REPLACE_WITH_TESTED_GIT_SHA' "$rendered_file"; then
-            echo "Rendered Test manifests contain an image SHA placeholder." >&2
-            exit 1
-          fi
-          for image in clichy-server clichy-web; do
-            expected_image="        image: ghcr.io/valatras/${image}:sha-${GITHUB_SHA}"
-            image_count="$(grep -Fxc -- "$expected_image" "$rendered_file" || true)"
-            if [[ "$image_count" != "1" ]]; then
-              echo "Rendered Test manifests must contain exactly one $image image for $GITHUB_SHA." >&2
-              exit 1
-            fi
-          done
-          kubectl apply --filename="$rendered_file"
-
-      - name: Wait for deployments to roll out
+      - name: Apply Test migrations and deploy the checked-out SHA
         run: |
-          kubectl rollout status deployment/clichy-server --namespace=clichy-test --timeout=180s
-          kubectl rollout status deployment/clichy-web --namespace=clichy-test --timeout=180s
-
+          CLICHY_DEPLOY_CONFIRM=yes \
+            ./infra/kubernetes/scripts/deploy.sh test "sha-${GITHUB_SHA}"
 
       - name: Show deployment and pod status
         if: always()
-        run: kubectl get deployments,pods --namespace=clichy-test --output=wide
+        run: kubectl get deployments,pods,pvc,ingress --namespace=clichy-test --output=wide
+
+  deploy-prod:
+    name: Deploy to Production on valtask
+    runs-on: [self-hosted, linux]
+    needs: [ci, package, deploy-test]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    environment:
+      name: production
+    concurrency:
+      group: clichy-prod-deployment
+      cancel-in-progress: false
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify the checked-out deployment commit
+        run: |
+          set -euo pipefail
+          checked_out_sha="$(git rev-parse HEAD)"
+          if [[ "$checked_out_sha" != "$GITHUB_SHA" ]]; then
+            printf 'Refusing to deploy: checked out %s, expected %s\n' \
+              "$checked_out_sha" "$GITHUB_SHA" >&2
+            exit 1
+          fi
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install database workspace dependencies
+        run: pnpm install --frozen-lockfile --filter @clichy/db...
+
+      - name: Apply Production migrations and deploy the checked-out SHA
+        run: |
+          CLICHY_DEPLOY_CONFIRM=yes \
+            ./infra/kubernetes/scripts/deploy.sh prod "sha-${GITHUB_SHA}"
+
+      - name: Show Production deployment status
+        if: always()
+        run: kubectl get deployments,pods,pvc,ingress --namespace=clichy-prod --output=wide
