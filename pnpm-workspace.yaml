@@ -6,6 +6,7 @@ allowBuilds:
   "@prisma/client": true
   "@prisma/engines": true
   prisma: true
+  msgpackr-extract: true
 catalog:
   zod: ^4.5.4
   typescript: ^6.0.3

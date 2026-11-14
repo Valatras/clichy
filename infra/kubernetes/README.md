@@ -78,17 +78,19 @@ kubectl config current-context
 kubectl get nodes -o wide
 ```
 
-Construire les images `clichy-server:dev` et `clichy-web:dev` localement, puis
+Construire les images `clichy-server:dev`, `clichy-worker:dev` et
+`clichy-web:dev` localement, puis
 les charger dans le runtime du cluster utilisé :
 
 ```bash
 docker build -f infra/docker_clichy_server/Dockerfile -t clichy-server:dev .
+docker build -f infra/docker_clichy_worker/Dockerfile -t clichy-worker:dev .
 docker build -f infra/docker_clichy_web/Dockerfile \
   --build-arg VITE_SERVER_URL=http://clichy.localhost \
   -t clichy-web:dev .
-kind load docker-image clichy-server:dev clichy-web:dev
+kind load docker-image clichy-server:dev clichy-worker:dev clichy-web:dev
 # ou, pour Minikube :
-minikube image load clichy-server:dev clichy-web:dev
+minikube image load clichy-server:dev clichy-worker:dev clichy-web:dev
 ```
 
 Une fois les images présentes dans le cluster local, créer les identifiants
@@ -136,9 +138,10 @@ sans `Secure`, tandis que HTTPS utilise `SameSite=None; Secure`.
 
 Les namespaces isolent logiquement les ressources sur le même cluster mono-nœud ;
 ils ne sont pas des clusters séparés. Le workflow `.github/workflows/ci.yml`
-construit les images du serveur et du web avec Docker puis, pour un push sur
+construit les images du serveur, du worker et du web avec Docker puis, pour un push sur
 `master`, les publie dans GHCR sous les tags
 `ghcr.io/valatras/clichy-server:sha-<GITHUB_SHA>` et
+`ghcr.io/valatras/clichy-worker:sha-<GITHUB_SHA>` et
 `ghcr.io/valatras/clichy-web:sha-<GITHUB_SHA>`. Les pull requests exécutent CI,
 mais ne publient pas ces images.
 
@@ -158,6 +161,59 @@ L'image de l'application n'est pas une image de migration : le Dockerfile
 serveur ne copie pas explicitement les migrations Prisma ni la CLI Prisma dans
 son image d'exécution. Le runner utilise donc le schéma et les migrations
 versionnés dans le checkout.
+
+### Redis, outbox et worker
+
+Chaque namespace possède son propre Service interne `clichy-redis`, son
+Deployment Redis à une réplique et son PVC `clichy-redis-data` (1 GiB). Redis
+active AOF, limite sa mémoire à 256 MiB et utilise `noeviction`, car une
+éviction arbitraire pourrait perdre des structures BullMQ. Aucun Service
+externe, Ingress, NodePort ou tunnel n'est créé pour Redis. Les clients utilisent
+le DNS namespace-local `clichy-redis:6379`; les paramètres de connexion et de
+retry sont dans le ConfigMap applicatif. Le déploiement fourni n'active pas
+l'authentification Redis; l'isolation repose sur le réseau interne du cluster.
+Le client accepte `REDIS_PASSWORD` et TLS lorsque le Redis cible est configuré
+en conséquence; toute activation d'authentification Kubernetes doit configurer
+la même ACL/Secret côté Redis et côté API/worker sans committer les valeurs.
+
+`clichy-worker` est déployé à une réplique, concurrence 1 par défaut, avec un
+maximum configuré de 2. Il utilise le même Secret PostgreSQL, le même Redis
+namespace-local et monte le PVC `clichy-server-photos` existant à
+`/data/photos`; aucun volume d'originaux séparé n'est créé. Les probes HTTP
+`/live` et `/ready` sont disponibles uniquement sur le Pod, sans Service ou
+Ingress public pour le worker. Le dispatcher d'outbox reste dans l'API; en
+arrêt de Redis, les événements PostgreSQL non publiés sont retentés au prochain
+cycle ou après redémarrage.
+
+Le PVC Redis utilise lui aussi le StorageClass par défaut de K3s. AOF améliore
+la reprise, mais une instance Redis mono-nœud n'est ni hautement disponible ni
+une sauvegarde. En cas de perte du volume Redis, le dispatcher republie les
+outboxes en attente et recrée les événements `PENDING` anciens; les images
+peuvent aussi être remises en file avec le backfill. Vérifier la capacité
+disque et la mémoire Redis avant l'activation en Prod.
+
+Les variables applicatives sont `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`
+(facultatif), `REDIS_DB`, `REDIS_TLS`, `PHOTO_QUEUE_NAME`,
+`PHOTO_JOB_ATTEMPTS` (4), `PHOTO_JOB_BACKOFF_MS` (2000) et
+`PHOTO_WORKER_CONCURRENCY` (1). Les jobs terminés sont purgés au bout de 24 h
+ou après 1000 éléments; les jobs échoués au bout de 7 jours ou après 5000.
+
+Pour diagnostiquer :
+
+```bash
+kubectl get deployments,pods,pvc -n clichy-test
+kubectl logs -n clichy-test deployment/clichy-server --all-containers --tail=100
+kubectl logs -n clichy-test deployment/clichy-worker --all-containers --tail=100
+kubectl logs -n clichy-test deployment/clichy-redis --all-containers --tail=100
+```
+
+Le backfill répare les versions manquantes et remet les photos `FAILED` en
+file. Lancer la commande dans un Pod serveur afin d'utiliser le même stockage :
+
+```bash
+kubectl exec -n clichy-test deployment/clichy-server -- \
+  node dist/scripts/backfill-photos.mjs
+```
 
 Les namespaces isolent aussi les bases : Test utilise le Secret
 `clichy-server-secrets`, le Service `clichy-postgres` dans `clichy-test` et la
@@ -787,6 +843,9 @@ Les manifests actuels utilisent les éléments suivants :
   provient du `volumeClaimTemplates` du StatefulSet.
 - Les fichiers photo sont montés dans le serveur à `/data/photos` depuis le
   PVC `clichy-server-photos`, `ReadWriteOnce`, demande de `10Gi`.
+- Le worker monte le même PVC photo `ReadWriteOnce`; Redis utilise son PVC
+  indépendant `clichy-redis-data`, `ReadWriteOnce`, demande de `1Gi` par
+  namespace.
 - Aucun des deux PVC ne précise `storageClassName`. K3s fournit par défaut le
   StorageClass `local-path`, utilisé pour les volumes locaux du nœud. Ce sont
   des PVC Kubernetes dynamiquement provisionnés, pas des montages explicites
@@ -815,10 +874,10 @@ provisioner ; son répertoire de base peut différer si K3s a été personnalis�
 
 Les demandes de capacité sont des demandes Kubernetes et ne constituent pas
 forcément des quotas de fichiers sur le disque local. Pour Test et le
-monitoring, les demandes totalisent déjà environ `32Gi` (PostgreSQL 10, photos
-10, Prometheus 10, Grafana 2), sans compter l'OS. Prod demande en plus `20Gi`
-(PostgreSQL 10, photos 10), soit environ `52Gi` au total pour Test, Prod et le
-monitoring. Le LV communiqué de 30 GB ne suffit pas à garantir ces demandes ;
+monitoring, les demandes totalisent environ `33Gi` (PostgreSQL 10, photos 10,
+Redis 1, Prometheus 10, Grafana 2), sans compter l'OS. Prod demande en plus
+environ `21Gi` (PostgreSQL 10, photos 10, Redis 1), soit environ `54Gi` au
+total pour Test, Prod et le monitoring. Le LV communiqué de 30 GB ne suffit pas à garantir ces demandes ;
 vérifier la capacité réellement disponible sur le chemin `local-path`, réduire
 ou déplacer les données de façon planifiée, ou agrandir le stockage avant
 d'activer Prod. Ne pas réduire des PVC existants par modification de manifest.

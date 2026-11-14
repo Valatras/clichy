@@ -7,7 +7,7 @@
     "check-types": "tsc --noEmit",
     "compile": "bun build --compile --no-compile-autoload-dotenv --minify --sourcemap --bytecode ./src/index.ts --outfile server",
     "dev": "tsx watch src/index.ts",
-    "test": "tsx --test src/storage.test.ts src/metrics.test.ts src/image-processing.test.ts src/photo-queries.test.ts src/photo-routes.test.ts",
+    "test": "tsx --test src/storage.test.ts src/metrics.test.ts src/image-processing.test.ts src/photo-queries.test.ts src/photo-routes.test.ts src/queues/outbox-dispatcher.test.ts",
     "backfill:photos": "node dist/scripts/backfill-photos.mjs",
     "start": "node dist/index.mjs",
     "env:generate": "varlock codegen",
@@ -16,6 +16,7 @@
   "dependencies": {
     "@clichy/auth": "workspace:*",
     "@clichy/db": "workspace:*",
+    "@clichy/jobs": "workspace:*",
     "@fastify/cors": "^11.3.0",
     "@fastify/multipart": "^10.1.2",
     "@prometheus-io/client": "^0.16.1",

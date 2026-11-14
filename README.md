@@ -37,7 +37,7 @@ L'idée n'est pas simplement de stocker ses photos ailleurs, mais de disposer d'
 ## Technologies
 
 - **Application :** TypeScript, React, React Router, Fastify, Better Auth,
-  Prisma et PostgreSQL.
+  Prisma, PostgreSQL, Redis et BullMQ.
 - **Monorepo :** pnpm et Turborepo.
 - **Déploiement :** images OCI construites avec Docker par GitHub Actions,
   publiées dans GHCR et exécutées sur K3s avec Traefik.
@@ -45,8 +45,10 @@ L'idée n'est pas simplement de stocker ses photos ailleurs, mais de disposer d'
 - **Accès :** Test et administration privés via LAN/Tailscale ; Prod via
   Cloudflare Tunnel à `https://valtask.xyz`.
 
-Redis et BullMQ ne font pas partie du déploiement actuel. Cloudflare Tunnel
-est configuré extérieurement au dépôt pour l'accès public de production ;
+Les uploads sont mis en file via un outbox transactionnel PostgreSQL puis
+traités par un worker TypeScript séparé. Redis/BullMQ reste interne à chaque
+namespace et n'est exposé ni par Traefik ni par Cloudflare Tunnel. Cloudflare
+Tunnel est configuré extérieurement au dépôt pour l'accès public de production ;
 aucun service d'administration n'est exposé par ce tunnel.
 
 ## Démarrage local
@@ -68,7 +70,20 @@ BETTER_AUTH_URL=http://localhost:3000
 CORS_ORIGIN=http://localhost:5173
 DATABASE_URL=postgresql://postgres:password@localhost:5432/clichy?schema=public
 PHOTO_STORAGE_PATH=./data/photos
+REDIS_HOST=127.0.0.1
+REDIS_PORT=6379
+REDIS_DB=0
+REDIS_TLS=false
+PHOTO_QUEUE_NAME=photo-processing
+PHOTO_JOB_ATTEMPTS=4
+PHOTO_JOB_BACKOFF_MS=2000
+PHOTO_WORKER_CONCURRENCY=1
 ```
+
+Créer `apps/worker/.env` avec le même `DATABASE_URL`, les mêmes paramètres
+Redis et un `PHOTO_STORAGE_PATH` résolvant vers le même dossier que l'API
+(par défaut `../server/data/photos` depuis `apps/worker`). Ne pas configurer
+de `REDIS_PASSWORD` localement sauf si Redis est démarré avec une authentification.
 
 Configurer `apps/web/.env` :
 
@@ -78,7 +93,7 @@ VITE_SERVER_URL=http://localhost:3000
 ```
 
 Puis générer le client Prisma, appliquer les migrations locales et démarrer
-l'application :
+l'application (web, API et worker) :
 
 ```bash
 pnpm run db:generate
@@ -90,6 +105,15 @@ L'interface de développement est disponible sur `http://localhost:5173` et
 l'API sur `http://localhost:3000`. Ne pas réutiliser les identifiants Compose
 sur un serveur. Voir les README de [l'API](./apps/server/README.md), du
 [frontend](./apps/web/README.md) et de la [base de données](./packages/db/README.md).
+
+L'API répond `202 Accepted` après avoir enregistré la photo et son événement
+d'outbox dans la même transaction PostgreSQL. Un dispatcher publie ensuite un
+job BullMQ ne contenant que l'identifiant de la photo; le worker lit l'original
+depuis le stockage partagé et met à jour son statut. Le dispatcher retente les
+événements non publiés, et répare périodiquement les statuts `PENDING` ou
+`PROCESSING` abandonnés. La file utilise quatre tentatives avec backoff
+exponentiel à partir de 2 secondes; les images invalides et les originaux
+manquants échouent sans répétition.
 
 ## Infrastructure
 

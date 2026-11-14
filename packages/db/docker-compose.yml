@@ -19,5 +19,28 @@ services:
       retries: 5
     restart: unless-stopped
 
+  redis:
+    image: redis:7.4-alpine
+    container_name: clichy-redis
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --maxmemory
+      - 256mb
+      - --maxmemory-policy
+      - noeviction
+    ports:
+      - "6379:6379"
+    volumes:
+      - clichy_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
 volumes:
   clichy_postgres_data:
+  clichy_redis_data:
