@@ -6,8 +6,8 @@ import { test } from "node:test";
 
 import Fastify from "fastify";
 
-import { FileSystemStorage } from "./storage";
 import type { createPhotoRoutes as createPhotoRoutesType } from "./routes/photos";
+import type { FileSystemStorage as FileSystemStorageType } from "./storage";
 
 process.env.NODE_ENV = "test";
 process.env.BETTER_AUTH_SECRET = "test-secret-with-more-than-thirty-two-characters";
@@ -16,7 +16,10 @@ process.env.CORS_ORIGIN = "http://localhost:5173";
 process.env.DATABASE_URL = "postgresql://test:test@localhost:5432/test";
 process.env.PHOTO_STORAGE_PATH = tmpdir();
 
-const { createPhotoRoutes } = await import("./routes/photos");
+const [{ createPhotoRoutes }, { FileSystemStorage }] = await Promise.all([
+  import("./routes/photos"),
+  import("./storage"),
+]);
 type PhotoRouteDb = Parameters<typeof createPhotoRoutesType>[0]["db"];
 
 function createDb(
@@ -31,7 +34,7 @@ function createDb(
 async function createApp(
   db: PhotoRouteDb,
   getSession: Parameters<typeof createPhotoRoutesType>[0]["getSession"],
-  storage: FileSystemStorage,
+  storage: FileSystemStorageType,
 ) {
   const app = Fastify();
   app.register(createPhotoRoutes({ db, getSession, storage }));

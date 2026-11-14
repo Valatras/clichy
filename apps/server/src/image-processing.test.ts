@@ -102,7 +102,18 @@ test("EXIF date and camera fields are extracted when present", async () => {
 
   assert.equal(metadata.cameraMake, "Clichy test camera");
   assert.equal(metadata.cameraModel, "Fixture");
-  assert.equal(metadata.dateTaken?.toISOString(), "2020-03-04T04:06:07.000Z");
+  assert.ok(metadata.dateTaken);
+  assert.deepEqual(
+    [
+      metadata.dateTaken.getFullYear(),
+      metadata.dateTaken.getMonth(),
+      metadata.dateTaken.getDate(),
+      metadata.dateTaken.getHours(),
+      metadata.dateTaken.getMinutes(),
+      metadata.dateTaken.getSeconds(),
+    ],
+    [2020, 2, 4, 5, 6, 7],
+  );
 });
 
 test("derivatives preserve aspect ratio, do not enlarge, and are idempotent", async (t) => {
