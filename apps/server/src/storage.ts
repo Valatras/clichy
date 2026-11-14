@@ -1,8 +1,23 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
+import {
+  access,
+  mkdir,
+  readFile,
+  rename,
+  unlink,
+  writeFile,
+} from "node:fs/promises";
 import path from "node:path";
 
 import { ENV } from "./env";
+
+export const DERIVATIVE_VARIANTS = {
+  thumbnail: 256,
+  medium: 1024,
+  large: 2048,
+} as const;
+
+export type DerivativeVariant = keyof typeof DERIVATIVE_VARIANTS;
 
 /**
  * Service de stockage des fichiers basé sur le système de fichiers (compatible NFS).
@@ -49,6 +64,47 @@ export class FileSystemStorage {
     return storageKey;
   }
 
+  async saveDerivative(
+    photoId: string,
+    variant: DerivativeVariant,
+    buffer: Buffer,
+  ): Promise<string> {
+    const storageKey = path.join(
+      "derivatives",
+      photoId,
+      `${variant}.webp`,
+    );
+    const directory = path.join(this.rootPath, "derivatives", photoId);
+    const filePath = path.join(this.rootPath, storageKey);
+    const temporaryPath = path.join(
+      directory,
+      `.${variant}-${randomUUID()}.tmp`,
+    );
+
+    await mkdir(directory, { recursive: true });
+    await writeFile(temporaryPath, buffer);
+
+    try {
+      await rename(temporaryPath, filePath);
+    } catch (error) {
+      try {
+        await unlink(temporaryPath);
+      } catch (cleanupError) {
+        throw new AggregateError(
+          [error, cleanupError],
+          "Unable to save or clean up an image derivative",
+        );
+      }
+      throw error;
+    }
+
+    return storageKey;
+  }
+
+  derivativeKey(photoId: string, variant: DerivativeVariant): string {
+    return path.join("derivatives", photoId, `${variant}.webp`);
+  }
+
   /**
    * Lit le contenu binaire d'une photo à partir de sa clé de stockage abstraite.
    * 
@@ -79,10 +135,13 @@ export class FileSystemStorage {
    */
   async exists(storageKey: string): Promise<boolean> {
     try {
-      await readFile(path.join(this.rootPath, storageKey));
+      await access(path.join(this.rootPath, storageKey));
       return true;
-    } catch {
-      return false;
+    } catch (error) {
+      if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+        return false;
+      }
+      throw error;
     }
   }
 }

@@ -1,13 +1,41 @@
+enum ImageProcessingStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
 model Photo {
-  id        String   @id @default(cuid())
-  userId    String
-  filename  String
-  mimeType  String
-  size      Int
-  storageKey String   @unique
-  createdAt DateTime @default(now())
+  id                String                @id @default(cuid())
+  userId            String
+  filename          String
+  mimeType          String
+  size              Int
+  storageKey        String                @unique
+  sha256            String?               @db.VarChar(64)
+  perceptualHash    String?               @db.VarChar(16)
+  imageFormat       String?
+  width             Int?
+  height            Int?
+  orientation       Int?
+  dateTaken         DateTime?
+  cameraMake        String?
+  cameraModel       String?
+  exposureTime      Float?
+  aperture          Float?
+  iso               Int?
+  focalLength       Float?
+  gpsLatitude       Float?
+  gpsLongitude      Float?
+  processingStatus  ImageProcessingStatus @default(PENDING)
+  processingVersion Int?
+  processingError   String?
+  processedAt       DateTime?
+  createdAt         DateTime              @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([userId, sha256])
+  @@index([userId, perceptualHash])
 }

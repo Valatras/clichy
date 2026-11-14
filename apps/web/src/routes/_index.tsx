@@ -7,11 +7,34 @@ type Photo = {
   filename: string;
   mimeType: string;
   size: number;
+  width: number | null;
+  height: number | null;
+  processingStatus: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED";
   createdAt: string;
 };
 
 type LoadedPhoto = Photo & {
   url: string;
+};
+
+type PhotoMetadata = Photo & {
+  imageFormat: string | null;
+  orientation: number | null;
+  dateTaken: string | null;
+  cameraMake: string | null;
+  cameraModel: string | null;
+  exposureTime: number | null;
+  aperture: number | null;
+  iso: number | null;
+  focalLength: number | null;
+  sha256: string | null;
+  processingStatus: Photo["processingStatus"];
+};
+
+type SimilarPhoto = {
+  id: string;
+  filename: string;
+  hammingDistance: number;
 };
 
 export function meta({}: Route.MetaArgs) {
@@ -32,6 +55,15 @@ export default function Home() {
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedPhoto, setSelectedPhoto] = useState<LoadedPhoto | null>(null);
+  const [metadata, setMetadata] = useState<PhotoMetadata | null>(null);
+  const [duplicates, setDuplicates] = useState<Photo[]>([]);
+  const [similarPhotos, setSimilarPhotos] = useState<SimilarPhoto[]>([]);
+  const [duplicatesLoaded, setDuplicatesLoaded] = useState(false);
+  const [similarLoaded, setSimilarLoaded] = useState(false);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [detailsError, setDetailsError] = useState<string | null>(null);
   const [podName, setPodName] = useState<string | null>(null);
   const [podLoading, setPodLoading] = useState(false);
   const [podError, setPodError] = useState<string | null>(null);
@@ -51,29 +83,12 @@ export default function Home() {
 
       const data: Photo[] = await response.json();
 
-      const loadedPhotos = await Promise.all(
-        data.map(async (photo) => {
-          const imageResponse = await fetch(`/photos/${photo.id}`, {
-            credentials: "include",
-          });
-
-          if (!imageResponse.ok) {
-            throw new Error(`Failed to load ${photo.filename}`);
-          }
-
-          const blob = await imageResponse.blob();
-
-          return {
-            ...photo,
-            url: URL.createObjectURL(blob),
-          };
-        }),
+      setPhotos(
+        data.map((photo) => ({
+          ...photo,
+          url: `/photos/${photo.id}/thumbnail/thumbnail`,
+        })),
       );
-
-      setPhotos((previous) => {
-        previous.forEach((photo) => URL.revokeObjectURL(photo.url));
-        return loadedPhotos;
-      });
     } catch (err) {
       console.error(err);
       setError("Unable to load your photos.");
@@ -84,12 +99,80 @@ export default function Home() {
 
   useEffect(() => {
     loadPhotos();
-
-    return () => {
-      photos.forEach((photo) => URL.revokeObjectURL(photo.url));
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  async function showPhotoDetails(photo: LoadedPhoto) {
+    setSelectedPhoto(photo);
+    setMetadata(null);
+    setDuplicates([]);
+    setSimilarPhotos([]);
+    setDuplicatesLoaded(false);
+    setSimilarLoaded(false);
+    setDetailsError(null);
+    setDetailsLoading(true);
+
+    try {
+      const response = await fetch(`/photos/${photo.id}/metadata`, {
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("Unable to load photo metadata.");
+      }
+
+      setMetadata(await response.json());
+    } catch (err) {
+      console.error(err);
+      setDetailsError("Unable to load photo details.");
+    } finally {
+      setDetailsLoading(false);
+    }
+  }
+
+  async function findDuplicates() {
+    if (!selectedPhoto) return;
+
+    setLookupLoading(true);
+    setDetailsError(null);
+
+    try {
+      const response = await fetch(
+        `/photos/${selectedPhoto.id}/duplicates`,
+        { credentials: "include" },
+      );
+      if (!response.ok) throw new Error("Unable to find exact duplicates.");
+      setDuplicates(await response.json());
+      setDuplicatesLoaded(true);
+    } catch (err) {
+      console.error(err);
+      setDetailsError("Unable to find exact duplicates.");
+    } finally {
+      setLookupLoading(false);
+    }
+  }
+
+  async function findSimilarPhotos() {
+    if (!selectedPhoto) return;
+
+    setLookupLoading(true);
+    setDetailsError(null);
+
+    try {
+      const response = await fetch(`/photos/${selectedPhoto.id}/similar`, {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Unable to find similar photos.");
+      const data: { matches: SimilarPhoto[] } = await response.json();
+      setSimilarPhotos(data.matches);
+      setSimilarLoaded(true);
+    } catch (err) {
+      console.error(err);
+      setDetailsError("Unable to find similar photos.");
+    } finally {
+      setLookupLoading(false);
+    }
+  }
 
   async function handleFileChange(
     event: React.ChangeEvent<HTMLInputElement>,
@@ -334,6 +417,10 @@ export default function Home() {
                     <img
                       src={photo.url}
                       alt={photo.filename}
+                      onError={(event) => {
+                        event.currentTarget.onerror = null;
+                        event.currentTarget.src = `/photos/${photo.id}`;
+                      }}
                       className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
                     />
                   </div>
@@ -349,6 +436,20 @@ export default function Home() {
                     <p className="mt-1 text-xs text-muted-foreground">
                       {(photo.size / 1024 / 1024).toFixed(2)} MB
                     </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {photo.processingStatus === "COMPLETED"
+                        ? `${photo.width ?? "?"} × ${photo.height ?? "?"}`
+                        : photo.processingStatus === "FAILED"
+                          ? "Processing failed · original available"
+                          : "Processing image..."}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => showPhotoDetails(photo)}
+                      className="mt-2 text-xs font-medium text-primary hover:underline"
+                    >
+                      Details and matches
+                    </button>
                   </div>
                 </article>
               ))}
@@ -356,6 +457,132 @@ export default function Home() {
           )}
         </div>
       </section>
+
+      {selectedPhoto && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setSelectedPhoto(null);
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="photo-details-title"
+            className="max-h-[90vh] w-full max-w-4xl overflow-auto rounded-xl bg-background p-5 shadow-xl"
+          >
+            <div className="mb-4 flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <h2 id="photo-details-title" className="truncate text-lg font-semibold">
+                  {selectedPhoto.filename}
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  {detailsLoading
+                    ? "Loading metadata..."
+                    : metadata?.processingStatus ?? selectedPhoto.processingStatus}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedPhoto(null)}
+                className="rounded-md border px-3 py-1.5 text-sm hover:bg-muted"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-[minmax(0,1.3fr)_minmax(16rem,1fr)]">
+              <div className="flex min-h-48 items-center justify-center overflow-hidden rounded-lg bg-muted">
+                <img
+                  src={`/photos/${selectedPhoto.id}/thumbnail/medium`}
+                  alt={selectedPhoto.filename}
+                  onError={(event) => {
+                    event.currentTarget.onerror = null;
+                    event.currentTarget.src = `/photos/${selectedPhoto.id}`;
+                  }}
+                  className="max-h-[65vh] max-w-full object-contain"
+                />
+              </div>
+
+              <div className="space-y-4">
+                {metadata && (
+                  <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
+                    <dt className="text-muted-foreground">Dimensions</dt>
+                    <dd>{metadata.width && metadata.height ? `${metadata.width} × ${metadata.height}` : "—"}</dd>
+                    <dt className="text-muted-foreground">Format</dt>
+                    <dd>{metadata.imageFormat ?? metadata.mimeType}</dd>
+                    <dt className="text-muted-foreground">File size</dt>
+                    <dd>{(metadata.size / 1024 / 1024).toFixed(2)} MB</dd>
+                    <dt className="text-muted-foreground">Date taken</dt>
+                    <dd>{metadata.dateTaken ? new Date(metadata.dateTaken).toLocaleString() : "—"}</dd>
+                    <dt className="text-muted-foreground">Camera</dt>
+                    <dd>{[metadata.cameraMake, metadata.cameraModel].filter(Boolean).join(" ") || "—"}</dd>
+                    <dt className="text-muted-foreground">Exposure</dt>
+                    <dd>{metadata.exposureTime ? `${metadata.exposureTime}s` : "—"}</dd>
+                    <dt className="text-muted-foreground">Aperture / ISO</dt>
+                    <dd>{metadata.aperture ? `f/${metadata.aperture}` : "—"}{metadata.iso ? ` · ISO ${metadata.iso}` : ""}</dd>
+                    <dt className="text-muted-foreground">Focal length</dt>
+                    <dd>{metadata.focalLength ? `${metadata.focalLength} mm` : "—"}</dd>
+                  </dl>
+                )}
+
+                {detailsError && <p className="text-sm text-destructive">{detailsError}</p>}
+
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={findDuplicates}
+                    disabled={lookupLoading || metadata?.processingStatus !== "COMPLETED"}
+                    className="rounded-md border px-3 py-2 text-sm hover:bg-muted disabled:opacity-50"
+                  >
+                    Find exact duplicates
+                  </button>
+                  <button
+                    type="button"
+                    onClick={findSimilarPhotos}
+                    disabled={lookupLoading || metadata?.processingStatus !== "COMPLETED"}
+                    className="rounded-md border px-3 py-2 text-sm hover:bg-muted disabled:opacity-50"
+                  >
+                    Find similar photos
+                  </button>
+                </div>
+
+                {duplicatesLoaded && duplicates.length > 0 && (
+                  <div className="text-sm">
+                    <h3 className="font-medium">Exact duplicates ({duplicates.length})</h3>
+                    <ul className="mt-1 list-inside list-disc text-muted-foreground">
+                      {duplicates.map((duplicate) => <li key={duplicate.id}>{duplicate.filename}</li>)}
+                    </ul>
+                  </div>
+                )}
+                {duplicatesLoaded && duplicates.length === 0 && (
+                  <p className="text-sm text-muted-foreground">No exact duplicates found.</p>
+                )}
+                {similarPhotos.length > 0 && (
+                  <div className="text-sm">
+                    <h3 className="font-medium">Visually similar</h3>
+                    <ul className="mt-1 list-inside list-disc text-muted-foreground">
+                      {similarPhotos.map((match) => (
+                        <li key={match.id}>{match.filename} · {match.hammingDistance}/64 bits</li>
+                      ))}
+                    </ul>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Default threshold: 14/64 differing bits; tune via the API for your library.
+                    </p>
+                  </div>
+                )}
+                {similarLoaded && similarPhotos.length === 0 && (
+                  <p className="text-sm text-muted-foreground">No similar photos found.</p>
+                )}
+                {metadata?.sha256 && (
+                  <p className="break-all text-xs text-muted-foreground">SHA-256: {metadata.sha256}</p>
+                )}
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
     </main>
   );
 }
