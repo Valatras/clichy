@@ -407,6 +407,72 @@ export function createPhotoRoutes({
         }
       },
     );
+
+    fastify.delete<{ Params: { id: string } }>(
+      "/photos/:id",
+      async (request, reply) => {
+        const session = await getSession(request);
+
+        if (!session) {
+          return reply.status(401).send({ error: "Unauthorized" });
+        }
+
+        const photo = await db.photo.findFirst({
+          where: ownedPhotoWhere(request.params.id, session.user.id),
+          select: {
+            id: true,
+            storageKey: true,
+            processingStatus: true,
+          },
+        });
+
+        if (!photo) {
+          return reply.status(404).send({ error: "Photo not found" });
+        }
+
+        if (photo.processingStatus === "PROCESSING") {
+          return reply.status(409).send({
+            error: "Photo processing is still in progress",
+          });
+        }
+
+        try {
+          await storage.deletePhotoAssets(
+            session.user.id,
+            photo.id,
+            photo.storageKey,
+          );
+        } catch (error) {
+          request.log.error(
+            { err: error, photoId: photo.id },
+            "Unable to clean up photo files",
+          );
+          return reply.status(500).send({
+            error: "Unable to remove the photo files; retry the deletion",
+          });
+        }
+
+        try {
+          const result = await db.photo.deleteMany({
+            where: { id: photo.id, userId: session.user.id },
+          });
+
+          if (result.count === 0) {
+            return reply.status(404).send({ error: "Photo not found" });
+          }
+        } catch (error) {
+          request.log.error(
+            { err: error, photoId: photo.id },
+            "Photo files removed but database record deletion failed",
+          );
+          return reply.status(500).send({
+            error: "Photo files were removed, but the library record could not be deleted; retry the deletion",
+          });
+        }
+
+        return reply.status(204).send();
+      },
+    );
   };
 
   return photoRoutes;

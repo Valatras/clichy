@@ -8,11 +8,8 @@ import z from "zod";
 
 import { authClient } from "@/lib/auth-client";
 
-import Loader from "./loader";
-
 export default function SignInForm({ onSwitchToSignUp }: { onSwitchToSignUp: () => void }) {
   const navigate = useNavigate();
-  const { isPending } = authClient.useSession();
 
   const form = useForm({
     defaultValues: {
@@ -27,8 +24,8 @@ export default function SignInForm({ onSwitchToSignUp }: { onSwitchToSignUp: () 
         },
         {
           onSuccess: () => {
-            navigate("/dashboard");
-            toast.success("Sign in successful");
+            navigate("/", { replace: true });
+            toast.success("Welcome back");
           },
           onError: (error) => {
             toast.error(error.error.message || error.error.statusText);
@@ -44,37 +41,34 @@ export default function SignInForm({ onSwitchToSignUp }: { onSwitchToSignUp: () 
     },
   });
 
-  if (isPending) {
-    return <Loader />;
-  }
-
   return (
-    <div className="mx-auto w-full mt-10 max-w-md p-6">
-      <h1 className="mb-6 text-center text-3xl font-bold">Welcome Back</h1>
-
+    <div>
       <form
         onSubmit={(e) => {
           e.preventDefault();
           e.stopPropagation();
           form.handleSubmit();
         }}
-        className="space-y-4"
+        className="space-y-5"
       >
         <div>
           <form.Field name="email">
             {(field) => (
               <div className="space-y-2">
-                <Label htmlFor={field.name}>Email</Label>
+                <Label htmlFor={field.name}>Email address</Label>
                 <Input
                   id={field.name}
                   name={field.name}
                   type="email"
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                  className="h-11 rounded-lg bg-background px-3 text-sm"
                   value={field.state.value}
                   onBlur={field.handleBlur}
                   onChange={(e) => field.handleChange(e.target.value)}
                 />
                 {field.state.meta.errors.map((error) => (
-                  <p key={error?.message} className="text-red-500">
+                  <p key={error?.message} role="alert" className="text-sm text-destructive">
                     {error?.message}
                   </p>
                 ))}
@@ -92,12 +86,14 @@ export default function SignInForm({ onSwitchToSignUp }: { onSwitchToSignUp: () 
                   id={field.name}
                   name={field.name}
                   type="password"
+                  autoComplete="current-password"
+                  className="h-11 rounded-lg bg-background px-3 text-sm"
                   value={field.state.value}
                   onBlur={field.handleBlur}
                   onChange={(e) => field.handleChange(e.target.value)}
                 />
                 {field.state.meta.errors.map((error) => (
-                  <p key={error?.message} className="text-red-500">
+                  <p key={error?.message} role="alert" className="text-sm text-destructive">
                     {error?.message}
                   </p>
                 ))}
@@ -110,20 +106,21 @@ export default function SignInForm({ onSwitchToSignUp }: { onSwitchToSignUp: () 
           selector={(state) => ({ canSubmit: state.canSubmit, isSubmitting: state.isSubmitting })}
         >
           {({ canSubmit, isSubmitting }) => (
-            <Button type="submit" className="w-full" disabled={!canSubmit || isSubmitting}>
-              {isSubmitting ? "Submitting..." : "Sign In"}
+            <Button
+              type="submit"
+              className="h-11 w-full rounded-lg text-sm"
+              disabled={!canSubmit || isSubmitting}
+            >
+              {isSubmitting ? "Signing in..." : "Sign in"}
             </Button>
           )}
         </form.Subscribe>
       </form>
 
-      <div className="mt-4 text-center">
-        <Button
-          variant="link"
-          onClick={onSwitchToSignUp}
-          className="text-indigo-600 hover:text-indigo-800"
-        >
-          Need an account? Sign Up
+      <div className="mt-6 border-t border-border/70 pt-5 text-center text-sm text-muted-foreground">
+        New to Clichy?{" "}
+        <Button variant="link" onClick={onSwitchToSignUp} className="h-auto p-0 text-sm">
+          Create an account
         </Button>
       </div>
     </div>

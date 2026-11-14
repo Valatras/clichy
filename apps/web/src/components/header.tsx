@@ -1,55 +1,22 @@
-import { NavLink } from "react-router";
-
-import { buttonVariants } from "@clichy/ui/components/button";
-
+import { Link } from "react-router";
 import { ModeToggle } from "./mode-toggle";
 import UserMenu from "./user-menu";
+import { BrandLogo } from "./brand-logo";
 
 export default function Header() {
-  const links = [
-    { to: "/", label: "Home" },
-    { to: "/dashboard", label: "Dashboard" },
-  ] as const;
-
   return (
-    <div>
-      <div className="flex flex-row flex-wrap items-center justify-between gap-2 px-2 py-1">
-        <nav className="flex gap-4 text-lg">
-          {links.map(({ to, label }) => {
-            return (
-              <NavLink
-                key={to}
-                to={to}
-                className={({ isActive }) => (isActive ? "font-bold" : "")}
-                end
-              >
-                {label}
-              </NavLink>
-            );
-          })}
-        </nav>
-        <div className="flex items-center gap-2">
-          <a
-            href="http://valtask:3000"
-            className={buttonVariants({ variant: "outline", size: "sm" })}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Grafana
-          </a>
-          <a
-            href="http://valtask:4466"
-            className={buttonVariants({ variant: "outline", size: "sm" })}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Headlamp
-          </a>
-          <ModeToggle />
-          <UserMenu />
-        </div>
+    <header className="flex items-center justify-between gap-4 border-b border-border/70 px-4 py-3 sm:px-7 lg:px-10">
+      <Link
+        to="/"
+        aria-label="Clichy library"
+        className="inline-flex items-center lg:hidden"
+      >
+        <BrandLogo className="h-9 w-auto" />
+      </Link>
+      <div className="flex items-center gap-1">
+        <ModeToggle />
+        <UserMenu />
       </div>
-      <hr />
-    </div>
+    </header>
   );
 }

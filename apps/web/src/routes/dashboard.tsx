@@ -1,26 +1,13 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
+import { Navigate } from "react-router";
 
 import { authClient } from "@/lib/auth-client";
 
 export default function Dashboard() {
   const { data: session, isPending } = authClient.useSession();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!session && !isPending) {
-      navigate("/login");
-    }
-  }, [session, isPending, navigate]);
 
   if (isPending) {
-    return <div>Loading...</div>;
+    return <div className="p-8 text-sm text-muted-foreground">Opening your library…</div>;
   }
 
-  return (
-    <div>
-      <h1>Dashboard</h1>
-      <p>Welcome {session?.user.name}</p>
-    </div>
-  );
+  return <Navigate to={session ? "/" : "/login"} replace />;
 }

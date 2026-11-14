@@ -4,6 +4,7 @@ import {
   mkdir,
   readFile,
   rename,
+  rm,
   unlink,
   writeFile,
 } from "node:fs/promises";
@@ -18,6 +19,10 @@ export const DERIVATIVE_VARIANTS = {
 } as const;
 
 export type DerivativeVariant = keyof typeof DERIVATIVE_VARIANTS;
+
+function isMissingFile(error: unknown): boolean {
+  return error instanceof Error && "code" in error && error.code === "ENOENT";
+}
 
 /**
  * Service de stockage des fichiers basé sur le système de fichiers (compatible NFS).
@@ -122,9 +127,50 @@ export class FileSystemStorage {
    * @param storageKey - Clé d'accès relative du fichier à supprimer
    */
   async delete(storageKey: string): Promise<void> {
-    const filePath = path.join(this.rootPath, storageKey);
+    await this.deleteFile(storageKey, false);
+  }
 
-    await unlink(filePath);
+  async deletePhotoAssets(
+    userId: string,
+    photoId: string,
+    storageKey: string,
+  ): Promise<void> {
+    const segments = storageKey.split(/[\\/]/);
+    if (
+      segments.length !== 2 ||
+      segments[0] !== userId ||
+      segments.some((segment) => segment === "" || segment === "." || segment === "..")
+    ) {
+      throw new Error("Invalid photo storage key");
+    }
+
+    if (
+      photoId === "" ||
+      photoId === "." ||
+      photoId === ".." ||
+      /[\\/\0]/.test(photoId)
+    ) {
+      throw new Error("Invalid photo identifier");
+    }
+
+    await this.deleteFile(storageKey, true);
+
+    const derivativeDirectory = path.resolve(
+      this.rootPath,
+      "derivatives",
+      photoId,
+    );
+    const rootPath = path.resolve(this.rootPath);
+    const relativeDirectory = path.relative(rootPath, derivativeDirectory);
+    if (
+      relativeDirectory === "" ||
+      relativeDirectory === ".." ||
+      relativeDirectory.startsWith(`..${path.sep}`) ||
+      path.isAbsolute(relativeDirectory)
+    ) {
+      throw new Error("Invalid derivative directory");
+    }
+    await rm(derivativeDirectory, { recursive: true, force: true });
   }
 
   /**
@@ -142,6 +188,39 @@ export class FileSystemStorage {
         return false;
       }
       throw error;
+    }
+  }
+
+  private async deleteFile(
+    storageKey: string,
+    ignoreMissing: boolean,
+  ): Promise<void> {
+    const segments = storageKey.split(/[\\/]/);
+    if (
+      path.isAbsolute(storageKey) ||
+      segments.some((segment) => segment === "" || segment === "." || segment === "..")
+    ) {
+      throw new Error("Invalid storage key");
+    }
+
+    const filePath = path.resolve(this.rootPath, storageKey);
+    const rootPath = path.resolve(this.rootPath);
+    const relativePath = path.relative(rootPath, filePath);
+    if (
+      relativePath === "" ||
+      relativePath === ".." ||
+      relativePath.startsWith(`..${path.sep}`) ||
+      path.isAbsolute(relativePath)
+    ) {
+      throw new Error("Invalid storage key");
+    }
+
+    try {
+      await unlink(filePath);
+    } catch (error) {
+      if (!ignoreMissing || !isMissingFile(error)) {
+        throw error;
+      }
     }
   }
 }

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
@@ -44,4 +44,67 @@ test("exists reports saved files and delete removes them", async (t) => {
   await storage.delete(storageKey);
 
   assert.equal(await storage.exists(storageKey), false);
+});
+
+test("photo asset cleanup removes the original and the derivative directory", async (t) => {
+  const { storage } = await createStorage(t);
+  const photoId = "photo-123";
+  const originalKey = await storage.save(
+    "user-123",
+    Buffer.from("photo data"),
+    ".jpg",
+  );
+  await storage.saveDerivative(
+    photoId,
+    "thumbnail",
+    Buffer.from("thumbnail"),
+  );
+  await storage.saveDerivative(photoId, "large", Buffer.from("large"));
+
+  await storage.deletePhotoAssets("user-123", photoId, originalKey);
+
+  assert.equal(await storage.exists(originalKey), false);
+  assert.equal(
+    await storage.exists(storage.derivativeKey(photoId, "thumbnail")),
+    false,
+  );
+  assert.equal(
+    await storage.exists(storage.derivativeKey(photoId, "large")),
+    false,
+  );
+});
+
+test("photo asset cleanup tolerates already missing files and rejects traversal", async (t) => {
+  const { rootPath, storage } = await createStorage(t);
+  const outsidePath = `${rootPath}-outside.txt`;
+  t.after(() => rm(outsidePath, { force: true }));
+  await writeFile(outsidePath, "must remain outside storage");
+
+  await storage.deletePhotoAssets(
+    "user-123",
+    "photo-123",
+    path.join("user-123", "missing.jpg"),
+  );
+
+  await assert.rejects(
+    storage.deletePhotoAssets(
+      "user-123",
+      "photo-123",
+      path.join("..", "other-user", "photo.jpg"),
+    ),
+    /Invalid photo storage key/,
+  );
+  await assert.rejects(
+    storage.deletePhotoAssets(
+      "user-123",
+      "../other-photo",
+      path.join("user-123", "photo.jpg"),
+    ),
+    /Invalid photo identifier/,
+  );
+  await assert.rejects(
+    storage.delete(path.relative(rootPath, outsidePath)),
+    /Invalid storage key/,
+  );
+  assert.equal(await readFile(outsidePath, "utf8"), "must remain outside storage");
 });
