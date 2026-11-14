@@ -131,6 +131,10 @@ cleanup() {
   fi
 
   unset DATABASE_URL database_url_encoded
+  if [[ "$exit_status" -ne 0 && -s "$port_forward_log" ]]; then
+    echo "kubectl port-forward diagnostics for $NAMESPACE/$SERVICE:" >&2
+    cat "$port_forward_log" >&2
+  fi
   rm -f -- "$port_forward_log" || true
   rmdir -- "$temp_dir" || true
   exit "$exit_status"
@@ -214,6 +218,44 @@ DATABASE_URL="$(
 )" || die "Could not prepare a loopback-only DATABASE_URL from Secret '$SECRET'."
 unset database_url_encoded
 export DATABASE_URL
+
+echo "Checking PostgreSQL connectivity through the port-forward."
+database_ready=false
+for ((attempt = 1; attempt <= 15; attempt++)); do
+  if ! port_forward_running; then
+    cat "$port_forward_log" >&2
+    die "kubectl port-forward stopped before PostgreSQL became reachable in namespace '$NAMESPACE'."
+  fi
+
+  if database_probe_output="$(pnpm --filter @clichy/db exec node --input-type=module -e '
+    import pg from "pg";
+
+    const client = new pg.Client({
+      connectionString: process.env.DATABASE_URL,
+      connectionTimeoutMillis: 3000,
+    });
+
+    try {
+      await client.connect();
+      await client.query("SELECT 1");
+    } finally {
+      await client.end().catch(() => {});
+    }
+  ' 2>&1)"; then
+    database_ready=true
+    break
+  fi
+
+  if [[ "$attempt" -lt 15 ]]; then
+    sleep 2
+  fi
+done
+
+if [[ "$database_ready" != true ]]; then
+  printf '%s\n' "$database_probe_output" >&2
+  die "PostgreSQL did not accept a connection through the port-forward for $NAMESPACE/$EXPECTED_DATABASE."
+fi
+unset database_probe_output
 
 case "$ACTION" in
   deploy)
