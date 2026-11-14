@@ -542,7 +542,7 @@ export default function Home() {
               className="flex items-center gap-3 rounded-xl bg-sidebar-accent px-3 py-3 text-sm font-medium text-sidebar-accent-foreground"
             >
               <ImageIcon className="size-[18px]" aria-hidden="true" />
-              Library
+              LibraryV2
             </Link>
           </nav>
           <div className="mt-8 border-t border-sidebar-border pt-5">
