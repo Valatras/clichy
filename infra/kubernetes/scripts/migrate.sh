@@ -169,9 +169,10 @@ for ((attempt = 1; attempt <= 30; attempt++)); do
     fi
   done <"$port_forward_log"
 
-  if [[ -n "$local_port" ]] &&
-    (echo >"/dev/tcp/127.0.0.1/$local_port") >/dev/null 2>&1 &&
-    port_forward_running; then
+  # Do not probe this socket with /dev/tcp or nc: those tools send non-PostgreSQL
+  # bytes, which makes PostgreSQL reset the forwarded stream. The PostgreSQL
+  # protocol-aware check below is the readiness test.
+  if [[ -n "$local_port" ]] && port_forward_running; then
     port_forward_ready=true
     break
   fi
@@ -256,6 +257,10 @@ if [[ "$database_ready" != true ]]; then
   die "PostgreSQL did not accept a connection through the port-forward for $NAMESPACE/$EXPECTED_DATABASE."
 fi
 unset database_probe_output
+
+if ! port_forward_running; then
+  die "kubectl port-forward stopped after the PostgreSQL connectivity check for $NAMESPACE/$EXPECTED_DATABASE."
+fi
 
 case "$ACTION" in
   deploy)
