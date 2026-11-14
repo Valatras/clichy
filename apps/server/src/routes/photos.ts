@@ -9,8 +9,6 @@ import {
   hammingDistance,
   ImageValidationError,
   inspectImage,
-  processPhoto,
-  reserveImageProcessingSlot,
 } from "../image-processing";
 import {
   DERIVATIVE_VARIANTS,
@@ -38,6 +36,19 @@ async function getAuthSession(request: FastifyRequest) {
 type PhotoRouteDependencies = {
   db: Pick<Database, "photo">;
   storage: FileSystemStorage;
+  createPhotoWithOutbox?: (input: {
+    userId: string;
+    filename: string;
+    mimeType: string;
+    size: number;
+    storageKey: string;
+  }) => Promise<{
+    id: string;
+    filename: string;
+    mimeType: string;
+    size: number;
+    createdAt: Date;
+  }>;
   getSession: (
     request: FastifyRequest,
   ) => Promise<{ user: { id: string } } | null>;
@@ -54,6 +65,7 @@ function isDerivativeVariant(value: string): value is DerivativeVariant {
 export function createPhotoRoutes({
   db,
   storage,
+  createPhotoWithOutbox,
   getSession,
 }: PhotoRouteDependencies): FastifyPluginAsync {
   const photoRoutes: FastifyPluginAsync = async (fastify) => {
@@ -95,80 +107,67 @@ export function createPhotoRoutes({
         return reply.status(400).send({ error: "No file provided" });
       }
 
-      const releaseSlot = reserveImageProcessingSlot();
-      if (!releaseSlot) {
-        file.file.resume();
-        return reply.status(503).send({
-          error: "Image processing is busy; retry the upload",
-        });
-      }
+      let buffer: Buffer;
+      let image: Awaited<ReturnType<typeof inspectImage>>;
 
       try {
-        let buffer: Buffer;
-        let image: Awaited<ReturnType<typeof inspectImage>>;
-
-        try {
-          buffer = await file.toBuffer();
-          image = await inspectImage(buffer);
-        } catch (error) {
-          if (error instanceof ImageValidationError) {
-            return reply.status(400).send({
-              error: "Unsupported, malformed, or oversized image",
-            });
-          }
-          throw error;
-        }
-
-        const storageKey = await storage.save(
-          session.user.id,
-          buffer,
-          image.extension,
-        );
-
-        let photo;
-
-        try {
-          photo = await db.photo.create({
-            data: {
-              userId: session.user.id,
-              filename: path.basename(file.filename),
-              mimeType: image.mimeType,
-              size: buffer.length,
-              storageKey,
-            },
-            select: {
-              id: true,
-              filename: true,
-              mimeType: true,
-              size: true,
-              createdAt: true,
-            },
+        buffer = await file.toBuffer();
+        image = await inspectImage(buffer);
+      } catch (error) {
+        if (error instanceof ImageValidationError) {
+          return reply.status(400).send({
+            error: "Unsupported, malformed, or oversized image",
           });
-        } catch (error) {
-          await storage.delete(storageKey);
-          throw error;
         }
+        throw error;
+      }
 
-        let processingStatus: "COMPLETED" | "FAILED" = "COMPLETED";
+      const storageKey = await storage.save(
+        session.user.id,
+        buffer,
+        image.extension,
+      );
+
+      let photo;
+      try {
+        const input = {
+          userId: session.user.id,
+          filename: path.basename(file.filename),
+          mimeType: image.mimeType,
+          size: buffer.length,
+          storageKey,
+        };
+        photo = createPhotoWithOutbox
+          ? await createPhotoWithOutbox(input)
+          : await db.photo.create({
+              data: input,
+              select: {
+                id: true,
+                filename: true,
+                mimeType: true,
+                size: true,
+                createdAt: true,
+              },
+            });
+      } catch (error) {
         try {
-          await processPhoto(db, storage, photo.id, releaseSlot);
-        } catch (error) {
-          processingStatus = "FAILED";
+          await storage.delete(storageKey);
+        } catch (cleanupError) {
           request.log.error(
-            { err: error, photoId: photo.id },
-            "Photo processing failed; original retained",
+            { err: cleanupError, storageKey },
+            "Unable to clean up original after photo creation failed",
           );
         }
-
-        return reply.status(201).send({
-          ...photo,
-          processingStatus,
-          width: image.width,
-          height: image.height,
-        });
-      } finally {
-        releaseSlot();
+        throw error;
       }
+
+      request.log.info({ photoId: photo.id }, "Photo accepted for processing");
+      return reply.status(202).send({
+        ...photo,
+        processingStatus: "PENDING",
+        width: image.width,
+        height: image.height,
+      });
     });
 
     fastify.get<{ Params: { id: string } }>(
@@ -423,6 +422,7 @@ export function createPhotoRoutes({
             id: true,
             storageKey: true,
             processingStatus: true,
+            deletingAt: true,
           },
         });
 
@@ -431,6 +431,28 @@ export function createPhotoRoutes({
         }
 
         if (photo.processingStatus === "PROCESSING") {
+          return reply.status(409).send({
+            error: "Photo processing is still in progress",
+          });
+        }
+
+        const deletionClaim = await db.photo.updateMany({
+          where: {
+            id: photo.id,
+            userId: session.user.id,
+            deletingAt: null,
+            processingStatus: { not: "PROCESSING" },
+          },
+          data: { deletingAt: new Date() },
+        });
+        if (deletionClaim.count === 0 && !photo.deletingAt) {
+          const current = await db.photo.findFirst({
+            where: ownedPhotoWhere(request.params.id, session.user.id),
+            select: { id: true, processingStatus: true },
+          });
+          if (!current) {
+            return reply.status(404).send({ error: "Photo not found" });
+          }
           return reply.status(409).send({
             error: "Photo processing is still in progress",
           });
@@ -454,7 +476,11 @@ export function createPhotoRoutes({
 
         try {
           const result = await db.photo.deleteMany({
-            where: { id: photo.id, userId: session.user.id },
+            where: {
+              id: photo.id,
+              userId: session.user.id,
+              deletingAt: { not: null },
+            },
           });
 
           if (result.count === 0) {
@@ -481,5 +507,22 @@ export function createPhotoRoutes({
 export default createPhotoRoutes({
   db,
   storage: new FileSystemStorage(),
+  createPhotoWithOutbox: (input) =>
+    db.$transaction(async (transaction) => {
+      const photo = await transaction.photo.create({
+        data: input,
+        select: {
+          id: true,
+          filename: true,
+          mimeType: true,
+          size: true,
+          createdAt: true,
+        },
+      });
+      await transaction.photoProcessingOutbox.create({
+        data: { photoId: photo.id },
+      });
+      return photo;
+    }),
   getSession: getAuthSession,
 });

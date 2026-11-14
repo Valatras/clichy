@@ -10,8 +10,6 @@ import {
 } from "node:fs/promises";
 import path from "node:path";
 
-import { ENV } from "./env";
-
 export const DERIVATIVE_VARIANTS = {
   thumbnail: 256,
   medium: 1024,
@@ -34,7 +32,9 @@ export class FileSystemStorage {
   /**
    * @param rootPath - Chemin racine du stockage (par défaut récupéré depuis les variables d'environnement)
    */
-  constructor(rootPath: string = ENV.PHOTO_STORAGE_PATH) {
+  constructor(
+    rootPath: string = process.env.PHOTO_STORAGE_PATH ?? "./data/photos",
+  ) {
     this.rootPath = rootPath;
   }
 
@@ -154,6 +154,19 @@ export class FileSystemStorage {
     }
 
     await this.deleteFile(storageKey, true);
+
+    await this.deleteDerivatives(photoId);
+  }
+
+  async deleteDerivatives(photoId: string): Promise<void> {
+    if (
+      photoId === "" ||
+      photoId === "." ||
+      photoId === ".." ||
+      /[\\/\0]/.test(photoId)
+    ) {
+      throw new Error("Invalid photo identifier");
+    }
 
     const derivativeDirectory = path.resolve(
       this.rootPath,

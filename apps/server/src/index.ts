@@ -3,9 +3,12 @@ import Fastify from "fastify";
 import fastifyMultipart from "@fastify/multipart";
 
 import { ENV } from "./env.server";
-import { auth } from "./services";
+import { auth, db } from "./services";
 import photoRoutes from "./routes/photos";
 import { registerServerMetrics } from "./metrics";
+import { createPhotoProcessingQueue } from "@clichy/jobs";
+import { createRedisConnection } from "@clichy/jobs/redis";
+import { startOutboxDispatcher } from "./queues/outbox-dispatcher";
 
 
 const baseCorsConfig = {
@@ -32,6 +35,25 @@ fastify.register(fastifyCors, baseCorsConfig);
 
 fastify.register(photoRoutes);
 
+const redisConnection = createRedisConnection();
+const photoQueue = createPhotoProcessingQueue(redisConnection);
+redisConnection.on("error", (error) => {
+  fastify.log.error({ err: error }, "Redis connection error");
+});
+photoQueue.on("error", (error) => {
+  fastify.log.error({ err: error }, "Photo queue error");
+});
+const stopOutboxDispatcher = startOutboxDispatcher(
+  db,
+  photoQueue,
+  fastify.log,
+);
+fastify.addHook("onClose", async () => {
+  stopOutboxDispatcher();
+  await photoQueue.close();
+  await redisConnection.quit();
+  await db.$disconnect();
+});
 
 fastify.route({
   method: ["GET", "POST"],
@@ -72,4 +94,17 @@ fastify.listen({ port: 3000, host: "0.0.0.0" }, (err) => {
     process.exit(1);
   }
   console.log("Server running on port 3000");
+});
+
+process.once("SIGTERM", () => {
+  void fastify.close().catch((error: unknown) => {
+    fastify.log.error({ err: error }, "Server shutdown failed");
+    process.exitCode = 1;
+  });
+});
+process.once("SIGINT", () => {
+  void fastify.close().catch((error: unknown) => {
+    fastify.log.error({ err: error }, "Server shutdown failed");
+    process.exitCode = 1;
+  });
 });

@@ -5,6 +5,8 @@ import path from "node:path";
 import { test } from "node:test";
 
 import Fastify from "fastify";
+import fastifyMultipart from "@fastify/multipart";
+import sharp from "sharp";
 
 import type { createPhotoRoutes as createPhotoRoutesType } from "./routes/photos";
 import type { FileSystemStorage as FileSystemStorageType } from "./storage";
@@ -27,9 +29,16 @@ function createDb(
   findMany: (args: { where: Record<string, unknown> }) => Promise<unknown>,
   deleteMany: (args: { where: Record<string, unknown> }) => Promise<unknown> =
     async () => ({ count: 0 }),
+  photoMethods: Record<string, unknown> = {},
 ): PhotoRouteDb {
   return {
-    photo: { findFirst, findMany, deleteMany },
+    photo: {
+      findFirst,
+      findMany,
+      deleteMany,
+      updateMany: async () => ({ count: 1 }),
+      ...photoMethods,
+    },
   } as unknown as PhotoRouteDb;
 }
 
@@ -37,11 +46,30 @@ async function createApp(
   db: PhotoRouteDb,
   getSession: Parameters<typeof createPhotoRoutesType>[0]["getSession"],
   storage: FileSystemStorageType,
+  createPhotoWithOutbox?: Parameters<
+    typeof createPhotoRoutesType
+  >[0]["createPhotoWithOutbox"],
 ) {
   const app = Fastify();
-  app.register(createPhotoRoutes({ db, getSession, storage }));
+  app.register(fastifyMultipart);
+  app.register(createPhotoRoutes({ db, getSession, storage, createPhotoWithOutbox }));
   await app.ready();
   return app;
+}
+
+function multipartImage(buffer: Buffer): {
+  payload: Buffer;
+  headers: Record<string, string>;
+} {
+  const boundary = "clichy-test-boundary";
+  const prefix = Buffer.from(
+    `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="test.png"\r\nContent-Type: image/png\r\n\r\n`,
+  );
+  const suffix = Buffer.from(`\r\n--${boundary}--\r\n`);
+  return {
+    payload: Buffer.concat([prefix, buffer, suffix]),
+    headers: { "content-type": `multipart/form-data; boundary=${boundary}` },
+  };
 }
 
 test("metadata access requires authentication and hides photos owned by others", async (t) => {
@@ -62,6 +90,7 @@ test("metadata access requires authentication and hides photos owned by others",
     method: "GET",
     url: "/photos/photo-private/metadata",
   });
+
   assert.equal(unauthenticated.statusCode, 401);
   assert.equal(lookups, 0);
 
@@ -77,6 +106,134 @@ test("metadata access requires authentication and hides photos owned by others",
   });
   assert.equal(otherUsersPhoto.statusCode, 404);
   assert.equal(lookups, 1);
+});
+
+test("photo uploads require authentication and reject malformed images", async (t) => {
+  const rootPath = await mkdtemp(path.join(tmpdir(), "clichy-photo-routes-"));
+  t.after(() => rm(rootPath, { recursive: true, force: true }));
+  const storage = new FileSystemStorage(rootPath);
+  const db = createDb(async () => null, async () => []);
+  const unauthenticatedApp = await createApp(db, async () => null, storage);
+  t.after(() => unauthenticatedApp.close());
+  const unauthenticated = await unauthenticatedApp.inject({
+    method: "POST",
+    url: "/photos",
+    ...multipartImage(Buffer.from("not an image")),
+  });
+  assert.equal(unauthenticated.statusCode, 401);
+
+  const authenticatedApp = await createApp(
+    db,
+    async () => ({ user: { id: "user-a" } }),
+    storage,
+  );
+  t.after(() => authenticatedApp.close());
+  const malformed = await authenticatedApp.inject({
+    method: "POST",
+    url: "/photos",
+    ...multipartImage(Buffer.from("not an image")),
+  });
+  assert.equal(malformed.statusCode, 400);
+});
+
+test("valid upload saves an original and atomically registers a pending photo", async (t) => {
+  const rootPath = await mkdtemp(path.join(tmpdir(), "clichy-photo-routes-"));
+  t.after(() => rm(rootPath, { recursive: true, force: true }));
+  const storage = new FileSystemStorage(rootPath);
+  let createdInput:
+    | {
+        userId: string;
+        filename: string;
+        mimeType: string;
+        size: number;
+        storageKey: string;
+      }
+    | undefined;
+  const app = await createApp(
+    createDb(async () => null, async () => []),
+    async () => ({ user: { id: "user-a" } }),
+    storage,
+    async (input) => {
+      createdInput = input;
+      return {
+        id: "photo-new",
+        filename: input.filename,
+        mimeType: input.mimeType,
+        size: input.size,
+        createdAt: new Date("2026-01-02T03:04:05.000Z"),
+      };
+    },
+  );
+  t.after(() => app.close());
+
+  const image = await sharp({
+    create: {
+      width: 3,
+      height: 2,
+      channels: 3,
+      background: { r: 100, g: 120, b: 140 },
+    },
+  })
+    .png()
+    .toBuffer();
+  const response = await app.inject({
+    method: "POST",
+    url: "/photos",
+    ...multipartImage(image),
+  });
+
+  assert.equal(response.statusCode, 202);
+  assert.deepEqual(response.json(), {
+    id: "photo-new",
+    filename: "test.png",
+    mimeType: "image/png",
+    size: image.length,
+    createdAt: "2026-01-02T03:04:05.000Z",
+    processingStatus: "PENDING",
+    width: 3,
+    height: 2,
+  });
+  assert.equal(createdInput?.userId, "user-a");
+  assert.equal(createdInput?.mimeType, "image/png");
+  assert.ok(createdInput?.storageKey);
+  assert.deepEqual(await storage.read(createdInput!.storageKey), image);
+});
+
+test("upload removes the stored original if durable photo registration fails", async (t) => {
+  const rootPath = await mkdtemp(path.join(tmpdir(), "clichy-photo-routes-"));
+  t.after(() => rm(rootPath, { recursive: true, force: true }));
+  const storage = new FileSystemStorage(rootPath);
+  let savedKey: string | undefined;
+  const app = await createApp(
+    createDb(async () => null, async () => []),
+    async () => ({ user: { id: "user-a" } }),
+    storage,
+    async (input) => {
+      savedKey = input.storageKey;
+      throw new Error("database unavailable");
+    },
+  );
+  t.after(() => app.close());
+  const image = await sharp({
+    create: {
+      width: 2,
+      height: 2,
+      channels: 3,
+      background: { r: 1, g: 2, b: 3 },
+    },
+  })
+    .png()
+    .toBuffer();
+
+  const response = await app.inject({
+    method: "POST",
+    url: "/photos",
+    ...multipartImage(image),
+  });
+
+  assert.equal(response.statusCode, 500);
+  assert.ok(savedKey);
+  assert.equal(await storage.exists(savedKey), false);
 });
 
 test("thumbnail access cannot read another user's derivative", async (t) => {
@@ -217,13 +374,25 @@ test("photo deletion removes the user's original, derivatives, and database row"
       return {
         id: photoId,
         storageKey,
-        processingStatus: "COMPLETED",
+        processingStatus: "PENDING",
       };
     },
     async () => [],
     async ({ where }) => {
       deletedWhere = where;
       return { count: 1 };
+    },
+    {
+      updateMany: async ({ where, data }: { where: Record<string, unknown>; data: Record<string, unknown> }) => {
+        assert.deepEqual(where, {
+          id: photoId,
+          userId: "user-a",
+          deletingAt: null,
+          processingStatus: { not: "PROCESSING" },
+        });
+        assert.ok(data.deletingAt instanceof Date);
+        return { count: 1 };
+      },
     },
   );
   const app = await createApp(
@@ -239,7 +408,11 @@ test("photo deletion removes the user's original, derivatives, and database row"
   });
 
   assert.equal(response.statusCode, 204);
-  assert.deepEqual(deletedWhere, { id: photoId, userId: "user-a" });
+  assert.deepEqual(deletedWhere, {
+    id: photoId,
+    userId: "user-a",
+    deletingAt: { not: null },
+  });
   assert.equal(await storage.exists(storageKey), false);
   for (const variant of ["thumbnail", "medium", "large"] as const) {
     assert.equal(

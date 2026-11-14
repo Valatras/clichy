@@ -12,7 +12,6 @@ import {
 } from "./storage";
 
 export const MAX_IMAGE_PIXELS = 40_000_000;
-export const MAX_CONCURRENT_IMAGE_PROCESSES = 1;
 export const IMAGE_PROCESSING_VERSION = 1;
 
 const SUPPORTED_FORMATS = {
@@ -28,13 +27,6 @@ export class ImageValidationError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "ImageValidationError";
-  }
-}
-
-export class ImageProcessingCapacityError extends Error {
-  constructor() {
-    super("Image processing capacity is currently full");
-    this.name = "ImageProcessingCapacityError";
   }
 }
 
@@ -56,26 +48,8 @@ export type ImageTechnicalMetadata = {
   gpsLongitude: number | null;
 };
 
-let activeProcesses = 0;
-
 sharp.concurrency(1);
 sharp.cache({ memory: 64, files: 20, items: 100 });
-
-export function reserveImageProcessingSlot(): (() => void) | null {
-  if (activeProcesses >= MAX_CONCURRENT_IMAGE_PROCESSES) {
-    return null;
-  }
-
-  activeProcesses += 1;
-  let released = false;
-
-  return () => {
-    if (!released) {
-      activeProcesses -= 1;
-      released = true;
-    }
-  };
-}
 
 function isSupportedFormat(format: string | undefined): format is SupportedFormat {
   return format !== undefined && format in SUPPORTED_FORMATS;
@@ -292,94 +266,73 @@ export async function processPhoto(
   db: ProcessingDatabase,
   storage: FileSystemStorage,
   photoId: string,
-  reservedSlot?: () => void,
-): Promise<void> {
-  const releaseSlot = reservedSlot ?? reserveImageProcessingSlot();
-
-  if (!releaseSlot) {
-    await db.photo.update({
-      where: { id: photoId },
-      data: {
-        processingStatus: "FAILED",
-        processingError: "Image processing capacity is currently full",
-        processedAt: null,
-      },
-    });
-    throw new ImageProcessingCapacityError();
+): Promise<"processed" | "skipped"> {
+  const photo = await db.photo.findUnique({
+    where: { id: photoId },
+    select: { storageKey: true, processingStatus: true, deletingAt: true },
+  });
+  if (!photo || photo.deletingAt || photo.processingStatus === "COMPLETED") {
+    return "skipped";
   }
 
-  let photoExists = false;
+  const claimed = await db.photo.updateMany({
+    where: {
+      id: photoId,
+      deletingAt: null,
+      processingStatus: { in: ["PENDING", "FAILED"] },
+    },
+    data: {
+      processingStatus: "PROCESSING",
+      processingError: null,
+      processingStartedAt: new Date(),
+      processedAt: null,
+    },
+  });
+  if (claimed.count === 0) return "skipped";
 
-  try {
-    const photo = await db.photo.findUnique({
-      where: { id: photoId },
-      select: { storageKey: true },
-    });
+  const original = await storage.read(photo.storageKey);
+  const metadata = await extractImageMetadata(original);
+  const hash = sha256(original);
+  const visualHash = await perceptualHash(original);
 
-    if (!photo) {
-      throw new Error("Photo record not found");
-    }
-    photoExists = true;
+  await generateDerivatives(original, photoId, storage);
 
-    await db.photo.update({
-      where: { id: photoId },
-      data: {
-        processingStatus: "PROCESSING",
-        processingError: null,
-        processedAt: null,
-      },
-    });
+  const completed = await db.photo.updateMany({
+    where: {
+      id: photoId,
+      deletingAt: null,
+      processingStatus: "PROCESSING",
+    },
+    data: {
+      sha256: hash,
+      perceptualHash: visualHash,
+      imageFormat: metadata.imageFormat,
+      mimeType: metadata.mimeType,
+      size: original.length,
+      width: metadata.width,
+      height: metadata.height,
+      orientation: metadata.orientation,
+      dateTaken: metadata.dateTaken,
+      cameraMake: metadata.cameraMake,
+      cameraModel: metadata.cameraModel,
+      exposureTime: metadata.exposureTime,
+      aperture: metadata.aperture,
+      iso: metadata.iso,
+      focalLength: metadata.focalLength,
+      gpsLatitude: metadata.gpsLatitude,
+      gpsLongitude: metadata.gpsLongitude,
+      processingStatus: "COMPLETED",
+      processingVersion: IMAGE_PROCESSING_VERSION,
+      processingError: null,
+      processingStartedAt: null,
+      processedAt: new Date(),
+    },
+  });
 
-    const original = await storage.read(photo.storageKey);
-    const metadata = await extractImageMetadata(original);
-    const hash = sha256(original);
-    const visualHash = await perceptualHash(original);
-
-    await generateDerivatives(original, photoId, storage);
-
-    await db.photo.update({
-      where: { id: photoId },
-      data: {
-        sha256: hash,
-        perceptualHash: visualHash,
-        imageFormat: metadata.imageFormat,
-        mimeType: metadata.mimeType,
-        size: original.length,
-        width: metadata.width,
-        height: metadata.height,
-        orientation: metadata.orientation,
-        dateTaken: metadata.dateTaken,
-        cameraMake: metadata.cameraMake,
-        cameraModel: metadata.cameraModel,
-        exposureTime: metadata.exposureTime,
-        aperture: metadata.aperture,
-        iso: metadata.iso,
-        focalLength: metadata.focalLength,
-        gpsLatitude: metadata.gpsLatitude,
-        gpsLongitude: metadata.gpsLongitude,
-        processingStatus: "COMPLETED",
-        processingVersion: IMAGE_PROCESSING_VERSION,
-        processingError: null,
-        processedAt: new Date(),
-      },
-    });
-  } catch (error) {
-    if (photoExists) {
-      await db.photo.update({
-        where: { id: photoId },
-        data: {
-          processingStatus: "FAILED",
-          processingError:
-            (error instanceof Error ? error.message : String(error)).slice(
-              0,
-              1000,
-            ),
-          processedAt: null,
-        },
-      });
-    }
-    throw error;
-  } finally {
-    releaseSlot();
+  if (completed.count === 0) {
+    await storage.deleteDerivatives(photoId);
+    return "skipped";
   }
+
+  return "processed";
 }

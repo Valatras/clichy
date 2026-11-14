@@ -97,8 +97,9 @@ function formatSize(bytes: number): string {
 function photoStatus(status: ProcessingStatus): string | null {
   switch (status) {
     case "PENDING":
+      return "Waiting for processing";
     case "PROCESSING":
-      return "Preparing preview";
+      return "Processing image";
     case "FAILED":
       return "Original saved · preview unavailable";
     case "COMPLETED":
@@ -117,6 +118,11 @@ function PhotoImage({
 }) {
   const [useOriginal, setUseOriginal] = useState(false);
   const [unavailable, setUnavailable] = useState(false);
+
+  useEffect(() => {
+    setUseOriginal(false);
+    setUnavailable(false);
+  }, [photo.id, photo.processingStatus]);
 
   if (unavailable) {
     return (
@@ -228,6 +234,45 @@ export default function Home() {
       return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
     });
   }, [photos, search, sortOrder]);
+
+  useEffect(() => {
+    if (
+      !session ||
+      sessionPending ||
+      !visiblePhotos.some(
+        (photo) =>
+          photo.processingStatus === "PENDING" ||
+          photo.processingStatus === "PROCESSING",
+      )
+    ) {
+      return;
+    }
+
+    let stopped = false;
+    let delay = 2500;
+    let timer: ReturnType<typeof setTimeout>;
+    const poll = async () => {
+      if (stopped) return;
+      if (!document.hidden) {
+        try {
+          const response = await fetch("/photos", { credentials: "include" });
+          if (!response.ok) throw new Error("Unable to refresh photo statuses");
+          setPhotos(await response.json());
+          delay = 2500;
+        } catch (pollError) {
+          console.warn("Photo status refresh failed; retrying", pollError);
+          delay = Math.min(delay * 2, 15000);
+        }
+      }
+      if (!stopped) timer = setTimeout(() => void poll(), delay);
+    };
+
+    timer = setTimeout(() => void poll(), delay);
+    return () => {
+      stopped = true;
+      clearTimeout(timer);
+    };
+  }, [session, sessionPending, visiblePhotos]);
 
   async function showPhotoDetails(photo: Photo) {
     detailRequestRef.current += 1;
