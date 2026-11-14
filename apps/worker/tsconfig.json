@@ -1,0 +1,7 @@
+{
+  "extends": "@clichy/config/tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts", "../server/src/image-processing.ts", "../server/src/storage.ts"]
+}

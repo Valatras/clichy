@@ -39,6 +39,9 @@ jobs:
       - name: Run server tests
         run: pnpm --filter server test
 
+      - name: Run worker tests
+        run: pnpm --filter worker test
+
       - name: Build applications
         run: pnpm build
         env:
@@ -84,6 +87,14 @@ jobs:
           tags: ghcr.io/valatras/clichy-web:sha-${{ github.sha }}
           build-args: |
             VITE_SERVER_URL=http://localhost:3000
+
+      - name: Build and publish worker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/docker_clichy_worker/Dockerfile
+          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+          tags: ghcr.io/valatras/clichy-worker:sha-${{ github.sha }}
 
   deploy-test:
     name: Deploy to Test on valtask
@@ -133,7 +144,7 @@ jobs:
         run: |
           set -euo pipefail
           kubectl apply -k infra/kubernetes/monitoring
-          for app in server web; do
+          for app in server web worker; do
             deployment="clichy-${app}"
             manifest="infra/kubernetes/base/${app}-deployment.yaml"
             if [ -n "$(kubectl get deployment "${deployment}" \

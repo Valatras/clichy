@@ -11,16 +11,28 @@ configMapGenerator:
       - BETTER_AUTH_URL=http://clichy.localhost
       - CORS_ORIGIN=http://clichy.localhost
       - PHOTO_STORAGE_PATH=/data/photos
+      - REDIS_HOST=clichy-redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - REDIS_TLS=false
+      - PHOTO_QUEUE_NAME=photo-processing
+      - PHOTO_JOB_ATTEMPTS=4
+      - PHOTO_JOB_BACKOFF_MS=2000
+      - PHOTO_WORKER_CONCURRENCY=1
   - name: clichy-web-config
     literals:
       - NODE_ENV=production
 images:
   - name: clichy-server
     newTag: dev
+  - name: clichy-worker
+    newTag: dev
   - name: clichy-web
     newTag: dev
 replicas:
   - name: clichy-server
+    count: 1
+  - name: clichy-worker
     count: 1
   - name: clichy-web
     count: 1

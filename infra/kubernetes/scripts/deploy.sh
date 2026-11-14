@@ -136,6 +136,8 @@ images:
     newTag: $IMAGE_TAG
   - name: ghcr.io/valatras/clichy-web
     newTag: $IMAGE_TAG
+  - name: ghcr.io/valatras/clichy-worker
+    newTag: $IMAGE_TAG
 EOF
 
 kubectl kustomize "$render_dir" >"$rendered_file" ||
@@ -144,7 +146,7 @@ kubectl kustomize "$render_dir" >"$rendered_file" ||
 if grep -Fq 'REPLACE_WITH_TESTED_GIT_SHA' "$rendered_file"; then
   die "Rendered manifests still contain an image SHA placeholder."
 fi
-for image in clichy-server clichy-web; do
+for image in clichy-server clichy-web clichy-worker; do
   expected_image="        image: ghcr.io/valatras/${image}:${IMAGE_TAG}"
   image_count="$(grep -Fxc -- "$expected_image" "$rendered_file" || true)"
   if [[ "$image_count" != "1" ]]; then
@@ -160,6 +162,9 @@ kubectl rollout status deployment/clichy-server \
 kubectl rollout status deployment/clichy-web \
   --namespace="$NAMESPACE" --timeout=300s ||
   die "Deployment clichy-web did not roll out successfully in $NAMESPACE."
+kubectl rollout status deployment/clichy-worker \
+  --namespace="$NAMESPACE" --timeout=300s ||
+  die "Deployment clichy-worker did not roll out successfully in $NAMESPACE."
 kubectl get deployments,pods,pvc,ingress \
   --namespace="$NAMESPACE" --output=wide ||
   die "Could not display deployment resources in $NAMESPACE."

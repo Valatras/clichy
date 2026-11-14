@@ -12,12 +12,23 @@ configMapGenerator:
       - BETTER_AUTH_URL=http://clichy-test.home.arpa
       - CORS_ORIGIN=http://clichy-test.home.arpa
       - PHOTO_STORAGE_PATH=/data/photos
+      - REDIS_HOST=clichy-redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - REDIS_TLS=false
+      - PHOTO_QUEUE_NAME=photo-processing
+      - PHOTO_JOB_ATTEMPTS=4
+      - PHOTO_JOB_BACKOFF_MS=2000
+      - PHOTO_WORKER_CONCURRENCY=1
   - name: clichy-web-config
     literals:
       - NODE_ENV=production
 images:
   - name: clichy-server
     newName: ghcr.io/valatras/clichy-server
+    newTag: test
+  - name: clichy-worker
+    newName: ghcr.io/valatras/clichy-worker
     newTag: test
   - name: clichy-web
     newName: ghcr.io/valatras/clichy-web
@@ -57,6 +68,28 @@ patches:
       kind: Deployment
       name: clichy-web
     patch: |-
+      - op: add
+        path: /spec/template/spec/imagePullSecrets
+        value:
+          - name: ghcr-pull-secret
+  - target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: clichy-worker
+    patch: |-
+      - op: add
+        path: /spec/template/spec/securityContext
+        value:
+          runAsNonRoot: true
+          runAsUser: 10001
+          runAsGroup: 2000
+          supplementalGroups:
+            - 1000
+      - op: add
+        path: /spec/template/spec/containers/0/securityContext
+        value:
+          allowPrivilegeEscalation: false
       - op: add
         path: /spec/template/spec/imagePullSecrets
         value:

@@ -30,12 +30,30 @@ model Photo {
   processingStatus  ImageProcessingStatus @default(PENDING)
   processingVersion Int?
   processingError   String?
-  processedAt       DateTime?
-  createdAt         DateTime              @default(now())
+  processingStartedAt DateTime?
+  deletingAt          DateTime?
+  processedAt         DateTime?
+  createdAt           DateTime              @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user             User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  processingOutbox PhotoProcessingOutbox[]
 
   @@index([userId])
   @@index([userId, sha256])
   @@index([userId, perceptualHash])
+  @@index([processingStatus, processingStartedAt])
+  @@index([deletingAt])
+}
+
+model PhotoProcessingOutbox {
+  id          String    @id @default(cuid())
+  photoId     String
+  createdAt   DateTime  @default(now())
+  publishedAt DateTime?
+  attempts    Int       @default(0)
+  lastError   String?
+
+  photo Photo @relation(fields: [photoId], references: [id], onDelete: Cascade)
+
+  @@index([publishedAt, createdAt])
 }
