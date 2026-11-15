@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#adr-0007-no-database-replication-or-sharding-in-current-baseline" class="md-skip">
+        <a href="#adr-0007-postgresql-replication-and-sharding-scope" class="md-skip">
           Skip to content
         </a>
       
@@ -1985,16 +1985,16 @@
   
 
 
-<h1 id="adr-0007-no-database-replication-or-sharding-in-current-baseline">ADR 0007: No database replication or sharding in current baseline<a class="headerlink" href="#adr-0007-no-database-replication-or-sharding-in-current-baseline" title="Permanent link">&para;</a></h1>
-<p><strong>Status:</strong> Current configuration fact; revisit if measured needs justify a design.</p>
+<h1 id="adr-0007-postgresql-replication-and-sharding-scope">ADR 0007: PostgreSQL replication and sharding scope<a class="headerlink" href="#adr-0007-postgresql-replication-and-sharding-scope" title="Permanent link">&para;</a></h1>
+<p><strong>Status:</strong> Replication selected and configured with CNPG; sharding remains unimplemented.</p>
 <h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
-<p>Assignment asks for replication and sharding, but current repository config has one PostgreSQL StatefulSet replica and no Citus or replica configuration.</p>
+<p>Assignment asks for replication and sharding. The previous configuration used a single PostgreSQL StatefulSet. The educational prototype remains on one physical K3s node and does not need node-level HA.</p>
 <h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
-<p>Document these as gaps, not implemented features. Do not scale StatefulSet replicas to simulate database HA.</p>
+<p>Use CloudNativePG to manage two PostgreSQL instances per environment with asynchronous physical streaming, separate PVCs, automatic Pod recovery/promotion, and the <code>-rw</code> Service for application connections. This is intended to demonstrate PostgreSQL replication mechanics, not protect against physical host failure. Do not implement sharding as part of the replication work; it remains an assignment requirement and needs a separate design decision. Do not scale database Pods directly.</p>
 <h2 id="alternatives-considered">Alternatives considered<a class="headerlink" href="#alternatives-considered" title="Permanent link">&para;</a></h2>
-<p>A PostgreSQL operator/managed service and Citus were not implemented in current tree; design alternatives remain open.</p>
+<p>A PostgreSQL operator is selected over custom StatefulSet replication. Citus remains excluded. Synchronous replication is not selected because the prototype does not require zero data loss and asynchronous streaming avoids making writes wait on the standby.</p>
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
-<p>Single-instance database operations are simpler but have availability/capacity limitations. A future implementation requires failover, recovery, migration and validation procedures.</p>
+<p>The checked-in CNPG configuration is not yet deployed or operationally verified. Both instances share the same node, asynchronous replication may lose recent unreplicated writes, and replication is not a backup. Sharding remains absent.</p>
 
 
 

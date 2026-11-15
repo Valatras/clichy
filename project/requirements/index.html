@@ -1920,7 +1920,7 @@
 
 
 <h1 id="assignment-requirements-traceability">Assignment requirements traceability<a class="headerlink" href="#assignment-requirements-traceability" title="Permanent link">&para;</a></h1>
-<p>Statuses describe repository evidence at <code>master</code> (<code>2a7717f</code>), not an independent evaluation demo. “Implemented, not verified” means configuration or code is present but its operation was not observed in this review.</p>
+<p>Statuses describe the repository configuration after adding the CNPG implementation. “Configured, not deployed/verified” means manifests or scripts exist but the live <code>valtask</code> cluster was not changed or observed in this work.</p>
 <table>
 <thead>
 <tr>
@@ -1952,23 +1952,23 @@
 </tr>
 <tr>
 <td>Database sharding</td>
-<td>Not implemented</td>
-<td>One PostgreSQL StatefulSet, one replica. Citus is not part of current manifests or package dependencies.</td>
+<td>Not implemented / deferred</td>
+<td>CNPG supplies a single logical PostgreSQL cluster per environment; no shard key, routing, or Citus. Sharding remains an explicit assignment gap and a separate design decision.</td>
 </tr>
 <tr>
 <td>Database replication</td>
-<td>Not implemented</td>
-<td>No standby, replication slots, operator, or replication configuration found. One StatefulSet replica is not database replication.</td>
+<td>Configured, not deployed/verified</td>
+<td>Pinned CNPG 1.30.1 operator installer, two-instance async PostgreSQL 18.6 Clusters, separate PVCs, role services and failover configuration are checked in. Operator, WAL streaming, promotion and recovery still require live verification.</td>
 </tr>
 <tr>
 <td>Schema migrations</td>
-<td>Implemented</td>
-<td>Prisma migrations in <code>packages/db/prisma/migrations</code>; <code>migrate.sh</code> runs <code>prisma migrate deploy</code> before manifests.</td>
+<td>Configured, live execution pending</td>
+<td>Prisma migrations in <code>packages/db/prisma/migrations</code>; <code>migrate.sh</code> now targets CNPG <code>-rw</code>, and deploy waits for CNPG Ready before running <code>prisma migrate deploy</code>.</td>
 </tr>
 <tr>
 <td>Refresh Test from Production with anonymization</td>
 <td>Not implemented</td>
-<td>No dump/restore or anonymization procedure found.</td>
+<td>No dump/restore or anonymization procedure found; current app Secret/envs remain isolated, but no refresh job exists.</td>
 </tr>
 <tr>
 <td>Multiple application Pods</td>
@@ -1987,13 +1987,13 @@
 </tr>
 <tr>
 <td>Dashboard for system load and app health</td>
-<td>Implemented, not verified</td>
-<td>kube-prometheus-stack, Grafana dashboard JSON, API <code>/metrics</code>, Kubernetes alerts. Live scrape and dashboards not verified.</td>
+<td>Configured, not verified</td>
+<td>kube-prometheus-stack, Grafana dashboard JSON, API <code>/metrics</code>, Kubernetes alerts and a CNPG PodMonitor/dashboard panels are defined. Live scrape and dashboard import not verified.</td>
 </tr>
 <tr>
 <td>Manual or automatic scaling</td>
 <td>Partially implemented</td>
-<td>Kubernetes supports manual scale; Test HPA manifests target server/web CPU. Metrics API availability and actual HPA behavior are unverified.</td>
+<td>Kubernetes supports manual scale; Test HPA manifests target server/web CPU. Metrics API availability and actual HPA behavior are unverified. Headlamp CNPG Cluster visibility is read-only in RBAC, pending live UI confirmation.</td>
 </tr>
 <tr>
 <td>Kubernetes rolling updates</td>
@@ -2038,7 +2038,7 @@
 </tbody>
 </table>
 <h2 id="evaluation-notes">Evaluation notes<a class="headerlink" href="#evaluation-notes" title="Permanent link">&para;</a></h2>
-<p>Key gaps for a demonstration are database replication and sharding, repeatable Test refresh with anonymization, proof of zero downtime, multi-replica application behavior, Redis availability, and a verified metrics/HPA path. Before marking configured features operational, capture workflow runs, cluster status, and a controlled rollout observation.</p>
+<p>Key gaps for a demonstration are deployment and verification of CNPG replication, the assignment's still-missing database sharding, repeatable Test refresh with anonymization, proof of zero downtime, multi-replica application behavior, Redis availability, and a verified metrics/HPA path. CNPG 1.30 officially supports Kubernetes 1.34–1.36; 1.37 is tested but not officially supported, which matters because the repository's K3s installer targets 1.37. Before marking configured features operational, capture workflow runs, cluster status, Prometheus targets, Headlamp visibility, and a controlled rollout observation.</p>
 
 
 

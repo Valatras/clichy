@@ -1966,13 +1966,17 @@
 <h1 id="system-architecture">System architecture<a class="headerlink" href="#system-architecture" title="Permanent link">&para;</a></h1>
 <h2 id="current-deployment-view">Current deployment view<a class="headerlink" href="#current-deployment-view" title="Permanent link">&para;</a></h2>
 <pre class="mermaid"><code>flowchart TB
-  User[Browser] --&gt; CF[Cloudflare edge: HTTPS]
-  CF --&gt;|valtask.xyz via Cloudflare Tunnel; HTTP to Traefik web :80| Traefik[Traefik Ingress]
-  WWW[www.valtask.xyz] --&gt;|Cloudflare redirect to canonical host| CF
+  User[Browser] --&gt;|HTTPS valtask.xyz or www.valtask.xyz| Proxy[Cloudflare reverse proxy]
+  Proxy --&gt;|routes canonical valtask.xyz requests| Tunnel[cloudflared tunnel]
+  Proxy -. www redirects to canonical valtask.xyz .-&gt; User
+  Tunnel --&gt;|HTTP to Traefik web :80| Traefik[Traefik Ingress]
   subgraph AppNS[Clichy-prod namespace]
     Traefik --&gt;|/| Web[web Deployment]
     Traefik --&gt;|/api/auth and /photos| API[server Deployment]
-    API --&gt;|Prisma| PG[(PostgreSQL StatefulSet, 1 replica)]
+    API --&gt;|Prisma via clichy-postgres-rw| PG[CNPG primary]
+    PG --&gt;|asynchronous WAL streaming| PGReplica[CNPG standby]
+    PG --&gt; PGV1[(Primary PVC)]
+    PGReplica --&gt; PGV2[(Standby PVC)]
     API --&gt;|BullMQ| Redis[(Redis Deployment, 1 replica + AOF PVC)]
     API --&gt;|original + derivative files| Photos[(photos PVC)]
     API -. DB outbox dispatcher .-&gt; Redis
@@ -1980,14 +1984,15 @@
     Worker --&gt; PG
     Worker --&gt; Photos
   end
-  Prom[Prometheus in monitoring namespace] -. /metrics on server .-&gt; API
+  Prom[Prometheus in monitoring namespace] -. /metrics .-&gt; API
+  Prom -. CNPG exporter .-&gt; PG
   Grafana[Grafana] --&gt; Prom</code></pre>
-<p>The public Production request path begins at Cloudflare. HTTPS terminates there, then the Cloudflare Tunnel forwards HTTP to Traefik's <code>web</code> entrypoint on port 80. <code>www.valtask.xyz</code> is redirected by Cloudflare to <code>valtask.xyz</code>; the application Ingress host is <code>valtask.xyz</code>. The tunnel and redirect rules are configured outside this repository. Traefik then routes the UI and API paths to their in-cluster Services.</p>
+<p>The public Production request path begins at Cloudflare, which is the reverse proxy for both <code>valtask.xyz</code> and <code>www.valtask.xyz</code>. HTTPS terminates there; <code>cloudflared</code> forwards the requests through the tunnel as HTTP to Traefik's <code>web</code> entrypoint on port 80. Cloudflare redirects <code>www.valtask.xyz</code> to canonical <code>valtask.xyz</code>; the application Ingress host is <code>valtask.xyz</code>. Tunnel, DNS and redirect rules are configured outside this repository. Traefik then routes the UI and API paths to their in-cluster Services.</p>
 <p>The server is both the HTTP API and outbox dispatcher. It constructs the BullMQ queue and periodically dispatches pending outbox entries. Worker instances consume <code>process-photo</code> jobs. The API and worker need the same photo files; Kubernetes mounts the photos PVC into both Deployments.</p>
 <h2 id="namespace-interpretation">Namespace interpretation<a class="headerlink" href="#namespace-interpretation" title="Permanent link">&para;</a></h2>
-<p>The repository defines <code>clichy-dev</code>, <code>clichy-test</code>, and <code>clichy-prod</code>; monitoring and Headlamp are separate cluster-level installations/namespaces. These are namespace boundaries on one cluster, not separate clusters. Base resources include a PostgreSQL StatefulSet and Redis Deployment; each overlay sets independent configuration and app Secrets.</p>
+<p>The repository defines <code>clichy-dev</code>, <code>clichy-test</code>, and <code>clichy-prod</code>; monitoring and Headlamp are separate cluster-level installations/namespaces. These are namespace boundaries on one cluster, not separate clusters. Each environment overlay defines an independent two-instance CNPG database cluster and independent application Secrets; Redis remains a separate Deployment.</p>
 <h2 id="limits">Limits<a class="headerlink" href="#limits" title="Permanent link">&para;</a></h2>
-<p>Current manifests configure one server, web, worker, PostgreSQL, and Redis replica by default (Test has an HPA for server/web). PostgreSQL and Redis are single-instance services. No replication or sharding is configured. The underlying production local PVs are node-affine and do not provide node-level storage failover. No cluster or live traffic test was performed for this documentation pass.</p>
+<p>The repository configures one server, web, and worker replica by default (Test has an HPA for server/web), one Redis instance, and two PostgreSQL instances per namespace. CNPG replication, failover, and metrics are configured but remain unverified until applied on the live cluster. PostgreSQL is not sharded. Both database instances and their independent node-local volumes remain on the same physical host; this does not provide node-level availability. The old Production PostgreSQL PV is retained during migration.</p>
 
 
 

@@ -1967,10 +1967,13 @@
 <p>Clichy is intended to help users ingest, browse, and manage personal photo collections. The checked-in application currently supports account authentication, photo upload and listing, metadata retrieval, thumbnail derivatives, deletion, and server-side image processing. Similarity primitives exist, but a finished duplicate-review workflow and video support are not evident in the current source.</p>
 <h2 id="architecture-at-a-glance">Architecture at a glance<a class="headerlink" href="#architecture-at-a-glance" title="Permanent link">&para;</a></h2>
 <pre class="mermaid"><code>flowchart LR
-  Browser --&gt;|HTTP| Ingress[Traefik Ingress]
+  Browser --&gt;|HTTPS| Proxy[Cloudflare reverse proxy]
+  Proxy --&gt; Tunnel[Cloudflare Tunnel]
+  Tunnel --&gt;|HTTP| Ingress[Traefik Ingress]
   Ingress --&gt; Web[React Router web]
   Ingress --&gt; API[Fastify API]
-  API --&gt; DB[(PostgreSQL / Prisma)]
+  API --&gt;|CNPG -rw Service| DB[(PostgreSQL primary)]
+  DB --&gt;|WAL streaming| Replica[(PostgreSQL standby)]
   API --&gt; FS[(Shared photo filesystem)]
   API --&gt; Redis[(Redis + BullMQ)]
   API --&gt; Worker[Worker]
@@ -2060,7 +2063,11 @@
 <td>Implemented in workflow; actual recent run status is not checked here</td>
 </tr>
 <tr>
-<td>Database replication / sharding</td>
+<td>Database replication</td>
+<td>CNPG configured in repository; not deployed or verified</td>
+</tr>
+<tr>
+<td>Database sharding</td>
 <td>Not implemented</td>
 </tr>
 <tr>

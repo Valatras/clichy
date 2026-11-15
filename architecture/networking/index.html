@@ -1921,21 +1921,22 @@
 
 <h1 id="networking-and-request-flow">Networking and request flow<a class="headerlink" href="#networking-and-request-flow" title="Permanent link">&para;</a></h1>
 <pre class="mermaid"><code>flowchart LR
-  Client[Browser / external client] --&gt;|HTTPS: valtask.xyz or www.valtask.xyz| Cloudflare[Cloudflare edge]
-  Cloudflare --&gt;|www redirects to valtask.xyz| Canonical[Canonical host: valtask.xyz]
-  Canonical --&gt;|Cloudflare Tunnel: HTTP to Traefik port 80| Ingress[Traefik Ingress: entrypoint web]
+  Client[Browser / external client] --&gt;|HTTPS: valtask.xyz or www.valtask.xyz| Proxy[Cloudflare reverse proxy]
+  Proxy --&gt;|canonical valtask.xyz route| Tunnel[cloudflared tunnel]
+  Tunnel --&gt;|HTTP inside tunnel to Traefik port 80| Ingress[Traefik Ingress: entrypoint web]
+  Proxy -. 301 www to canonical valtask.xyz .-&gt; Client
   Ingress --&gt;|/| WebSvc[ClusterIP clichy-web:80]
   Ingress --&gt;|/api/auth, /photos| ApiSvc[ClusterIP clichy-server:3000]
   WebSvc --&gt; WebPod[web Pod]
   ApiSvc --&gt; ApiPod[server Pod]
-  ApiPod --&gt;|clichy-postgres:5432| PG[PostgreSQL Service]
+  ApiPod --&gt;|clichy-postgres-rw:5432| PG[CNPG primary Service]
   ApiPod --&gt;|clichy-redis:6379| Redis[Redis Service]
   WorkerPod[worker Pod] --&gt; PG
   WorkerPod --&gt; Redis
   WorkerPod --&gt; SharedPV[(photo PVC)]
   ApiPod --&gt; SharedPV</code></pre>
-<p>The base Ingress uses Traefik class and the <code>web</code> entrypoint. It sends <code>/api/auth</code> and <code>/photos</code> to the API and <code>/</code> to web. Environment overlays change the hostname: <code>clichy.localhost</code> (Dev), <code>clichy-test.home.arpa</code> (Test), <code>valtask.xyz</code> (Production). In Production, the externally configured Cloudflare Tunnel forwards <code>valtask.xyz</code> over HTTP to Traefik on port 80; Cloudflare terminates public HTTPS. Cloudflare redirects <code>www.valtask.xyz</code> to <code>https://valtask.xyz</code>, so the Kubernetes Ingress only needs the canonical <code>valtask.xyz</code> host. Tunnel and redirect configuration are outside this repository. The repo's current base ingress annotation selects <code>web</code>; TLS configuration is not present in that Ingress.</p>
-<p>Services use namespace-local DNS names (<code>clichy-postgres</code>, <code>clichy-redis</code>, <code>clichy-server</code>, <code>clichy-web</code>). PostgreSQL and Redis are ClusterIP internal services; no public database/Redis ingress or service is configured. For local access, use the documented ingress route or explicit <code>kubectl port-forward</code> only when needed.</p>
+<p>The base Ingress uses Traefik class and the <code>web</code> entrypoint. It sends <code>/api/auth</code> and <code>/photos</code> to the API and <code>/</code> to web. Environment overlays change the hostname: <code>clichy.localhost</code> (Dev), <code>clichy-test.home.arpa</code> (Test), <code>valtask.xyz</code> (Production). In Production, Cloudflare acts as the public reverse proxy for both <code>valtask.xyz</code> and <code>www.valtask.xyz</code>; the configured Cloudflare Tunnel (<code>cloudflared</code>) carries requests to Traefik on port 80 before they reach the Kubernetes Services and Pods. Cloudflare terminates public HTTPS. The <code>www</code> hostname is redirected to the canonical <code>https://valtask.xyz</code> host at the proxy/tunnel edge; the Kubernetes Ingress handles the canonical host. Tunnel, DNS and redirect configuration are external to this repository. The repo's current base ingress annotation selects <code>web</code>; TLS configuration is not present in that Ingress.</p>
+<p>Services use namespace-local DNS names (<code>clichy-postgres-rw</code>, <code>clichy-redis</code>, <code>clichy-server</code>, <code>clichy-web</code>). PostgreSQL and Redis are ClusterIP internal services; no public database/Redis ingress or service is configured. For local access, use the documented ingress route or explicit <code>kubectl port-forward</code> only when needed.</p>
 <h2 id="network-diagram-caveat">Network diagram caveat<a class="headerlink" href="#network-diagram-caveat" title="Permanent link">&para;</a></h2>
 <p>The separate Ingress resources for Grafana and Headlamp are under <code>infra/kubernetes/monitoring</code> and <code>infra/kubernetes/headlamp</code>; they are LAN-oriented configuration. They are not included in the application Ingress and are not exposed by the documented Cloudflare Tunnel. Check their host/entrypoint and cluster DNS before assuming reachability.</p>
 

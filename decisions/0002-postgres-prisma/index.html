@@ -1990,11 +1990,11 @@
 <h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
 <p>The API needs relational persistence for identity, ownership, photo metadata, and processing state.</p>
 <h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
-<p>Use PostgreSQL with Prisma schema and committed migrations. Better Auth uses Prisma's PostgreSQL adapter. Each Kubernetes namespace has one PostgreSQL StatefulSet/Service and PVC.</p>
+<p>Use PostgreSQL with Prisma schema and committed migrations. Better Auth uses Prisma's PostgreSQL adapter. Each Kubernetes namespace has a CNPG-managed two-instance PostgreSQL cluster; application writes and Prisma migrations use its <code>-rw</code> Service.</p>
 <h2 id="alternatives-considered">Alternatives considered<a class="headerlink" href="#alternatives-considered" title="Permanent link">&para;</a></h2>
 <p>No alternatives are recorded in repository history available here.</p>
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
-<p>Prisma provides typed data access and migration history. Schema migrations must be applied to independent environment databases. The current single instance is a single database availability/failure point; replication, sharding, backups and Test refresh are not implemented.</p>
+<p>Prisma provides typed data access and migration history. Schema migrations must be applied to independent environment databases before rollout and remain backward compatible with old Pods. CNPG replication is configured but not live-verified. Sharding, backups and Test refresh are not implemented; same-node instances do not provide physical host HA.</p>
 
 
 

@@ -1250,10 +1250,65 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#future-design-questions" class="md-nav__link">
+  <a href="#architecture-and-wal-flow" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Future design questions
+        Architecture and WAL flow
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#install-and-inspect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Install and inspect
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#demonstrate-replication-and-failover-test-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Demonstrate replication and failover (Test only)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#retire-the-legacy-statefulset-after-cutover" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Retire the legacy StatefulSet after cutover
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#monitoring-and-headlamp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Monitoring and Headlamp
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#storage-and-limits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storage and limits
       
     </span>
   </a>
@@ -1911,10 +1966,65 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#future-design-questions" class="md-nav__link">
+  <a href="#architecture-and-wal-flow" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Future design questions
+        Architecture and WAL flow
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#install-and-inspect" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Install and inspect
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#demonstrate-replication-and-failover-test-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Demonstrate replication and failover (Test only)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#retire-the-legacy-statefulset-after-cutover" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Retire the legacy StatefulSet after cutover
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#monitoring-and-headlamp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Monitoring and Headlamp
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#storage-and-limits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storage and limits
       
     </span>
   </a>
@@ -1943,10 +2053,78 @@
 
 <h1 id="database-replication-status">Database replication status<a class="headerlink" href="#database-replication-status" title="Permanent link">&para;</a></h1>
 <h2 id="current-state">Current state<a class="headerlink" href="#current-state" title="Permanent link">&para;</a></h2>
-<p>Replication is <strong>not implemented</strong> in the current manifests. PostgreSQL runs as a single-replica StatefulSet with one PVC. No streaming replication, standby, replication slot, WAL archive, failover controller, or managed database configuration was found.</p>
-<p>A StatefulSet provides stable Pod identity and storage claims; increasing its <code>replicas</code> field would create separate PostgreSQL processes and does not configure them as primary/standby replicas. Do not scale this StatefulSet as a replication procedure.</p>
-<h2 id="future-design-questions">Future design questions<a class="headerlink" href="#future-design-questions" title="Permanent link">&para;</a></h2>
-<p>A replication proposal must choose synchronous/asynchronous behavior, primary election/failover, WAL retention, backup integration, read routing, recovery objectives, and how Prisma migrations execute exactly once. Evaluate a PostgreSQL operator or managed HA database before implementing custom replication. Test failover and restore on disposable data first.</p>
+<p>CloudNativePG (CNPG) is configured in the repository for two PostgreSQL 18.6 instances in each app namespace. CNPG manages the primary and standby, their distinct PVCs, physical WAL streaming, role-aware Services, health checks and failover. The application connection is the <code>clichy-postgres-rw</code> Service; it follows the primary after promotion. This is configured in Git but has not yet been installed or verified against the live cluster.</p>
+<p>The old PostgreSQL StatefulSet is no longer included in the environment overlays. Its existing production PV and data directory are retained and are not reused by CNPG. CNPG provisions one independent PVC per instance. Production uses two pre-bound, retained local PVs; Dev and Test use K3s <code>local-path</code> dynamic provisioning. The operator affinity retains preferred anti-affinity, allowing both instances on this one-node cluster while still preferring separation if nodes are added later.</p>
+<h2 id="architecture-and-wal-flow">Architecture and WAL flow<a class="headerlink" href="#architecture-and-wal-flow" title="Permanent link">&para;</a></h2>
+<pre class="mermaid"><code>flowchart LR
+  App[API, worker, Prisma migrations] --&gt;|TCP 5432| RW[CNPG -rw Service]
+  RW --&gt; Primary[Primary Pod: reads and writes]
+  Primary --&gt;|WAL stream, asynchronous| Standby[Standby Pod: recovery/read-only]
+  Primary --&gt; PVC1[(PVC: primary data)]
+  Standby --&gt; PVC2[(PVC: standby data)]
+  Operator[CNPG operator] -. watches, repairs, promotes .-&gt; Primary
+  Operator -. watches, repairs, promotes .-&gt; Standby</code></pre>
+<p>PostgreSQL records changes in its write-ahead log (WAL). The primary streams WAL records continuously to the standby, which replays them into its own data directory. Asynchronous replication is selected (<code>minSyncReplicas: 0</code>, <code>maxSyncReplicas: 0</code>): writes do not wait for standby acknowledgement, so a sudden primary loss can lose the most recent unreceived transactions. Synchronous replication waits for configured standbys and can reduce that loss window, but adds write latency and can block writes when acknowledgers are unavailable; it is not enabled here.</p>
+<p>CNPG runs a controller in <code>cnpg-system</code>, exposes <code>clichy-postgres-rw</code> and read-only <code>-ro</code>/<code>-r</code> role services, and reconciles the cluster resource. The app uses only <code>-rw</code>; no replica read routing is configured. CNPG promotes an eligible standby after it determines the primary has failed, updates the role service, and recreates/rejoins the former primary as a standby when possible. A deliberate Pod deletion tests the controller's Pod failure recovery path, but it is not equivalent to loss of the node or a controlled PostgreSQL shutdown.</p>
+<p>This single-node prototype does not protect against power, disk, OS, K3s, or physical server failure. Replication is not a backup: accidental deletes and logical corruption can be replayed. Keep backups and tested restore as separate work.</p>
+<h2 id="install-and-inspect">Install and inspect<a class="headerlink" href="#install-and-inspect" title="Permanent link">&para;</a></h2>
+<p>The pinned operator installer is <code>infra/kubernetes/cnpg/install-operator.sh</code>. CNPG 1.30.1 officially supports Kubernetes 1.34–1.36; its release is tested but not officially supported on 1.37. The project K3s installer currently targets 1.37, so check the live server version first. The script refuses 1.37 unless the operator explicitly opts in with <code>CNPG_ALLOW_TESTED_UNSUPPORTED_K8S=1</code>; K3s distribution support is also outside CNPG's formal vanilla-Kubernetes support policy. Do not interpret successful install as upstream support.</p>
+<p>On <code>valtask</code>, from a clean checkout of this repository, check <code>kubectl version -o json</code> and <code>/srv/clichy</code> free space first. The supplied host report had 28 GiB free on that 30 GiB filesystem; the new two 2 GiB CNPG volumes are separate from the retained legacy volume. Then install the operator once:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># For Kubernetes 1.34–1.36:</span>
+./infra/kubernetes/cnpg/install-operator.sh
+
+<span class="c1"># Only if the actual server reports Kubernetes 1.37 and you accept the</span>
+<span class="c1"># tested-but-not-supported status:</span>
+<span class="nv">CNPG_ALLOW_TESTED_UNSUPPORTED_K8S</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>./infra/kubernetes/cnpg/install-operator.sh
+</code></pre></div>
+<p>The installation creates the <code>cnpg-system</code> namespace, CRDs, RBAC and operator Deployment. Next, create fresh empty DB clusters and credentials; this prepares secrets, local PV directories for Prod, and CNPG resources, but does not remove or import legacy database contents:</p>
+<div class="highlight"><pre><span></span><code>./infra/kubernetes/scripts/prepare-namespace.sh<span class="w"> </span><span class="nb">test</span>
+./infra/kubernetes/scripts/prepare-namespace.sh<span class="w"> </span>dev
+./infra/kubernetes/scripts/prepare-namespace.sh<span class="w"> </span>prod
+</code></pre></div>
+<p>Each script prompts before changing its namespace and may prompt for GHCR credentials if needed. The Prod run creates <code>/srv/clichy/k3s-storage/prod/postgres-cnpg-1</code> and <code>-2</code> only when absent/empty, sets UID/GID 26 on new paths, and retains <code>/srv/clichy/k3s-storage/prod/postgres</code>. Once Test is Ready, push the reviewed commit through the ordinary pipeline: CI runs tests/builds, deploys Test, and the configured Production environment gate controls Prod promotion. <code>deploy.sh</code> refuses to migrate or deploy until CNPG reports Ready.</p>
+<p>After operator install and namespace preparation, inspect roles and PVCs:</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>cluster,pods,svc,pvc<span class="w"> </span>-n<span class="w"> </span>clichy-prod<span class="w"> </span>-o<span class="w"> </span>wide
+kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-n<span class="w"> </span>clichy-prod<span class="w"> </span>-l<span class="w"> </span>cnpg.io/cluster<span class="o">=</span>clichy-postgres<span class="w"> </span>-L<span class="w"> </span>cnpg.io/instanceRole
+kubectl<span class="w"> </span>get<span class="w"> </span>endpointslice<span class="w"> </span>-n<span class="w"> </span>clichy-prod<span class="w"> </span>-l<span class="w"> </span>kubernetes.io/service-name<span class="o">=</span>clichy-postgres-rw
+kubectl<span class="w"> </span>describe<span class="w"> </span>cluster<span class="w"> </span>clichy-postgres<span class="w"> </span>-n<span class="w"> </span>clichy-prod
+</code></pre></div>
+<p><code>kubectl cnpg status clichy-postgres -n clichy-prod</code> is also useful if the optional CNPG kubectl plugin is installed; it is not installed by the operator script.</p>
+<p>Connect with <code>psql</code> using the in-cluster <code>clichy-postgres-rw</code> Service and the <code>clichy-postgres-app</code> credentials (do not put passwords directly in shell history). On the primary, inspect active senders:</p>
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span><span class="w"> </span><span class="n">application_name</span><span class="p">,</span><span class="w"> </span><span class="k">state</span><span class="p">,</span><span class="w"> </span><span class="n">sync_state</span><span class="p">,</span><span class="w"> </span><span class="n">sent_lsn</span><span class="p">,</span><span class="w"> </span><span class="n">write_lsn</span><span class="p">,</span><span class="w"> </span><span class="n">flush_lsn</span><span class="p">,</span><span class="w"> </span><span class="n">replay_lsn</span>
+<span class="k">FROM</span><span class="w"> </span><span class="n">pg_stat_replication</span><span class="p">;</span>
+</code></pre></div>
+<p>On the standby, check recovery and WAL receive/replay positions:</p>
+<div class="highlight"><pre><span></span><code><span class="k">SELECT</span><span class="w"> </span><span class="n">pg_is_in_recovery</span><span class="p">(),</span><span class="w"> </span><span class="n">pg_last_wal_receive_lsn</span><span class="p">(),</span><span class="w"> </span><span class="n">pg_last_wal_replay_lsn</span><span class="p">();</span>
+</code></pre></div>
+<p>The primary should return <code>false</code> for <code>pg_is_in_recovery()</code> and list a streaming standby in <code>pg_stat_replication</code>. The standby should return <code>true</code>; receive/replay positions should advance after writes. <code>pg_stat_replication</code> is queried on the primary; it does not show the standby from itself.</p>
+<h2 id="demonstrate-replication-and-failover-test-only">Demonstrate replication and failover (Test only)<a class="headerlink" href="#demonstrate-replication-and-failover-test-only" title="Permanent link">&para;</a></h2>
+<p>Use <code>clichy-test</code>, never Production, for destructive simulation. The following commands locate the current roles and create a disposable marker on the primary:</p>
+<div class="highlight"><pre><span></span><code><span class="nv">NS</span><span class="o">=</span>clichy-test
+<span class="nv">PRIMARY</span><span class="o">=</span><span class="k">$(</span>kubectl<span class="w"> </span>get<span class="w"> </span>pod<span class="w"> </span>-n<span class="w"> </span><span class="s2">"</span><span class="nv">$NS</span><span class="s2">"</span><span class="w"> </span>-l<span class="w"> </span>cnpg.io/cluster<span class="o">=</span>clichy-postgres,cnpg.io/instanceRole<span class="o">=</span>primary<span class="w"> </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">'{.items[0].metadata.name}'</span><span class="k">)</span>
+<span class="nv">REPLICA</span><span class="o">=</span><span class="k">$(</span>kubectl<span class="w"> </span>get<span class="w"> </span>pod<span class="w"> </span>-n<span class="w"> </span><span class="s2">"</span><span class="nv">$NS</span><span class="s2">"</span><span class="w"> </span>-l<span class="w"> </span>cnpg.io/cluster<span class="o">=</span>clichy-postgres,cnpg.io/instanceRole<span class="o">=</span>replica<span class="w"> </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">'{.items[0].metadata.name}'</span><span class="k">)</span>
+kubectl<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-n<span class="w"> </span><span class="s2">"</span><span class="nv">$NS</span><span class="s2">"</span><span class="w"> </span><span class="s2">"</span><span class="nv">$PRIMARY</span><span class="s2">"</span><span class="w"> </span>--<span class="w"> </span>psql<span class="w"> </span>-U<span class="w"> </span>postgres<span class="w"> </span>-d<span class="w"> </span>clichy_test<span class="w"> </span>-v<span class="w"> </span><span class="nv">ON_ERROR_STOP</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>-c<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="s2">"CREATE TABLE cnpg_replication_demo (id integer PRIMARY KEY, marker text NOT NULL); INSERT INTO cnpg_replication_demo VALUES (1, 'wal-check');"</span>
+kubectl<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-n<span class="w"> </span><span class="s2">"</span><span class="nv">$NS</span><span class="s2">"</span><span class="w"> </span><span class="s2">"</span><span class="nv">$REPLICA</span><span class="s2">"</span><span class="w"> </span>--<span class="w"> </span>psql<span class="w"> </span>-U<span class="w"> </span>postgres<span class="w"> </span>-d<span class="w"> </span>clichy_test<span class="w"> </span>-c<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="s2">"SELECT * FROM cnpg_replication_demo;"</span>
+</code></pre></div>
+<p>The standby query should return <code>1 | wal-check</code> after replay. Confirm sender state and LSNs with the SQL above. Remove the test table only after verification, if desired:</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-n<span class="w"> </span><span class="s2">"</span><span class="nv">$NS</span><span class="s2">"</span><span class="w"> </span><span class="s2">"</span><span class="nv">$PRIMARY</span><span class="s2">"</span><span class="w"> </span>--<span class="w"> </span>psql<span class="w"> </span>-U<span class="w"> </span>postgres<span class="w"> </span>-d<span class="w"> </span>clichy_test<span class="w"> </span>-c<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="s2">"DROP TABLE cnpg_replication_demo;"</span>
+</code></pre></div>
+<p>For failover, record the current primary Pod using <code>kubectl get pods -l cnpg.io/cluster=clichy-postgres -L cnpg.io/instanceRole -n clichy-test</code>, then manually delete only that Pod in <code>clichy-test</code> (<code>kubectl delete pod &lt;primary-pod&gt; -n clichy-test</code>). This changes cluster state and causes a brief database connection interruption while CNPG promotes the standby. Do not delete its PVC. Watch <code>kubectl get cluster,pods,endpointslice -w -n clichy-test</code>, Pod roles and the <code>clichy-postgres-rw</code> EndpointSlice. Once the Cluster returns Ready, run a write/read through <code>-rw</code>, verify <code>pg_is_in_recovery()</code> on the promoted primary, then verify that CNPG has recreated/rejoined the old instance as the new standby. Repeat only after confirming the state is healthy. Pod deletion is not evidence of node-level HA.</p>
+<p>Restart/recovery persistence can similarly be demonstrated in Test by restarting a CNPG instance Pod without deleting its PVC, then checking the test row and standby state. Avoid direct Pod manipulations in Prod during evaluation unless a separate backup and maintenance window are in place.</p>
+<h2 id="retire-the-legacy-statefulset-after-cutover">Retire the legacy StatefulSet after cutover<a class="headerlink" href="#retire-the-legacy-statefulset-after-cutover" title="Permanent link">&para;</a></h2>
+<p>The Kustomize overlay no longer declares the legacy StatefulSet, but Kubernetes does not automatically delete resources removed from a manifest. Once the new application is verified in every environment, an operator can remove only the old StatefulSet and old Service:</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>delete<span class="w"> </span>statefulset<span class="w"> </span>clichy-postgres<span class="w"> </span>-n<span class="w"> </span>clichy-test
+kubectl<span class="w"> </span>delete<span class="w"> </span>service<span class="w"> </span>clichy-postgres<span class="w"> </span>-n<span class="w"> </span>clichy-test
+</code></pre></div>
+<p>Repeat for Dev and Production only after checking the selected object and its namespace. Do not delete <code>data-clichy-postgres-0</code>, its PVC, the legacy PV, or the old directory as part of this step; retain them until intentionally cleaning up storage in a separately reviewed operation. CNPG's similarly named Cluster is <code>clusters.postgresql.cnpg.io/clichy-postgres</code>, not the old StatefulSet.</p>
+<h2 id="monitoring-and-headlamp">Monitoring and Headlamp<a class="headerlink" href="#monitoring-and-headlamp" title="Permanent link">&para;</a></h2>
+<p>CNPG exports PostgreSQL metrics on Pod port <code>metrics</code> (9187). <code>infra/kubernetes/monitoring/cnpg-pod-monitor.yaml</code> selects CNPG Pods in all three namespaces; the Prometheus Helm values select the PodMonitor. Grafana adds role/recovery, lag, streaming replica and WAL receiver panels, and Prometheus alerts for a disconnected replica and sustained lag. Headlamp receives read-only access to <code>clusters.postgresql.cnpg.io</code> so its mapping can display CNPG Cluster status alongside Pods, Services and PVCs. Verify actual scrape targets in Prometheus and the panels/alerts after installation; YAML alone does not prove telemetry is flowing.</p>
+<h2 id="storage-and-limits">Storage and limits<a class="headerlink" href="#storage-and-limits" title="Permanent link">&para;</a></h2>
+<p>Each instance has an independent 2 GiB PVC in this prototype. The production manifest binds to <code>/srv/clichy/k3s-storage/prod/postgres-cnpg-1</code> and <code>-2</code>; each path must be an empty directory owned by UID/GID 26 before first start. The supplied preparation script creates these paths without changing the legacy PostgreSQL directory. Two copies of the database consume about twice the data volume, plus WAL and filesystem overhead. The production paths share the existing 30 GiB <code>/srv/clichy</code> filesystem, so watch both PVC metrics and host free space. Dev/Test use dynamically provisioned local-path PVCs.</p>
+<p>The operator can automatically recover a Pod or promote a standby, but the whole cluster remains on one K3s node. This design demonstrates the mechanics and does not provide host-level availability, geographic recovery, or a backup. Production and Test are separate PostgreSQL clusters with independent PVCs and Secrets; no Production-to-Test refresh/anonymization job is implemented.</p>
 
 
 

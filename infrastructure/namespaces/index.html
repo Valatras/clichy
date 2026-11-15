@@ -1944,16 +1944,17 @@
 <h1 id="namespaces-and-service-traffic">Namespaces and service traffic<a class="headerlink" href="#namespaces-and-service-traffic" title="Permanent link">&para;</a></h1>
 <h2 id="namespaces">Namespaces<a class="headerlink" href="#namespaces" title="Permanent link">&para;</a></h2>
 <pre class="mermaid"><code>flowchart TB
-  Public[Browser: valtask.xyz / www.valtask.xyz] --&gt; CF[Cloudflare edge and Tunnel]
+  Public[Browser: valtask.xyz / www.valtask.xyz] --&gt; CF[Cloudflare reverse proxy]
+  CF --&gt; Tunnel[cloudflared Tunnel]
   subgraph Cluster[K3s cluster]
     subgraph Dev[clichy-dev]
-      D[web + server + worker + PostgreSQL + Redis]
+      D[web + server + worker + CNPG primary + standby + Redis]
     end
     subgraph Test[clichy-test]
-      T[web + server + worker + PostgreSQL + Redis + HPA]
+      T[web + server + worker + CNPG primary + standby + Redis + HPA]
     end
     subgraph Prod[clichy-prod]
-      P[web + server + worker + PostgreSQL + Redis]
+      P[web + server + worker + CNPG primary + standby + Redis]
     end
     subgraph Monitoring[monitoring]
       M[Prometheus + Grafana + Alertmanager]
@@ -1963,14 +1964,15 @@
     end
     Traefik[Cluster Traefik]
   end
-  CF --&gt;|valtask.xyz over HTTP to web :80; www redirects to valtask.xyz| Traefik
+  Tunnel --&gt;|HTTP to Traefik web :80; www canonicalized by Cloudflare| Traefik
   Traefik --&gt;|host rules| Dev
   Traefik --&gt;|host rules| Test
   Traefik --&gt;|valtask.xyz| Prod
-  M -. scrapes .-&gt; Dev
-  M -. scrapes .-&gt; Test</code></pre>
-<p>Each <code>clichy-*</code> namespace contains independent workload Services, database, Redis, generated ConfigMaps, and environment Secrets. There is no data replication between namespaces. Monitoring's Clichy <code>ServiceMonitor</code> selects Dev and Test only; it does not scrape Production application metrics in this manifest. The Grafana dashboard can query namespace variables, but actual production metric visibility depends on the scrape configuration.</p>
-<p>Production's public route enters through Cloudflare Tunnel to Traefik; <code>www.valtask.xyz</code> redirects at Cloudflare to the canonical <code>valtask.xyz</code> host. The tunnel and redirect are external configuration and are not represented as Kubernetes resources in this repository.</p>
+  M -. scrapes app and database metrics .-&gt; Dev
+  M -. scrapes app and database metrics .-&gt; Test
+  M -. scrapes app and database metrics .-&gt; Prod</code></pre>
+<p>Each <code>clichy-*</code> namespace contains independent workload Services, database, Redis, generated ConfigMaps, and environment Secrets. There is no data replication between namespaces. Monitoring ServiceMonitor/PodMonitor resources select all three environments; actual production metric visibility still depends on successful installation and scrape health.</p>
+<p>Production's public route is proxied by Cloudflare for <code>valtask.xyz</code> and <code>www.valtask.xyz</code>, then enters through the Cloudflare Tunnel to Traefik; <code>www.valtask.xyz</code> redirects at Cloudflare to canonical <code>valtask.xyz</code>. The tunnel and redirect are external configuration and are not represented as Kubernetes resources in this repository.</p>
 <p><code>headlamp</code> has separate RBAC and Ingress manifests. The Monitoring/Headlamp manifests and scripts configure cluster tools; inspect their LAN hostnames and access policy before exposing them.</p>
 <h2 id="setup-and-inspection">Setup and inspection<a class="headerlink" href="#setup-and-inspection" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code>infra/kubernetes/scripts/prepare-namespace.sh<span class="w"> </span><span class="nb">test</span>

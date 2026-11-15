@@ -1957,7 +1957,8 @@ pnpm<span class="w"> </span>db:migrate
 <h2 id="deployment-ordering">Deployment ordering<a class="headerlink" href="#deployment-ordering" title="Permanent link">&para;</a></h2>
 <pre class="mermaid"><code>flowchart TD
   SHA[Checked out SHA + matching immutable images] --&gt; Verify[Verify clean source, node and target Secret]
-  Verify --&gt; Forward[Loopback port-forward and PostgreSQL SELECT 1]
+  Verify --&gt; Ready[Wait for CNPG Cluster Ready]
+  Ready --&gt; Forward[Loopback port-forward through clichy-postgres-rw and PostgreSQL SELECT 1]
   Forward --&gt; Migrate[prisma migrate deploy]
   Migrate --&gt;|success| Apply[Render and apply environment Kustomize overlay]
   Migrate --&gt;|failure| Stop[Stop; app manifests not applied]

@@ -1984,8 +1984,8 @@
 </tr>
 <tr>
 <td>PostgreSQL</td>
-<td>In-cluster single StatefulSet and PVC</td>
-<td>Decide managed database vs operator; update Secret/DNS/TLS/network policy; test restore and Prisma connectivity.</td>
+<td>CNPG two-instance physical streaming cluster with two node-local PVCs per environment</td>
+<td>Decide managed database vs CNPG on cloud; select CSI-backed storage, topology/anti-affinity, backups, secrets, networking and supported Kubernetes/PostgreSQL versions; migrate/restore data and validate Prisma connectivity.</td>
 </tr>
 <tr>
 <td>Redis</td>

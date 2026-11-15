@@ -392,24 +392,6 @@
         
       
       
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Roadmap and status
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
@@ -426,47 +408,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#evidence-based-progression" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Evidence-based progression
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#current-baseline" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Current baseline
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
       
     </li>
   
@@ -1893,36 +1834,6 @@
     
   
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#evidence-based-progression" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Evidence-based progression
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#current-baseline" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Current baseline
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
 </nav>
                   </div>
                 </div>
@@ -1942,57 +1853,65 @@
 
 
 <h1 id="roadmap-and-development-status">Roadmap and development status<a class="headerlink" href="#roadmap-and-development-status" title="Permanent link">&para;</a></h1>
-<h2 id="evidence-based-progression">Evidence-based progression<a class="headerlink" href="#evidence-based-progression" title="Permanent link">&para;</a></h2>
-<p>Git history shows a foundation and application development, followed by image hashing, Redis/BullMQ work, Kubernetes and monitoring changes, and a database migration/deployment repair. Not every historical experiment is part of the current runtime.</p>
+<p>The entries distinguish repository configuration from live behavior. The CNPG manifests and scripts have not yet been applied to the home server.</p>
 <table>
 <thead>
 <tr>
 <th>Stage</th>
-<th>Verified status</th>
+<th>Status</th>
+<th>Remaining work</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>1. Foundation</td>
-<td>Historical; initial structure and local development are present. Exact completion criteria are not defined in current docs.</td>
+<td>Base application and environment setup exist</td>
+<td>Verify onboarding and environment preparation after CNPG setup.</td>
 </tr>
 <tr>
-<td>2. Authentication and storage</td>
-<td>Implemented: Better Auth/Prisma, per-user photo records, filesystem originals and derivatives.</td>
+<td>2. Authentication and Storage</td>
+<td>Better Auth, Prisma and photo storage implemented; DB is being replaced with fresh CNPG clusters</td>
+<td>Run schema migrations, verify authentication and new uploads; prototype DB contents are intentionally not imported.</td>
 </tr>
 <tr>
-<td>3. Image processing</td>
-<td>Implemented baseline: EXIF extraction, dimensions, SHA-256, pHash, Hamming distance, WebP derivatives. Broader automated curation UX is incomplete/unverified.</td>
+<td>3. Image Processing</td>
+<td>Processing and duplicate-comparison foundations exist</td>
+<td>Exercise complete upload, processing and comparison workflow live.</td>
 </tr>
 <tr>
 <td>4. Containerization</td>
-<td>Dockerfiles exist for web/server/worker; compose exists for PostgreSQL and Redis.</td>
+<td>Web/API/worker images and local DB/Redis Compose exist</td>
+<td>Continue validating exact-SHA image pipeline.</td>
 </tr>
 <tr>
-<td>5. Kubernetes</td>
-<td>Kustomize base/overlays, K3s scripts, Ingress and storage manifests exist. Live cluster state is outside source review.</td>
+<td>5. Kubernetes Deployment</td>
+<td>K3s, Kustomize overlays, Ingress, PV and CI deployment scripts exist</td>
+<td>Install operator, create CNPG clusters, run migrations, verify app and external traffic.</td>
 </tr>
 <tr>
-<td>6. Asynchronous processing</td>
-<td>Functional baseline intended at <code>bce6e50</code>; current source has BullMQ worker, retry settings, DB outbox and stale-job recovery. Current live operation is unverified.</td>
+<td>6. Asynchronous Processing</td>
+<td>Redis/BullMQ workers, retries, outbox and recovery logic exist</td>
+<td>Verify queue, shared photo volume and worker recovery in Test.</td>
 </tr>
 <tr>
 <td>7. Infrastructure and deployment improvements</td>
-<td>In progress: exact-SHA CI/CD, pre-deploy Prisma migrations, environment secrets, prod storage config, monitoring. Recent commits are still changing this area.</td>
+<td>Partially configured</td>
+<td>Complete CNPG deployment/replication/failover verification, Prometheus scraping and Headlamp view, zero-downtime rollout evidence, Prod promotion validation. Assignment gaps remain: sharding, Test refresh/anonymization, Redis replication and backup/restore.</td>
 </tr>
 <tr>
-<td>8. Paused stage</td>
-<td>On hold per project context. Exact stage name is not present in the checked-in plan/docs available in this checkout.</td>
+<td>8. Paused</td>
+<td>On hold</td>
+<td>No work planned.</td>
 </tr>
 <tr>
-<td>9. Paused stage</td>
-<td>On hold per project context. Exact stage name is not present in the checked-in plan/docs available in this checkout.</td>
+<td>9. Paused</td>
+<td>On hold</td>
+<td>No work planned.</td>
 </tr>
 </tbody>
 </table>
-<p>The project plan naming for stages 8 and 9 could not be verified in repository files or recent commit messages. These entries intentionally retain neutral labels rather than inventing names. No paused work is described as complete.</p>
-<h2 id="current-baseline">Current baseline<a class="headerlink" href="#current-baseline" title="Permanent link">&para;</a></h2>
-<p>The checked-out head is <code>2a7717f</code> (<code>fix: ensure PostgreSQL data directory permissions are correctly set for UID 999</code>), not <code>bce6e50</code>. The latter is a historical checkpoint titled “Using Redis and BullMQ for workers queue and Recovery, claiming photos atomically and processes originals from shared storage.” Current head includes later PostgreSQL structure, local storage, and permissions changes.</p>
+<p>Git history shows the progression through image processing, Redis/BullMQ, K3s, monitoring, and deployment stability. Stage 7 is therefore in progress, not complete: cluster operation and final evaluation evidence are still outstanding. The installer targets K3s 1.37; CNPG 1.30.1 has only tested (not officially supported) Kubernetes 1.37 compatibility. See <a href="../../database/replication/">the replication guide</a>.</p>
+<p>Production's request path is Cloudflare reverse proxy for both <code>valtask.xyz</code> and <code>www.valtask.xyz</code>, then Cloudflare Tunnel (<code>cloudflared</code>) to Traefik before a request reaches the Clichy Services. Tunnel and DNS configuration live outside this repository.</p>
 
 
 

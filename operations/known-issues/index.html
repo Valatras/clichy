@@ -1457,6 +1457,34 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="PostgreSQL connectivity and Prisma deployment stability">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prisma-migrations-over-the-cnpg-loopback-port-forward" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prisma migrations over the CNPG loopback port-forward
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#production-cnpg-application-role-mismatch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Production CNPG application role mismatch
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1963,6 +1991,34 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="PostgreSQL connectivity and Prisma deployment stability">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prisma-migrations-over-the-cnpg-loopback-port-forward" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prisma migrations over the CNPG loopback port-forward
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#production-cnpg-application-role-mismatch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Production CNPG application role mismatch
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -2047,8 +2103,20 @@
 <strong>Root cause:</strong> Not established by commit subjects alone. Current migration script uses a loopback port-forward, dynamically discovers its local port, and validates with a PostgreSQL protocol <code>SELECT 1</code>; exact earlier failure mechanism is not established.
 <strong>Resolution:</strong> Connectivity changes and a more defensive migration path are in the current tree.
 <strong>Verification:</strong> Source inspection only for this documentation pass.
-<strong>Relevant files:</strong> <code>infra/kubernetes/scripts/migrate.sh</code>, <code>packages/db/src/</code>, <code>infra/kubernetes/base/postgres/</code>.
+<strong>Relevant files:</strong> <code>infra/kubernetes/scripts/migrate.sh</code>, <code>packages/db/src/</code>, <code>infra/kubernetes/base/postgres/</code>.</p>
+<h3 id="prisma-migrations-over-the-cnpg-loopback-port-forward">Prisma migrations over the CNPG loopback port-forward<a class="headerlink" href="#prisma-migrations-over-the-cnpg-loopback-port-forward" title="Permanent link">&para;</a></h3>
+<p><strong>Status:</strong> Resolved and confirmed by a successful Test workflow.</p>
+<p><strong>Symptoms:</strong> The migration script's <code>node-postgres</code> <code>SELECT 1</code> probe succeeded through <code>kubectl port-forward</code>, but Prisma <code>migrate deploy</code> and <code>migrate status</code> returned P1001. The port-forward was reset when Prisma opened its connection.</p>
+<p><strong>Cause and resolution:</strong> Prisma's PostgreSQL connector defaults to <code>sslmode=prefer</code>; the <code>pg</code> readiness probe does not request TLS for the generated URL. The port-forward URL is loopback-only, so <code>migrate.sh</code> now explicitly sets <code>sslmode=disable</code> when rewriting the temporary URL. This keeps the probe and Prisma on the same protocol. The Kubernetes Secret and application connection URL are not changed. The fix was confirmed by the Test deployment workflow.</p>
+<p><strong>Relevant files:</strong> <code>infra/kubernetes/scripts/migrate.sh</code>, <code>docs/infrastructure/ci-cd.md</code>.
 <strong>Related commits:</strong> <code>7e8f334</code>, <code>21d2785</code>.</p>
+<h3 id="production-cnpg-application-role-mismatch">Production CNPG application role mismatch<a class="headerlink" href="#production-cnpg-application-role-mismatch" title="Permanent link">&para;</a></h3>
+<p><strong>Status:</strong> Cause confirmed from cluster logs; the credential correction was applied on <code>valtask</code>, but authentication remains unverified until CNPG applies the role password.</p>
+<p><strong>Symptoms:</strong> Production <code>migrate.sh</code> port-forward failed on its first database connection. The primary Pod remained <code>Running</code>, and the direct local socket query returned <code>pg_is_in_recovery() = false</code>.</p>
+<p><strong>Root cause:</strong> The CNPG Cluster declares <code>bootstrap.initdb.owner: clichy</code>, but the Production application Secret originally used the PostgreSQL username <code>clichy_prod</code>. After the username was corrected, PostgreSQL still logged SQLSTATE <code>28P01</code> with <code>User "clichy" has no password assigned</code>. The Secret referenced by <code>bootstrap.initdb.secret</code> lacked CNPG's <code>cnpg.io/reload: "true"</code> label, so the Secret update did not promptly trigger reconciliation of the role password. The endpoint, primary, and PVCs were healthy; this is a credential synchronization issue, not a storage or port-forward routing failure.</p>
+<p><strong>Resolution:</strong> <code>prepare-namespace.sh</code> normalizes the local DB URL and <code>POSTGRES_USER</code> to <code>clichy</code>, retaining the current password and database name, and labels <code>clichy-postgres-app</code> with <code>cnpg.io/reload: "true"</code>. Apply the label immediately with <code>kubectl label secret clichy-postgres-app -n clichy-prod cnpg.io/reload=true --overwrite</code>; then confirm CNPG synchronizes the password before retrying migrations. Sync the updated script before the next environment preparation so the label persists. Do not delete or recreate the Cluster or its PVCs.</p>
+<p><strong>Verification required:</strong> Confirm a fresh PostgreSQL authentication attempt succeeds and CNPG logs stop reporting password/owner errors, then run <code>./infra/kubernetes/scripts/migrate.sh prod status</code> and the Production workflow. Do not mark the Production correction operational until these succeed.</p>
+<p><strong>Relevant files:</strong> <code>infra/kubernetes/scripts/prepare-namespace.sh</code>, <code>infra/kubernetes/cnpg/cluster.yaml</code>, <code>infra/kubernetes/overlays/prod/database/kustomization.yaml</code>, <code>infra/kubernetes/scripts/migrate.sh</code>.</p>
 <h2 id="citus-sharding-experiment">Citus sharding experiment<a class="headerlink" href="#citus-sharding-experiment" title="Permanent link">&para;</a></h2>
 <p><strong>Status:</strong> Historical experiment; not operational
 <strong>Affected component:</strong> Database architecture
@@ -2077,7 +2145,7 @@
 <strong>Relevant files:</strong> <code>infra/kubernetes/scripts/prepare-namespace.sh</code>, <code>infra/kubernetes/base/postgres/statefulset.yaml</code>.
 <strong>Related commits:</strong> <code>2a7717f</code>, <code>4bceaff</code>.</p>
 <h2 id="operational-gaps-not-recorded-incidents">Operational gaps (not recorded incidents)<a class="headerlink" href="#operational-gaps-not-recorded-incidents" title="Permanent link">&para;</a></h2>
-<p>These are limitations established by configuration, not claims of past failures: no database backup/restore runbook, no PostgreSQL replication or sharding, one Redis instance, and no Test database refresh/anonymization procedure. See corresponding database pages and requirement matrix.</p>
+<p>These are limitations established by configuration, not claims of past failures: CNPG replication is configured but not yet deployed/verified, PostgreSQL sharding is absent, no tested backup/restore runbook exists, Redis is a single instance, and no Test refresh/anonymization procedure exists. See the database pages and requirements matrix.</p>
 
 
 
