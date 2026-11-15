@@ -74,8 +74,9 @@ if [[ -L "$SECRET_FILE" ]]; then
 fi
 
 if [[ -f "$SECRET_FILE" ]]; then
-  echo "Le fichier existant $SECRET_FILE sera conservé localement."
-  echo "Ses valeurs seront appliquées aux Secrets Kubernetes de $NAMESPACE."
+  echo "Le fichier existant $SECRET_FILE sera conservé, avec son hôte DB et son utilisateur normalisés."
+  echo "L'hôte DB deviendra le Service CNPG -rw et l'utilisateur 'clichy'; mot de passe et base restent inchangés."
+  echo "Les valeurs normalisées seront appliquées aux Secrets Kubernetes de $NAMESPACE."
 else
   echo "Le script créera un fichier de secrets protégé dans $SECRET_DIR."
 fi
@@ -152,11 +153,12 @@ else
   chmod 600 "$SECRET_FILE"
 fi
 
-# Existing local secret files still name the removed StatefulSet Service. Change
-# only that hostname; retain the configured username, password and database.
-EXPECTED_NAMESPACE="$NAMESPACE" python3 - "$SECRET_FILE" <<'PY'
+# Normalize legacy local secret files to the CNPG -rw Service and the database
+# owner declared in the Cluster. Keep the existing password and database name.
+EXPECTED_NAMESPACE="$NAMESPACE" EXPECTED_DATABASE_USER=clichy \
+  python3 - "$SECRET_FILE" <<'PY'
 from pathlib import Path
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import quote, unquote, urlsplit, urlunsplit
 import os
 import sys
 import tempfile
@@ -165,21 +167,41 @@ path = Path(sys.argv[1])
 lines = path.read_text().splitlines()
 updated = []
 found = False
+values = {}
+for line in lines:
+    if line and not line.lstrip().startswith("#") and "=" in line:
+        key, value = line.split("=", 1)
+        values[key] = value
+
+expected_user = os.environ["EXPECTED_DATABASE_USER"]
+configured_user = values.get("POSTGRES_USER")
+if not configured_user:
+    raise SystemExit("POSTGRES_USER is missing from the local secrets file.")
+
 for line in lines:
     if line.startswith("DATABASE_URL="):
         found = True
         key, raw_url = line.split("=", 1)
         parsed = urlsplit(raw_url)
+        if unquote(parsed.username or "") != configured_user:
+            raise SystemExit("DATABASE_URL username does not match POSTGRES_USER.")
         old_hosts = {"clichy-postgres",
                      f"clichy-postgres.{os.environ['EXPECTED_NAMESPACE']}.svc.cluster.local"}
         if parsed.hostname in old_hosts:
-            userinfo = parsed.netloc.rsplit("@", 1)[0] + "@" if "@" in parsed.netloc else ""
-            port = f":{parsed.port}" if parsed.port else ""
-            raw_url = urlunsplit((parsed.scheme, userinfo + "clichy-postgres-rw" + port,
-                                  parsed.path, parsed.query, parsed.fragment))
-        elif parsed.hostname != "clichy-postgres-rw":
+            host = "clichy-postgres-rw"
+        elif parsed.hostname == "clichy-postgres-rw":
+            host = parsed.hostname
+        else:
             raise SystemExit("DATABASE_URL must target the Clichy CNPG -rw Service.")
+        userinfo = quote(expected_user, safe="")
+        if parsed.password is not None:
+            userinfo += ":" + quote(unquote(parsed.password), safe="")
+        port = f":{parsed.port}" if parsed.port else ""
+        raw_url = urlunsplit((parsed.scheme, userinfo + "@" + host + port,
+                              parsed.path, parsed.query, parsed.fragment))
         line = f"{key}={raw_url}"
+    elif line.startswith("POSTGRES_USER="):
+        line = f"POSTGRES_USER={expected_user}"
     updated.append(line)
 if not found:
     raise SystemExit("DATABASE_URL is missing from the local secrets file.")

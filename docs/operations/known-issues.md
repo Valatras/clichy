@@ -22,7 +22,31 @@ This is a record of issues evidenced by current documentation, source, or Git hi
 **Resolution:** Connectivity changes and a more defensive migration path are in the current tree.
 **Verification:** Source inspection only for this documentation pass.
 **Relevant files:** `infra/kubernetes/scripts/migrate.sh`, `packages/db/src/`, `infra/kubernetes/base/postgres/`.
+
+### Prisma migrations over the CNPG loopback port-forward
+
+**Status:** Resolved and confirmed by a successful Test workflow.
+
+**Symptoms:** The migration script's `node-postgres` `SELECT 1` probe succeeded through `kubectl port-forward`, but Prisma `migrate deploy` and `migrate status` returned P1001. The port-forward was reset when Prisma opened its connection.
+
+**Cause and resolution:** Prisma's PostgreSQL connector defaults to `sslmode=prefer`; the `pg` readiness probe does not request TLS for the generated URL. The port-forward URL is loopback-only, so `migrate.sh` now explicitly sets `sslmode=disable` when rewriting the temporary URL. This keeps the probe and Prisma on the same protocol. The Kubernetes Secret and application connection URL are not changed. The fix was confirmed by the Test deployment workflow.
+
+**Relevant files:** `infra/kubernetes/scripts/migrate.sh`, `docs/infrastructure/ci-cd.md`.
 **Related commits:** `7e8f334`, `21d2785`.
+
+### Production CNPG application role mismatch
+
+**Status:** Cause confirmed from cluster logs; the preparation-script correction is implemented in the repository but not yet applied or verified on `valtask`.
+
+**Symptoms:** Production `migrate.sh` port-forward failed on its first database connection. The primary Pod remained `Running`, and the direct local socket query returned `pg_is_in_recovery() = false`.
+
+**Root cause:** The CNPG Cluster declares `bootstrap.initdb.owner: clichy`, but the Production application Secret used the PostgreSQL username `clichy_prod`. CNPG logged `wrong username 'clichy_prod' in secret, expected 'clichy'`, and PostgreSQL logged SQLSTATE `28P01` because role `clichy_prod` does not exist. The endpoint, primary, and PVCs were healthy; this was a credential/role mismatch rather than a storage or port-forward routing failure.
+
+**Resolution:** `prepare-namespace.sh` now normalizes the local DB URL and `POSTGRES_USER` to `clichy`, retaining the current password and database name, so both `clichy-server-secrets` and `clichy-postgres-app` match the CNPG owner. After syncing this change, rerun `prepare-namespace.sh prod`; it updates the Secrets and lets CNPG reconcile the owner password. Do not delete or recreate the Cluster or its PVCs.
+
+**Verification required:** Confirm the CNPG logs stop reporting the owner mismatch, then run `./infra/kubernetes/scripts/migrate.sh prod status` and the Production workflow. Do not mark the Production correction operational until these succeed.
+
+**Relevant files:** `infra/kubernetes/scripts/prepare-namespace.sh`, `infra/kubernetes/cnpg/cluster.yaml`, `infra/kubernetes/overlays/prod/database/kustomization.yaml`, `infra/kubernetes/scripts/migrate.sh`.
 
 ## Citus sharding experiment
 
