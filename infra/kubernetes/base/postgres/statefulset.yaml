@@ -71,17 +71,3 @@ spec:
         resources:
           requests:
             storage: 10Gi
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: clichy-postgres
-spec:
-  selector:
-    app: clichy-postgres
-  ports:
-    - name: postgres
-      port: 5432
-      targetPort: postgres
-      protocol: TCP
-  type: ClusterIP

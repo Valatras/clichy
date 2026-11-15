@@ -221,7 +221,7 @@ if [[ "$ENVIRONMENT" == "prod" ]]; then
   kubectl apply -k "$ROOT_DIR/infra/kubernetes/overlays/prod/database"
 else
   kubectl apply --namespace="$NAMESPACE" \
-    -f "$ROOT_DIR/infra/kubernetes/base/postgres-statefulset.yaml"
+    -k "$ROOT_DIR/infra/kubernetes/base/postgres"
 fi
 
 kubectl rollout status statefulset/clichy-postgres \

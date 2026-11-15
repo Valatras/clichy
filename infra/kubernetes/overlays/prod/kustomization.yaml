@@ -4,7 +4,7 @@ namespace: clichy-prod
 resources:
   - namespace.yaml
   - ../../base
-  - storage.yaml
+  - database/storage.yaml
 configMapGenerator:
   - name: clichy-server-config
     literals:
