@@ -4,7 +4,7 @@ set -Eeuo pipefail
 VERSION="$(<"$(dirname -- "${BASH_SOURCE[0]}")/operator-version")"
 MANIFEST="https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/v${VERSION}/releases/cnpg-${VERSION}.yaml"
 
-for command_name in kubectl python3 rg; do
+for command_name in kubectl python3; do
   if ! command -v "$command_name" >/dev/null 2>&1; then
     echo "Required command '$command_name' was not found in PATH." >&2
     exit 1
@@ -38,8 +38,9 @@ case "$server_minor" in
     ;;
 esac
 
-if kubectl get deployment cnpg-controller-manager --namespace cnpg-system \
-  --ignore-not-found --output=name | rg -q .; then
+existing_deployment="$(kubectl get deployment cnpg-controller-manager \
+  --namespace cnpg-system --ignore-not-found --output=name)"
+if [[ -n "$existing_deployment" ]]; then
   existing_image="$(kubectl get deployment cnpg-controller-manager \
     --namespace cnpg-system \
     --output='jsonpath={.spec.template.spec.containers[?(@.name=="manager")].image}')"
@@ -54,8 +55,9 @@ if kubectl get deployment cnpg-controller-manager --namespace cnpg-system \
   exit 2
 fi
 
-if kubectl get crd clusters.postgresql.cnpg.io --ignore-not-found \
-  --output=name | rg -q .; then
+existing_crd="$(kubectl get crd clusters.postgresql.cnpg.io \
+  --ignore-not-found --output=name)"
+if [[ -n "$existing_crd" ]]; then
   echo "CNPG CRDs already exist but the expected operator Deployment was not found." >&2
   echo "Inspect the existing installation before adding another operator." >&2
   exit 2
