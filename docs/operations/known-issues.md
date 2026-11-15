@@ -1,82 +1,62 @@
 # Known issues and resolved incidents
 
+This is a record of issues evidenced by current documentation, source, or Git history. Absence of an open item here does not mean the system has been tested comprehensively.
+
 ## Production database missing Prisma tables
 
-**Status:** Resolved  
-**Resolution date:** 2026-11-14
+**Status:** Resolved (2026-11-14)
+**Affected component:** Production Better Auth / PostgreSQL deployment
+**Symptoms:** Account registration returned HTTP 500 and logs reported Prisma `P2021`, missing `public.user`.
+**Root cause:** The new Production database had not received migrations. Earlier deployment automation migrated Test but not Production.
+**Resolution:** Applied pending `20261005225922_adding_photos_objects` migration to Production using `prisma migrate deploy` through a temporary loopback-only port-forward. Registration then worked.
+**Verification:** The contemporaneous operations record reports Prisma schema up to date and a successful account creation; this is historical execution evidence, not a current live check.
+**Relevant files:** `infra/kubernetes/scripts/migrate.sh`, `infra/kubernetes/scripts/deploy.sh`, `.github/workflows/ci.yml`, `packages/db/prisma/migrations/`.
+**Related commits:** `c96c262` (“Fixing migration issue in prod and adding the migration process to ci/cd”), `c3624d8` (Production deployment script); detailed incident record was already in `docs/operations/known-issues.md` before this documentation work.
 
-### Symptoms
+## PostgreSQL connectivity and Prisma deployment stability
 
-- The production site at `https://valtask.xyz` was reachable.
-- Account registration failed with HTTP 500 (`api/auth/sign-up/email: 500`).
-- Unauthenticated requests to `/photos` returned HTTP 401. That is expected for
-  a protected resource and was not the database failure.
-- Server logs reported Prisma error `P2021`:
-  `The table public.user does not exist in the current database.`
+**Status:** Historical fixes present; current operation unverified
+**Affected component:** Prisma, PostgreSQL Service and deployment scripts
+**Symptoms:** Commit history records `7e8f334` “fix connectivity issue between prisma and postgresql pod” and `21d2785` “fix: database to prisma connection stability.”
+**Root cause:** Not established by commit subjects alone. Current migration script uses a loopback port-forward, dynamically discovers its local port, and validates with a PostgreSQL protocol `SELECT 1`; exact earlier failure mechanism is not established.
+**Resolution:** Connectivity changes and a more defensive migration path are in the current tree.
+**Verification:** Source inspection only for this documentation pass.
+**Relevant files:** `infra/kubernetes/scripts/migrate.sh`, `packages/db/src/`, `infra/kubernetes/base/postgres/`.
+**Related commits:** `7e8f334`, `21d2785`.
 
-### Root cause
+## Citus sharding experiment
 
-The newly created Production PostgreSQL database had not received its Prisma
-migrations. Test and Production use independent databases, so successfully
-migrating Test does not initialize Production. The existing CI/CD workflow
-migrated Test, but the Production deployment procedure did not migrate the
-Production database before deploying the application.
+**Status:** Historical experiment; not operational
+**Affected component:** Database architecture
+**Symptoms:** Project context supplied for this documentation task reports Citus was experimentally introduced, encountered problems, and was not retained.
+**Root cause:** Not verified from current repository or available commit subjects.
+**Resolution:** Current architecture is standard PostgreSQL plus Redis/BullMQ; current schema/manifests show no Citus deployment.
+**Verification:** Current manifests and package files inspected; a working Citus setup is absent.
+**Relevant files:** `infra/kubernetes/base/postgres/`, `packages/db/`.
+**Related commits:** No Citus-specific commit was identified in current `master` history search. Treat the experiment history as project-provided context until historical commits/docs are made available.
 
-Better Auth queried the missing `public.user` table during registration,
-causing HTTP 500 responses.
+## Traefik Ingress routing corrections
 
-### Resolution
+**Status:** Historical correction committed; current reachability unverified
+**Affected component:** Clichy and Headlamp Ingress
+**Symptoms:** Git history records a Traefik port/entrypoint correction and Headlamp Ingress namespace correction.
+**Root cause:** Commit message `637e762` says base Ingress did not explicitly select `web`, and Headlamp Ingress had been declared in `default`; details beyond that message are not established.
+**Resolution:** Base Clichy Ingress explicitly uses entrypoint `web`; Headlamp Ingress is in `headlamp`, and installer removes the earlier misplaced resource.
+**Verification:** Current manifest/source inspection only.
+**Relevant files:** `infra/kubernetes/base/ingress.yaml`, `infra/kubernetes/headlamp/lan-ingress.yaml`, `infra/kubernetes/scripts/install-headlamp.sh`.
+**Related commit:** `637e762`.
 
-The repository was checked out at commit
-`c3624d8c452d85d1f8fa4c2b1fa2b62aad030765` (commit date 2026-11-13). The
-pending migration was `20261005225922_adding_photos_objects`.
+## PostgreSQL data directory ownership
 
-The command `pnpm --filter @clichy/db db:migrate:deploy` was run against the
-Production database, not the local development database. A temporary
-loopback-only port-forward accessed the Production PostgreSQL Service:
+**Status:** Current fix committed; live storage not verified
+**Affected component:** Production PostgreSQL StatefulSet and local PV setup
+**Symptoms:** Most recent commit title indicates a permissions issue for PostgreSQL UID 999.
+**Root cause:** The commit message establishes that the data directory permissions needed correction for UID 999; exact runtime symptom is not available from repository evidence.
+**Resolution:** Current `prepare-namespace.sh` checks/sets ownership for an empty PostgreSQL directory and `2a7717f` adjusts ownership handling. It intentionally refuses unsafe recursive ownership changes on populated data.
+**Verification:** Source inspection; not tested against live volume.
+**Relevant files:** `infra/kubernetes/scripts/prepare-namespace.sh`, `infra/kubernetes/base/postgres/statefulset.yaml`.
+**Related commits:** `2a7717f`, `4bceaff`.
 
-```bash
-kubectl port-forward --address 127.0.0.1 \
-  -n clichy-prod service/clichy-postgres 25434:5432
-```
+## Operational gaps (not recorded incidents)
 
-The `DATABASE_URL` was retrieved from the Kubernetes Secret
-`clichy-prod-secrets` without printing its value, then adjusted locally to use
-`127.0.0.1:25434` for the duration of the command. No credential or URL is
-recorded here.
-
-After the migration, Prisma reported the schema up to date, Production
-registration worked, and a Production user account was successfully created.
-
-The port-forward was temporary and used only for the manual migration. It is
-not a permanent service, does not need to remain running, and does not expose
-PostgreSQL to the LAN or Internet.
-
-### Prevention and recovery
-
-- The deployment workflow now applies pending migrations from the checked-out
-  commit before applying the application manifests. A failed migration fails
-  the deployment job and leaves the application manifests unapplied.
-- Test and Production keep independent namespaces, PostgreSQL Services,
-  Secrets, and databases (`clichy_test` and `clichy_prod`).
-- Use the exact commit SHA associated with the GHCR images being deployed.
-- Prefer backward-compatible, expand-and-contract migrations so the currently
-  running application can continue to serve traffic while a migration runs.
-- Never use `prisma migrate reset` or `prisma db push` as a Production migration
-  or recovery strategy.
-- Never print database credentials or Secret contents in CI logs.
-- If a migration or rollout fails, inspect the migration status, PostgreSQL
-  logs, and rollout history before taking action. Do not reset the database or
-  delete PVCs to address a migration error.
-
-For manual status inspection, run
-`./infra/kubernetes/scripts/migrate.sh test status` or
-`./infra/kubernetes/scripts/migrate.sh prod status` from the checked-out
-repository on `valtask`. This command does not apply migrations. Prisma may
-return a non-zero status when migrations are pending; use the workflow or
-`./infra/kubernetes/scripts/migrate.sh <environment> deploy` to apply them.
-
-The dedicated LVM volume under `/srv/clichy` is a separate pending
-infrastructure task: Kubernetes PVCs still use the existing `local-path`
-provisioner storage under `/var/lib/rancher/k3s/storage`. No storage changes
-were made as part of this incident resolution or migration automation.
+These are limitations established by configuration, not claims of past failures: no database backup/restore runbook, no PostgreSQL replication or sharding, one Redis instance, and no Test database refresh/anonymization procedure. See corresponding database pages and requirement matrix.
