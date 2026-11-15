@@ -36,15 +36,15 @@ This is a record of issues evidenced by current documentation, source, or Git hi
 
 ### Production CNPG application role mismatch
 
-**Status:** Cause confirmed from cluster logs; the preparation-script correction is implemented in the repository but not yet applied or verified on `valtask`.
+**Status:** Cause confirmed from cluster logs; the credential correction was applied on `valtask`, but authentication remains unverified until CNPG applies the role password.
 
 **Symptoms:** Production `migrate.sh` port-forward failed on its first database connection. The primary Pod remained `Running`, and the direct local socket query returned `pg_is_in_recovery() = false`.
 
-**Root cause:** The CNPG Cluster declares `bootstrap.initdb.owner: clichy`, but the Production application Secret used the PostgreSQL username `clichy_prod`. CNPG logged `wrong username 'clichy_prod' in secret, expected 'clichy'`, and PostgreSQL logged SQLSTATE `28P01` because role `clichy_prod` does not exist. The endpoint, primary, and PVCs were healthy; this was a credential/role mismatch rather than a storage or port-forward routing failure.
+**Root cause:** The CNPG Cluster declares `bootstrap.initdb.owner: clichy`, but the Production application Secret originally used the PostgreSQL username `clichy_prod`. After the username was corrected, PostgreSQL still logged SQLSTATE `28P01` with `User "clichy" has no password assigned`. The Secret referenced by `bootstrap.initdb.secret` lacked CNPG's `cnpg.io/reload: "true"` label, so the Secret update did not promptly trigger reconciliation of the role password. The endpoint, primary, and PVCs were healthy; this is a credential synchronization issue, not a storage or port-forward routing failure.
 
-**Resolution:** `prepare-namespace.sh` now normalizes the local DB URL and `POSTGRES_USER` to `clichy`, retaining the current password and database name, so both `clichy-server-secrets` and `clichy-postgres-app` match the CNPG owner. After syncing this change, rerun `prepare-namespace.sh prod`; it updates the Secrets and lets CNPG reconcile the owner password. Do not delete or recreate the Cluster or its PVCs.
+**Resolution:** `prepare-namespace.sh` normalizes the local DB URL and `POSTGRES_USER` to `clichy`, retaining the current password and database name, and labels `clichy-postgres-app` with `cnpg.io/reload: "true"`. Apply the label immediately with `kubectl label secret clichy-postgres-app -n clichy-prod cnpg.io/reload=true --overwrite`; then confirm CNPG synchronizes the password before retrying migrations. Sync the updated script before the next environment preparation so the label persists. Do not delete or recreate the Cluster or its PVCs.
 
-**Verification required:** Confirm the CNPG logs stop reporting the owner mismatch, then run `./infra/kubernetes/scripts/migrate.sh prod status` and the Production workflow. Do not mark the Production correction operational until these succeed.
+**Verification required:** Confirm a fresh PostgreSQL authentication attempt succeeds and CNPG logs stop reporting password/owner errors, then run `./infra/kubernetes/scripts/migrate.sh prod status` and the Production workflow. Do not mark the Production correction operational until these succeed.
 
 **Relevant files:** `infra/kubernetes/scripts/prepare-namespace.sh`, `infra/kubernetes/cnpg/cluster.yaml`, `infra/kubernetes/overlays/prod/database/kustomization.yaml`, `infra/kubernetes/scripts/migrate.sh`.
 

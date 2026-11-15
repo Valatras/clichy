@@ -310,7 +310,8 @@ for line in Path(sys.argv[1]).read_text().splitlines():
         key, value = line.split("=", 1)
         values[key] = value
 print(json.dumps({"apiVersion": "v1", "kind": "Secret",
-                  "metadata": {"name": "clichy-postgres-app"},
+                  "metadata": {"name": "clichy-postgres-app",
+                               "labels": {"cnpg.io/reload": "true"}},
                   "type": "kubernetes.io/basic-auth",
                   "stringData": {"username": values["POSTGRES_USER"],
                                  "password": values["POSTGRES_PASSWORD"]}}))
