@@ -706,25 +706,24 @@ sudo ./svc.sh start
 sudo ./svc.sh status
 ```
 
-Le runner doit disposer de `kubectl` et d'un kubeconfig accessible par son
-compte. Le job est configuré pour utiliser le kubeconfig par défaut
-`$HOME/.kube/config` du service. Si le répertoire du runner est possédé par
-`clichy-runner`, préparer le kubeconfig avant le premier démarrage du service
-et ne pas écraser un fichier ni modifier silencieusement les permissions d'un
-répertoire existant :
+Le runner doit disposer de `kubectl` et d'un kubeconfig lisible par son compte.
+Le `kubectl` fourni comme lien K3s utilise `/etc/rancher/k3s/k3s.yaml` par
+défaut si `KUBECONFIG` n'est pas défini. Ce kubeconfig admin appartient à root
+et doit rester privé ; ne le rendez pas lisible par tous avec `chmod 644`.
+Copiez-le dans le compte du runner et définissez explicitement `KUBECONFIG`.
+Répétez cette opération après chaque réinstallation ou réinitialisation K3s,
+car le kubeconfig précédent contient les certificats de l'ancien cluster :
 
 ```bash
-if ! sudo test -d /home/clichy-runner/.kube; then
-  sudo install -d -o clichy-runner -g clichy-runner -m 0700 /home/clichy-runner/.kube
-else
-  echo "Vérifier propriétaire et permissions de /home/clichy-runner/.kube avant de continuer."
-fi
-if ! sudo test -e /home/clichy-runner/.kube/config; then
-  sudo install -o clichy-runner -g clichy-runner -m 0600 \
-    /etc/rancher/k3s/k3s.yaml /home/clichy-runner/.kube/config
-else
-  echo "Le kubeconfig du runner existe déjà : vérifiez-le sans l'écraser."
-fi
+RUNNER_USER=clichy-runner
+RUNNER_HOME="$(getent passwd "$RUNNER_USER" | cut -d: -f6)"
+sudo install -d -o "$RUNNER_USER" -g "$RUNNER_USER" -m 0700 \
+  "$RUNNER_HOME/.kube"
+sudo install -o "$RUNNER_USER" -g "$RUNNER_USER" -m 0600 \
+  /etc/rancher/k3s/k3s.yaml "$RUNNER_HOME/.kube/config"
+sudo -u "$RUNNER_USER" env \
+  KUBECONFIG="$RUNNER_HOME/.kube/config" \
+  kubectl get nodes
 ```
 
 Adapter le nom du compte et son chemin si nécessaire. Ce kubeconfig K3s
@@ -733,7 +732,10 @@ sur la branche de déploiement peut déclencher des opérations privilégiées.
 Protéger `master`, limiter les personnes autorisées à y pousser, ne pas lancer
 de code de pull request non fiable sur ce runner et ne pas exécuter le service
 runner comme root. Les pull requests du workflow sont traitées par les runners
-hébergés.
+hébergés. Les jobs `deploy-test` et `deploy-prod` définissent aussi
+`KUBECONFIG=/home/clichy-runner/.kube/config` explicitement afin que le
+`kubectl` du runner n'essaie pas de lire le fichier root-only sous
+`/etc/rancher/k3s/`.
 
 Les jobs de déploiement ne nécessitent pas de Secret GitHub de base de données.
 `GITHUB_TOKEN` est fourni automatiquement pour publier les images GHCR ; les
