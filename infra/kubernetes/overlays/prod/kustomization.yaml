@@ -4,6 +4,7 @@ namespace: clichy-prod
 resources:
   - namespace.yaml
   - ../../base
+  - storage.yaml
 configMapGenerator:
   - name: clichy-server-config
     literals:
@@ -108,6 +109,25 @@ patches:
       - op: replace
         path: /spec/template/spec/containers/0/env/2/valueFrom/secretKeyRef/name
         value: clichy-prod-secrets
+      - op: add
+        path: /spec/volumeClaimTemplates/0/spec/storageClassName
+        value: clichy-prod-local
+  - target:
+      version: v1
+      kind: PersistentVolumeClaim
+      name: clichy-server-photos
+    patch: |-
+      - op: add
+        path: /spec/storageClassName
+        value: clichy-prod-local
+  - target:
+      version: v1
+      kind: PersistentVolumeClaim
+      name: clichy-redis-data
+    patch: |-
+      - op: add
+        path: /spec/storageClassName
+        value: clichy-prod-local
   - target:
       group: apps
       version: v1
@@ -118,6 +138,17 @@ patches:
         path: /spec/template/spec/imagePullSecrets
         value:
           - name: ghcr-pull-secret
+  - target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: clichy-redis
+    patch: |-
+      - op: add
+        path: /spec/template/spec/securityContext
+        value:
+          fsGroup: 1000
+          fsGroupChangePolicy: OnRootMismatch
   - target:
       group: networking.k8s.io
       version: v1

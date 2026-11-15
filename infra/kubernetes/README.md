@@ -117,7 +117,9 @@ L'Ingress conserve `/api/auth`, `/photos` et le frontend `/`. `BETTER_AUTH_URL`
 et `CORS_ORIGIN` sont tous deux `http://clichy-test.home.arpa`. Test n'utilise
 pas de host public ni de règle Cloudflare. Préparer séparément ses Secrets
 `clichy-server-secrets` et `ghcr-pull-secret` avec
-`prepare-namespace.sh test`; ne pas les réutiliser en Prod.
+`prepare-namespace.sh test`. Prod utilise des Secrets distincts et le même
+script avec l'argument `prod`; ne réutilisez pas les fichiers de secrets entre
+environnements.
 
 Better Auth et Fastify approuvent cette origine exacte. Les attributs des
 cookies suivent le schéma de `BETTER_AUTH_URL` : HTTP utilise `SameSite=Lax`
@@ -224,6 +226,22 @@ script valide la base attendue à partir du `DATABASE_URL` sans afficher cette
 valeur et n'utilise jamais une URL locale de repli.
 
 #### Préparer les Secrets de Prod
+
+Pour une installation fraîche, cette commande prépare le namespace, les
+Secrets applicatifs et GHCR, les PV Prod sur le LV `/srv/clichy`, ainsi que le
+Service et le StatefulSet PostgreSQL. Elle ne déploie pas les applications ;
+le workflow les déploie après les migrations :
+
+```bash
+./infra/kubernetes/scripts/prepare-namespace.sh prod
+```
+
+Le script exige `/srv/clichy` monté et un nœud unique nommé `valtask`. Il
+réserve les chemins `/srv/clichy/k3s-storage/prod/{postgres,photos,redis}`
+avec des PV statiques et la StorageClass `clichy-prod-local`. Test et Dev
+continuent d'utiliser `local-path`. Les commandes manuelles ci-dessous restent
+une alternative pour préparer les Secrets séparément ; elles ne remplacent
+pas la préparation des PV et de PostgreSQL.
 
 Créez d'abord le namespace puis stockez les valeurs dans un fichier local
 protégé, ou faites écrire ce fichier par votre gestionnaire de secrets. Ne
@@ -842,23 +860,25 @@ Les manifests actuels utilisent les éléments suivants :
 
 - PostgreSQL est un StatefulSet `clichy-postgres`, une réplique, avec le PVC
   `data-clichy-postgres-0`, `ReadWriteOnce`, demande de `10Gi`. Le PVC
-  provient du `volumeClaimTemplates` du StatefulSet.
+  provient du `volumeClaimTemplates` du StatefulSet. Dev/Test utilisent la
+  StorageClass K3s `local-path`. Prod utilise la StorageClass statique
+  `clichy-prod-local`, liée à `/srv/clichy/k3s-storage/prod/postgres` sur
+  `valtask`.
 - Les fichiers photo sont montés dans le serveur à `/data/photos` depuis le
-  PVC `clichy-server-photos`, `ReadWriteOnce`, demande de `10Gi`.
+  PVC `clichy-server-photos`, `ReadWriteOnce`, demande de `10Gi`. En Prod, le
+  PV utilise `/srv/clichy/k3s-storage/prod/photos`.
 - Le worker monte le même PVC photo `ReadWriteOnce`; Redis utilise son PVC
   indépendant `clichy-redis-data`, `ReadWriteOnce`, demande de `1Gi` par
-  namespace.
-- Aucun des deux PVC ne précise `storageClassName`. K3s fournit par défaut le
-  StorageClass `local-path`, utilisé pour les volumes locaux du nœud. Ce sont
-  des PVC Kubernetes dynamiquement provisionnés, pas des montages explicites
-  du dossier `/srv/clichy`.
+  namespace. En Prod, son PV utilise `/srv/clichy/k3s-storage/prod/redis`.
+- Les volumes Dev/Test et monitoring utilisent le provisioner K3s
+  `local-path`, sous `/var/lib/rancher/k3s/storage`. Les PV Prod sont statiques,
+  avec affinité vers le nœud `valtask`, et sont réservés sur le LV `/srv/clichy`.
 - Les valeurs Helm demandent également `10Gi` pour Prometheus et `2Gi` pour
   Grafana avec `local-path`.
 
-L'hôte `valtask` est rapporté comme ayant un volume LVM dédié de 30 GB monté
-sur `/srv/clichy`. Aucun manifest, `StorageClass` ou script du dépôt ne relie
-actuellement le provisioner `local-path` à ce chemin. Ne supposez donc pas que
-les données Kubernetes sont sur ce LV. Vérifier sur l'hôte et le cluster :
+L'hôte `valtask` a un volume LVM dédié de 30 GB monté sur `/srv/clichy`. Les
+manifests Prod utilisent explicitement ce LV. Vérifier les chemins et leur
+affinité après toute réinstallation K3s :
 
 ```bash
 findmnt /srv/clichy
@@ -874,22 +894,13 @@ Inspecter le chemin local associé à chaque PV avec `kubectl describe pv <nom>`
 ou son champ `.spec.local.path`. Vérifier la configuration réelle du
 provisioner ; son répertoire de base peut différer si K3s a été personnalisé.
 
-Les demandes de capacité sont des demandes Kubernetes et ne constituent pas
-forcément des quotas de fichiers sur le disque local. Pour Test et le
-monitoring, les demandes totalisent environ `33Gi` (PostgreSQL 10, photos 10,
-Redis 1, Prometheus 10, Grafana 2), sans compter l'OS. Prod demande en plus
-environ `21Gi` (PostgreSQL 10, photos 10, Redis 1), soit environ `54Gi` au
-total pour Test, Prod et le monitoring. Le LV communiqué de 30 GB ne suffit pas à garantir ces demandes ;
-vérifier la capacité réellement disponible sur le chemin `local-path`, réduire
-ou déplacer les données de façon planifiée, ou agrandir le stockage avant
-d'activer Prod. Ne pas réduire des PVC existants par modification de manifest.
-L'ajout d'un namespace Dev rajoute ses propres volumes DB/photos.
-
-Avant d'intégrer `/srv/clichy`, décider du chemin de stockage K3s, de la
-capacité et d'une procédure de migration des PV déjà provisionnés. Changer le
-chemin du provisioner ne déplace pas les données existantes. Cette
-configuration et cette migration restent à faire ; le dépôt n'utilise pas NFS
-pour le déploiement courant.
+Les demandes sont des capacités Kubernetes, pas des quotas du système de
+fichiers. Test et monitoring demandent environ `33Gi` sur le volume système.
+Prod demande environ `21Gi` (PostgreSQL 10, photos 10, Redis 1) sur le LV de
+30 GB ; vérifiez l'espace réel avant de préparer Prod. Les PV statiques ont la
+politique `Retain` : supprimer un PVC ne supprime pas les données. Pour
+réinitialiser le prototype, inspectez puis videz explicitement les répertoires
+Prod ; ne supprimez pas le LV.
 
 Sauvegarder au minimum PostgreSQL et les fichiers photo, de préférence vers
 un support distinct du serveur, puis tester une restauration. Les PVC locaux

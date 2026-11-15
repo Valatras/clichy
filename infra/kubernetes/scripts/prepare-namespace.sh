@@ -4,19 +4,23 @@ set -euo pipefail
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../.." && pwd)"
 
 usage() {
-  echo "Usage: $0 dev|test" >&2
+  echo "Usage: $0 dev|test|prod" >&2
   exit 2
 }
 
 [[ $# -eq 1 ]] || usage
 
 case "$1" in
-  dev|test) ENVIRONMENT="$1" ;;
+  dev|test|prod) ENVIRONMENT="$1" ;;
   *) usage ;;
 esac
 
 NAMESPACE="clichy-${ENVIRONMENT}"
 DATABASE="clichy_${ENVIRONMENT}"
+APP_SECRET_NAME="clichy-server-secrets"
+if [[ "$ENVIRONMENT" == "prod" ]]; then
+  APP_SECRET_NAME="clichy-prod-secrets"
+fi
 SECRET_DIR="$HOME/.config/clichy"
 SECRET_FILE="$SECRET_DIR/${ENVIRONMENT}-secrets.env"
 
@@ -30,6 +34,30 @@ done
 context="$(kubectl config current-context)"
 echo "Contexte Kubernetes : $context"
 kubectl get nodes
+
+if [[ "$ENVIRONMENT" == "prod" ]]; then
+  for command_name in sudo mountpoint; do
+    if ! command -v "$command_name" >/dev/null 2>&1; then
+      echo "La commande requise '$command_name' est absente." >&2
+      exit 1
+    fi
+  done
+
+  node_names="$(kubectl get nodes \
+    --output=jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}')"
+  if [[ "$node_names" != "valtask" ]]; then
+    printf "Refusing to prepare Prod: expected the single node valtask, got:\n%s\n" \
+      "$node_names" >&2
+    exit 1
+  fi
+
+  if ! mountpoint --quiet /srv/clichy; then
+    echo "Prod storage requires /srv/clichy to be a mounted filesystem." >&2
+    exit 1
+  fi
+
+fi
+
 if [[ -L "$SECRET_FILE" ]]; then
   echo "$SECRET_FILE est un lien symbolique ; il ne sera pas utilisé." >&2
   exit 1
@@ -42,10 +70,31 @@ else
   echo "Le script créera un fichier de secrets protégé dans $SECRET_DIR."
 fi
 echo "Il créera ou mettra à jour les Secrets applicatifs/GHCR et PostgreSQL dans $NAMESPACE."
+if [[ "$ENVIRONMENT" == "prod" ]]; then
+  echo "Il préparera PostgreSQL et ses PV locaux sous /srv/clichy/k3s-storage/prod."
+fi
 read -r -p "Préparer les secrets de $NAMESPACE sur ce cluster ? [y/N] " answer
 if [[ ! "$answer" =~ ^[Yy]$ ]]; then
   echo "Opération annulée."
   exit 1
+fi
+
+if [[ "$ENVIRONMENT" == "prod" ]]; then
+  sudo -v
+  for directory in postgres photos redis; do
+    path="/srv/clichy/k3s-storage/prod/$directory"
+    sudo mkdir -p -- "$path"
+    if [[ -L "$path" || ! -d "$path" ]]; then
+      echo "Prod storage path '$path' must be a real directory, not a symlink." >&2
+      exit 1
+    fi
+    if [[ -z "$(sudo find "$path" -mindepth 1 -maxdepth 1 -print -quit)" ]]; then
+      sudo chown root:1000 -- "$path"
+      sudo chmod 2770 -- "$path"
+    else
+      echo "Preserving existing contents and permissions in $path."
+    fi
+  done
 fi
 
 kubectl apply -f "$ROOT_DIR/infra/kubernetes/overlays/$ENVIRONMENT/namespace.yaml"
@@ -87,7 +136,49 @@ for key in DATABASE_URL POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD BETTER_AUTH_
   fi
 done
 
-kubectl create secret generic clichy-server-secrets \
+if ! EXPECTED_DATABASE="$DATABASE" EXPECTED_NAMESPACE="$NAMESPACE" \
+  python3 - "$SECRET_FILE" <<'PY'
+from pathlib import Path
+from urllib.parse import unquote, urlsplit
+import os
+import sys
+
+values = {}
+for line in Path(sys.argv[1]).read_text().splitlines():
+    if not line or line.lstrip().startswith("#") or "=" not in line:
+        continue
+    key, value = line.split("=", 1)
+    values[key] = value
+
+try:
+    url = urlsplit(values["DATABASE_URL"])
+    database = unquote(url.path.lstrip("/"))
+    expected_host = f"clichy-postgres.{os.environ['EXPECTED_NAMESPACE']}.svc.cluster.local"
+    valid = (
+        url.scheme in {"postgres", "postgresql"}
+        and url.hostname in {"clichy-postgres", expected_host}
+        and url.port == 5432
+        and database == os.environ["EXPECTED_DATABASE"]
+        and values["POSTGRES_DB"] == os.environ["EXPECTED_DATABASE"]
+        and unquote(url.username or "") == values["POSTGRES_USER"]
+        and unquote(url.password or "") == values["POSTGRES_PASSWORD"]
+    )
+except (KeyError, ValueError):
+    valid = False
+
+if not valid:
+    print(
+        "DATABASE_URL and PostgreSQL credentials must target the expected "
+        "in-cluster Service and database.",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+PY
+then
+  exit 1
+fi
+
+kubectl create secret generic "$APP_SECRET_NAME" \
   --namespace="$NAMESPACE" \
   --from-env-file="$SECRET_FILE" \
   --dry-run=client -o yaml |
@@ -125,9 +216,17 @@ json.dump({"auths": {"ghcr.io": {
   kubectl apply -f -
 
 unset ghcr_token
-kubectl apply --namespace="$NAMESPACE" \
-  -f "$ROOT_DIR/infra/kubernetes/base/postgres-statefulset.yaml"
+
+if [[ "$ENVIRONMENT" == "prod" ]]; then
+  kubectl apply -k "$ROOT_DIR/infra/kubernetes/overlays/prod/database"
+else
+  kubectl apply --namespace="$NAMESPACE" \
+    -f "$ROOT_DIR/infra/kubernetes/base/postgres-statefulset.yaml"
+fi
+
 kubectl rollout status statefulset/clichy-postgres \
   --namespace="$NAMESPACE" \
   --timeout=300s
+kubectl get statefulsets,services,endpoints,pvc \
+  --namespace="$NAMESPACE" --output=wide
 echo "Namespace $NAMESPACE prêt. Fichier local : $SECRET_FILE"
