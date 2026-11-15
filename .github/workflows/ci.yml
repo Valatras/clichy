@@ -100,7 +100,7 @@ jobs:
     name: Deploy to Test on valtask
     runs-on: [self-hosted, linux]
     env:
-      KUBECONFIG: /home/clichy-runner/.kube/config
+      KUBECONFIG: /home/valatras/.kube/config
     needs: [ci, package]
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     concurrency:
@@ -173,7 +173,7 @@ jobs:
     name: Deploy to Production on valtask
     runs-on: [self-hosted, linux]
     env:
-      KUBECONFIG: /home/clichy-runner/.kube/config
+      KUBECONFIG: /home/valatras/.kube/config
     needs: [ci, package, deploy-test]
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     environment:
