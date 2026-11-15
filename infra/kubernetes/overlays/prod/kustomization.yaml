@@ -4,7 +4,7 @@ namespace: clichy-prod
 resources:
   - namespace.yaml
   - ../../base
-  - database/storage.yaml
+  - database
 configMapGenerator:
   - name: clichy-server-config
     literals:
@@ -94,24 +94,6 @@ patches:
       - op: replace
         path: /spec/template/spec/containers/0/env/0/valueFrom/secretKeyRef/name
         value: clichy-prod-secrets
-  - target:
-      group: apps
-      version: v1
-      kind: StatefulSet
-      name: clichy-postgres
-    patch: |-
-      - op: replace
-        path: /spec/template/spec/containers/0/env/0/valueFrom/secretKeyRef/name
-        value: clichy-prod-secrets
-      - op: replace
-        path: /spec/template/spec/containers/0/env/1/valueFrom/secretKeyRef/name
-        value: clichy-prod-secrets
-      - op: replace
-        path: /spec/template/spec/containers/0/env/2/valueFrom/secretKeyRef/name
-        value: clichy-prod-secrets
-      - op: add
-        path: /spec/volumeClaimTemplates/0/spec/storageClassName
-        value: clichy-prod-local
   - target:
       version: v1
       kind: PersistentVolumeClaim

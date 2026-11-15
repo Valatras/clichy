@@ -2,24 +2,18 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: clichy-prod
 resources:
-  - ../../../base/postgres
+  - ../../../cnpg
   - storage.yaml
 patches:
   - target:
-      group: apps
+      group: postgresql.cnpg.io
       version: v1
-      kind: StatefulSet
+      kind: Cluster
       name: clichy-postgres
     patch: |-
       - op: replace
-        path: /spec/template/spec/containers/0/env/0/valueFrom/secretKeyRef/name
-        value: clichy-prod-secrets
+        path: /spec/bootstrap/initdb/database
+        value: clichy_prod
       - op: replace
-        path: /spec/template/spec/containers/0/env/1/valueFrom/secretKeyRef/name
-        value: clichy-prod-secrets
-      - op: replace
-        path: /spec/template/spec/containers/0/env/2/valueFrom/secretKeyRef/name
-        value: clichy-prod-secrets
-      - op: add
-        path: /spec/volumeClaimTemplates/0/spec/storageClassName
+        path: /spec/storage/storageClass
         value: clichy-prod-local

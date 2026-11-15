@@ -6,11 +6,12 @@ metadata:
     # Must match the Prometheus CR's serviceMonitorSelector in the Helm release.
     release: prometheus-stack
 spec:
-  # Scrape both environments; these are namespace names, not Pod selectors.
+  # Scrape all environments; these are namespace names, not Pod selectors.
   namespaceSelector:
     matchNames:
       - clichy-dev
       - clichy-test
+      - clichy-prod
   # Within each namespace, discover Services with this label. The Service's
   # named "http" port routes to the Server container on port 3000.
   selector:

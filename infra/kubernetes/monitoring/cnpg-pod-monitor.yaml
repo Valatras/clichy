@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: clichy-postgres
+  labels:
+    release: prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames:
+      - clichy-dev
+      - clichy-test
+      - clichy-prod
+  selector:
+    matchLabels:
+      cnpg.io/cluster: clichy-postgres
+  podMetricsEndpoints:
+    - port: metrics
+      interval: 30s

@@ -32,13 +32,13 @@ ACTION="${2:-deploy}"
 case "$ENVIRONMENT" in
   test)
     NAMESPACE="clichy-test"
-    SERVICE="clichy-postgres"
+    SERVICE="clichy-postgres-rw"
     SECRET="clichy-server-secrets"
     EXPECTED_DATABASE="clichy_test"
     ;;
   prod)
     NAMESPACE="clichy-prod"
-    SERVICE="clichy-postgres"
+    SERVICE="clichy-postgres-rw"
     SECRET="clichy-prod-secrets"
     EXPECTED_DATABASE="clichy_prod"
     ;;

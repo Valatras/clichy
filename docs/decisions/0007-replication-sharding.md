@@ -1,19 +1,19 @@
-# ADR 0007: No database replication or sharding in current baseline
+# ADR 0007: PostgreSQL replication and sharding scope
 
-**Status:** Current configuration fact; revisit if measured needs justify a design.
+**Status:** Replication selected and configured with CNPG; sharding remains unimplemented.
 
 ## Context
 
-Assignment asks for replication and sharding, but current repository config has one PostgreSQL StatefulSet replica and no Citus or replica configuration.
+Assignment asks for replication and sharding. The previous configuration used a single PostgreSQL StatefulSet. The educational prototype remains on one physical K3s node and does not need node-level HA.
 
 ## Decision
 
-Document these as gaps, not implemented features. Do not scale StatefulSet replicas to simulate database HA.
+Use CloudNativePG to manage two PostgreSQL instances per environment with asynchronous physical streaming, separate PVCs, automatic Pod recovery/promotion, and the `-rw` Service for application connections. This is intended to demonstrate PostgreSQL replication mechanics, not protect against physical host failure. Do not implement sharding as part of the replication work; it remains an assignment requirement and needs a separate design decision. Do not scale database Pods directly.
 
 ## Alternatives considered
 
-A PostgreSQL operator/managed service and Citus were not implemented in current tree; design alternatives remain open.
+A PostgreSQL operator is selected over custom StatefulSet replication. Citus remains excluded. Synchronous replication is not selected because the prototype does not require zero data loss and asynchronous streaming avoids making writes wait on the standby.
 
 ## Consequences
 
-Single-instance database operations are simpler but have availability/capacity limitations. A future implementation requires failover, recovery, migration and validation procedures.
+The checked-in CNPG configuration is not yet deployed or operationally verified. Both instances share the same node, asynchronous replication may lose recent unreplicated writes, and replication is not a backup. Sharding remains absent.

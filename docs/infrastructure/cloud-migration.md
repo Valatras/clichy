@@ -11,7 +11,7 @@ Container images and tags, application Deployments, Services, Prisma migration m
 | Area | Current assumption | Migration decision/work |
 |---|---|---|
 | Storage | Local PVs/node paths in Prod; local-path in other cluster | Choose CSI block/file storage, access modes, snapshots, encryption, reclaim behavior; migrate data and validate API/worker shared photo access. |
-| PostgreSQL | In-cluster single StatefulSet and PVC | Decide managed database vs operator; update Secret/DNS/TLS/network policy; test restore and Prisma connectivity. |
+| PostgreSQL | CNPG two-instance physical streaming cluster with two node-local PVCs per environment | Decide managed database vs CNPG on cloud; select CSI-backed storage, topology/anti-affinity, backups, secrets, networking and supported Kubernetes/PostgreSQL versions; migrate/restore data and validate Prisma connectivity. |
 | Redis | Single in-cluster Redis with PVC/AOF | Decide managed Redis or replicated service; update TLS/auth and availability behavior. |
 | Ingress/load balancer | K3s Traefik, host-based rules | Choose managed LB/controller, configure health checks, public/private access, TLS and forwarding headers. |
 | DNS | Local/LAN and existing hostname config | Set authoritative records and certificate issuance; validate auth callback/CORS origin. |

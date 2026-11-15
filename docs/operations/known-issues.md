@@ -59,4 +59,4 @@ This is a record of issues evidenced by current documentation, source, or Git hi
 
 ## Operational gaps (not recorded incidents)
 
-These are limitations established by configuration, not claims of past failures: no database backup/restore runbook, no PostgreSQL replication or sharding, one Redis instance, and no Test database refresh/anonymization procedure. See corresponding database pages and requirement matrix.
+These are limitations established by configuration, not claims of past failures: CNPG replication is configured but not yet deployed/verified, PostgreSQL sharding is absent, no tested backup/restore runbook exists, Redis is a single instance, and no Test refresh/anonymization procedure exists. See the database pages and requirements matrix.

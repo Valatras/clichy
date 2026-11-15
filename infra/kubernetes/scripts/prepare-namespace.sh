@@ -58,6 +58,16 @@ if [[ "$ENVIRONMENT" == "prod" ]]; then
 
 fi
 
+if ! kubectl get crd clusters.postgresql.cnpg.io >/dev/null 2>&1; then
+  echo "CNPG CRD missing. Install the pinned operator first with infra/kubernetes/cnpg/install-operator.sh." >&2
+  exit 1
+fi
+if ! kubectl rollout status deployment/cnpg-controller-manager \
+  --namespace=cnpg-system --timeout=300s; then
+  echo "CNPG operator is not Ready; no environment preparation was started." >&2
+  exit 1
+fi
+
 if [[ -L "$SECRET_FILE" ]]; then
   echo "$SECRET_FILE est un lien symbolique ; il ne sera pas utilisé." >&2
   exit 1
@@ -71,7 +81,7 @@ else
 fi
 echo "Il créera ou mettra à jour les Secrets applicatifs/GHCR et PostgreSQL dans $NAMESPACE."
 if [[ "$ENVIRONMENT" == "prod" ]]; then
-  echo "Il préparera PostgreSQL et ses PV locaux sous /srv/clichy/k3s-storage/prod."
+  echo "Il préparera les nouveaux PV CNPG sous /srv/clichy/k3s-storage/prod/postgres-cnpg-{1,2}, sans toucher à l'ancien PostgreSQL."
 fi
 read -r -p "Préparer les secrets de $NAMESPACE sur ce cluster ? [y/N] " answer
 if [[ ! "$answer" =~ ^[Yy]$ ]]; then
@@ -81,27 +91,22 @@ fi
 
 if [[ "$ENVIRONMENT" == "prod" ]]; then
   sudo -v
-  for directory in postgres photos redis; do
+  for directory in photos redis postgres-cnpg-1 postgres-cnpg-2; do
     path="/srv/clichy/k3s-storage/prod/$directory"
     sudo mkdir -p -- "$path"
     if [[ -L "$path" || ! -d "$path" ]]; then
       echo "Prod storage path '$path' must be a real directory, not a symlink." >&2
       exit 1
     fi
-    if [[ "$directory" == "postgres" ]]; then
-      # The official postgres:18 image runs PostgreSQL as UID/GID 999. Its
-      # PGDATA is nested below /var/lib/postgresql, which is the mounted PV.
-      # Prepare an empty PV accordingly; never recursively chown a populated
-      # database as part of this general-purpose setup script.
+    if [[ "$directory" == postgres-cnpg-* ]]; then
+      # CNPG's PostgreSQL image runs as UID/GID 26. Only initialize empty paths;
+      # never recursively change ownership of existing data.
       if [[ -z "$(sudo find "$path" -mindepth 1 -maxdepth 1 -print -quit)" ]]; then
-        sudo chown 999:999 -- "$path"
+        sudo chown 26:26 -- "$path"
         sudo chmod 0700 -- "$path"
-      elif [[ "$(sudo stat -c '%u' -- "$path")" != "999" ]] ||
-        [[ -n "$(sudo find "$path" -xdev ! -uid 999 -print -quit)" ]]; then
-        echo "PostgreSQL storage '$path' contains files not owned by UID 999." >&2
-        echo "Stop the clichy-postgres StatefulSet, review the data, then repair ownership with:" >&2
-        echo "  sudo chown -R 999:999 '$path'" >&2
-        echo "Afterward, rerun this script. No database contents were changed." >&2
+      elif [[ "$(sudo stat -c '%u' -- "$path")" != "26" ]] ||
+        [[ -n "$(sudo find "$path" -xdev ! -uid 26 -print -quit)" ]]; then
+        echo "CNPG storage '$path' contains files not owned by UID 26; refusing to change ownership." >&2
         exit 1
       else
         sudo chmod 0700 -- "$path"
@@ -135,7 +140,7 @@ if [[ ! -f "$SECRET_FILE" ]]; then
   )"
   auth_secret="$(openssl rand -base64 32)"
   cat >"$SECRET_FILE" <<EOF
-DATABASE_URL=postgresql://clichy:${encoded_password}@clichy-postgres:5432/${DATABASE}?schema=public
+DATABASE_URL=postgresql://clichy:${encoded_password}@clichy-postgres-rw:5432/${DATABASE}?schema=public
 POSTGRES_DB=${DATABASE}
 POSTGRES_USER=clichy
 POSTGRES_PASSWORD=${postgres_password}
@@ -147,6 +152,44 @@ else
   chmod 600 "$SECRET_FILE"
 fi
 
+# Existing local secret files still name the removed StatefulSet Service. Change
+# only that hostname; retain the configured username, password and database.
+EXPECTED_NAMESPACE="$NAMESPACE" python3 - "$SECRET_FILE" <<'PY'
+from pathlib import Path
+from urllib.parse import urlsplit, urlunsplit
+import os
+import sys
+import tempfile
+
+path = Path(sys.argv[1])
+lines = path.read_text().splitlines()
+updated = []
+found = False
+for line in lines:
+    if line.startswith("DATABASE_URL="):
+        found = True
+        key, raw_url = line.split("=", 1)
+        parsed = urlsplit(raw_url)
+        old_hosts = {"clichy-postgres",
+                     f"clichy-postgres.{os.environ['EXPECTED_NAMESPACE']}.svc.cluster.local"}
+        if parsed.hostname in old_hosts:
+            userinfo = parsed.netloc.rsplit("@", 1)[0] + "@" if "@" in parsed.netloc else ""
+            port = f":{parsed.port}" if parsed.port else ""
+            raw_url = urlunsplit((parsed.scheme, userinfo + "clichy-postgres-rw" + port,
+                                  parsed.path, parsed.query, parsed.fragment))
+        elif parsed.hostname != "clichy-postgres-rw":
+            raise SystemExit("DATABASE_URL must target the Clichy CNPG -rw Service.")
+        line = f"{key}={raw_url}"
+    updated.append(line)
+if not found:
+    raise SystemExit("DATABASE_URL is missing from the local secrets file.")
+fd, temp_name = tempfile.mkstemp(prefix=".secrets.", dir=path.parent, text=True)
+with os.fdopen(fd, "w") as output:
+    output.write("\n".join(updated) + "\n")
+os.chmod(temp_name, 0o600)
+os.replace(temp_name, path)
+PY
+
 for key in DATABASE_URL POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD BETTER_AUTH_SECRET; do
   if ! grep -Eq "^${key}=.+" "$SECRET_FILE"; then
     echo "La clé $key est absente ou vide dans $SECRET_FILE." >&2
@@ -154,7 +197,7 @@ for key in DATABASE_URL POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD BETTER_AUTH_
   fi
 done
 
-if ! EXPECTED_DATABASE="$DATABASE" EXPECTED_NAMESPACE="$NAMESPACE" \
+if ! EXPECTED_DATABASE="$DATABASE" \
   python3 - "$SECRET_FILE" <<'PY'
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
@@ -171,10 +214,9 @@ for line in Path(sys.argv[1]).read_text().splitlines():
 try:
     url = urlsplit(values["DATABASE_URL"])
     database = unquote(url.path.lstrip("/"))
-    expected_host = f"clichy-postgres.{os.environ['EXPECTED_NAMESPACE']}.svc.cluster.local"
     valid = (
         url.scheme in {"postgres", "postgresql"}
-        and url.hostname in {"clichy-postgres", expected_host}
+        and url.hostname == "clichy-postgres-rw"
         and url.port == 5432
         and database == os.environ["EXPECTED_DATABASE"]
         and values["POSTGRES_DB"] == os.environ["EXPECTED_DATABASE"]
@@ -235,16 +277,25 @@ json.dump({"auths": {"ghcr.io": {
 
 unset ghcr_token
 
-if [[ "$ENVIRONMENT" == "prod" ]]; then
-  kubectl apply -k "$ROOT_DIR/infra/kubernetes/overlays/prod/database"
-else
-  kubectl apply --namespace="$NAMESPACE" \
-    -k "$ROOT_DIR/infra/kubernetes/base/postgres"
-fi
+python3 - "$SECRET_FILE" <<'PY' | kubectl apply --namespace="$NAMESPACE" -f -
+import json
+import sys
+from pathlib import Path
 
-kubectl rollout status statefulset/clichy-postgres \
-  --namespace="$NAMESPACE" \
-  --timeout=300s
-kubectl get statefulsets,services,endpoints,pvc \
+values = {}
+for line in Path(sys.argv[1]).read_text().splitlines():
+    if line and not line.lstrip().startswith("#") and "=" in line:
+        key, value = line.split("=", 1)
+        values[key] = value
+print(json.dumps({"apiVersion": "v1", "kind": "Secret",
+                  "metadata": {"name": "clichy-postgres-app"},
+                  "type": "kubernetes.io/basic-auth",
+                  "stringData": {"username": values["POSTGRES_USER"],
+                                 "password": values["POSTGRES_PASSWORD"]}}))
+PY
+kubectl apply -k "$ROOT_DIR/infra/kubernetes/overlays/$ENVIRONMENT/database"
+kubectl wait --namespace="$NAMESPACE" --for=condition=Ready \
+  cluster.postgresql.cnpg.io/clichy-postgres --timeout=900s
+kubectl get clusters.postgresql.cnpg.io,pods,services,pvc \
   --namespace="$NAMESPACE" --output=wide
 echo "Namespace $NAMESPACE prêt. Fichier local : $SECRET_FILE"

@@ -68,6 +68,10 @@ else
   fi
 fi
 
+kubectl wait --namespace="$NAMESPACE" --for=condition=Ready \
+  cluster.postgresql.cnpg.io/clichy-postgres --timeout=900s ||
+  die "CNPG cluster clichy-postgres is not Ready; application deployment was not started."
+
 if [[ "$ENVIRONMENT" == "prod" ]]; then
   kubectl apply --filename="$OVERLAY_DIR/namespace.yaml" ||
     die "Could not create or verify namespace $NAMESPACE."

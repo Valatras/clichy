@@ -6,10 +6,13 @@ Clichy is intended to help users ingest, browse, and manage personal photo colle
 
 ```mermaid
 flowchart LR
-  Browser -->|HTTP| Ingress[Traefik Ingress]
+  Browser -->|HTTPS| Proxy[Cloudflare reverse proxy]
+  Proxy --> Tunnel[Cloudflare Tunnel]
+  Tunnel -->|HTTP| Ingress[Traefik Ingress]
   Ingress --> Web[React Router web]
   Ingress --> API[Fastify API]
-  API --> DB[(PostgreSQL / Prisma)]
+  API -->|CNPG -rw Service| DB[(PostgreSQL primary)]
+  DB -->|WAL streaming| Replica[(PostgreSQL standby)]
   API --> FS[(Shared photo filesystem)]
   API --> Redis[(Redis + BullMQ)]
   API --> Worker[Worker]
@@ -46,7 +49,8 @@ Versions shown in manifests and package files are the repository's declarations 
 | Video ingestion | Not implemented in inspected API pipeline |
 | Kubernetes deployment | Manifests and scripts implemented; live state is not established by source review |
 | Test then Production automation | Implemented in workflow; actual recent run status is not checked here |
-| Database replication / sharding | Not implemented |
+| Database replication | CNPG configured in repository; not deployed or verified |
+| Database sharding | Not implemented |
 | Zero-downtime rollout | Intended by Deployment rolling update behavior, but not verified and replicas are one |
 
 See [requirements traceability](requirements.md) and [roadmap](roadmap.md) for detail. Source locations are listed as repository-relative paths to make code review straightforward.

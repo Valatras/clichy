@@ -1,17 +1,17 @@
 # Kubernetes implementation
 
-Kustomize base resources are under `infra/kubernetes/base`; environment overlays are under `infra/kubernetes/overlays/{dev,test,prod}`. Common resources include web/API/worker Deployments, Services, PostgreSQL StatefulSet/Service, Redis Deployment/Service/PVC, photo PVC, and Ingress.
+Kustomize base resources are under `infra/kubernetes/base`; environment overlays are under `infra/kubernetes/overlays/{dev,test,prod}`. Common resources include web/API/worker Deployments, Services, Redis Deployment/Service/PVC, photo PVC, Ingress, and an environment-specific CNPG Cluster. Install the pinned CNPG operator once in `cnpg-system` before preparing any application namespace.
 
 ## Workload behavior
 
-- API and web use readiness/liveness HTTP checks on `/`; worker health listener is on 3001 but the Deployment currently has no probe configured.
-- PostgreSQL uses a one-replica StatefulSet and a 10 GiB claim template.
+- API and web use readiness/liveness HTTP checks on `/`; worker has `/ready` and `/live` probes on port 3001.
+- CNPG runs two PostgreSQL 18.6 instances per namespace and provisions a separate 2 GiB PVC per instance. Prisma and application workloads use `clichy-postgres-rw`.
 - Redis uses a one-replica Deployment, AOF, `noeviction`, 256 MiB maxmemory, probes, and a PVC.
 - API, worker, web and database have CPU/memory requests and limits in base manifests.
 - Test adds CPU HPA for API and web (1–4 replicas, 70% utilization target). Dev and Production specify one replica for web/server/worker. Production does not include this HPA.
-- Deploy script applies manifests and waits for each app Deployment rollout, but does not explicitly check StatefulSet or HPA convergence.
+- The namespace preparation script applies each CNPG Cluster and waits for its Ready condition. The deploy script waits for the database Cluster to be Ready before migrations, then applies app manifests and waits for each app Deployment rollout.
 
-Kubernetes Deployment rollout is not itself proof of zero downtime. One-replica app workloads, storage attachment, readiness behavior, schema compatibility, and live traffic need a measured rollout test.
+Kubernetes Deployment rollout is not itself proof of zero downtime. One-replica app workloads, storage attachment, readiness behavior, schema compatibility, and live traffic need a measured rollout test. CNPG's two replicas share the one `valtask` node and do not provide host-level HA.
 
 ## Environment differences
 

@@ -143,9 +143,10 @@ helm_args=(
 helm "${helm_args[@]}"
 kubectl wait --for=condition=Established --timeout=120s \
   crd/servicemonitors.monitoring.coreos.com \
+  crd/podmonitors.monitoring.coreos.com \
   crd/prometheusrules.monitoring.coreos.com
 kubectl apply -k "$ROOT_DIR/infra/kubernetes/monitoring"
-kubectl get pods,servicemonitors,prometheusrules -n monitoring
+kubectl get pods,servicemonitors,podmonitors,prometheusrules -n monitoring
 if [[ -f "$GRAFANA_PASSWORD_FILE" ]]; then
   echo "Mot de passe Grafana initial conservé dans $GRAFANA_PASSWORD_FILE (mode 600)."
   echo "Le script n'affiche jamais sa valeur."

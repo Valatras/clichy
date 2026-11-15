@@ -10,13 +10,29 @@ spec:
   groups:
     - name: clichy.workloads
       rules:
+        - alert: ClichyPostgresReplicaDisconnected
+          expr: cnpg_pg_replication_is_wal_receiver_up == 0 and on (namespace, pod) cnpg_pg_replication_in_recovery == 1
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: PostgreSQL replica is not receiving WAL
+            description: "CNPG replica {{ $labels.namespace }}/{{ $labels.pod }} has no active WAL receiver."
+        - alert: ClichyPostgresReplicationLagHigh
+          expr: cnpg_pg_replication_lag > 30
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: PostgreSQL replica lag is high
+            description: "CNPG replica {{ $labels.namespace }}/{{ $labels.pod }} reports {{ $value }} seconds of replication lag."
         # These rules evaluate metrics already scraped by kube-state-metrics,
         # kubelet/cAdvisor, and the Kubernetes API; they do not collect metrics.
         - alert: ClichyPodRestarting
           expr: |
             sum by (namespace, pod, container) (
               increase(kube_pod_container_status_restarts_total{
-                namespace=~"clichy-(dev|test)"
+                namespace=~"clichy-(dev|test|prod)"
               }[15m])
             ) > 3
           for: 5m
@@ -28,7 +44,7 @@ spec:
         - alert: ClichyDeploymentUnavailable
           expr: |
             kube_deployment_status_replicas_unavailable{
-              namespace=~"clichy-(dev|test)"
+              namespace=~"clichy-(dev|test|prod)"
             } > 0
           for: 10m
           labels:
@@ -39,7 +55,7 @@ spec:
         - alert: ClichyPodImageOrCrashBackoff
           expr: |
             kube_pod_container_status_waiting_reason{
-              namespace=~"clichy-(dev|test)",
+              namespace=~"clichy-(dev|test|prod)",
               reason=~"CrashLoopBackOff|ImagePullBackOff"
             } == 1
           for: 5m
@@ -52,7 +68,7 @@ spec:
           expr: |
             sum by (namespace, pod, container) (
               rate(container_cpu_usage_seconds_total{
-                namespace=~"clichy-(dev|test)",
+                namespace=~"clichy-(dev|test|prod)",
                 container!="",
                 container!="POD"
               }[5m])
@@ -60,7 +76,7 @@ spec:
             /
             on (namespace, pod, container)
             kube_pod_container_resource_requests{
-              namespace=~"clichy-(dev|test)",
+              namespace=~"clichy-(dev|test|prod)",
               resource="cpu",
               unit="core"
             } > 0.85
@@ -73,14 +89,14 @@ spec:
         - alert: ClichyHighMemoryUtilization
           expr: |
             container_memory_working_set_bytes{
-              namespace=~"clichy-(dev|test)",
+              namespace=~"clichy-(dev|test|prod)",
               container!="",
               container!="POD"
             }
             /
             on (namespace, pod, container)
             kube_pod_container_resource_limits{
-              namespace=~"clichy-(dev|test)",
+              namespace=~"clichy-(dev|test|prod)",
               resource="memory",
               unit="byte"
             } > 0.85
@@ -93,11 +109,11 @@ spec:
         - alert: ClichyPVCNearCapacity
           expr: |
             kubelet_volume_stats_available_bytes{
-              namespace=~"clichy-(dev|test)"
+              namespace=~"clichy-(dev|test|prod)"
             }
             /
             kubelet_volume_stats_capacity_bytes{
-              namespace=~"clichy-(dev|test)"
+              namespace=~"clichy-(dev|test|prod)"
             } < 0.15
           for: 10m
           labels:

@@ -1,6 +1,10 @@
 # PostgreSQL and Prisma
 
-The current database is a standard PostgreSQL 18 single-instance StatefulSet in each app namespace. The Service name is `clichy-postgres`; the StatefulSet has one replica and a persistent volume claim template. Application credentials and connection URLs are injected from Kubernetes Secrets. This is not replicated PostgreSQL and Kubernetes Pod replication would not provide database replication.
+The Kubernetes deployment is being moved to CloudNativePG (CNPG) 1.30.1 with PostgreSQL 18.6. Each `clichy-dev`, `clichy-test`, and `clichy-prod` namespace defines its own two-instance CNPG Cluster: one primary and one physical streaming standby. The application and Prisma use CNPG's `clichy-postgres-rw` Service, which selects the current primary. There is no read/write splitting. The PostgreSQL clusters bootstrap as empty databases; the prototype's previous database contents are intentionally not imported. Legacy StatefulSet/PV resources are retained until the new cluster and application are manually verified.
+
+The configuration in Git is not evidence that it has been applied on `valtask`: operator readiness, per-environment cluster readiness, actual WAL streaming, and failover remain unverified until the runbook in [Replication](replication.md) is completed. Both instances use separate PVCs but remain on the same physical node. This provides practice with PostgreSQL replication and Pod/storage recovery, not protection against loss of `valtask`.
+
+CNPG 1.30.1 supports Kubernetes 1.34–1.36; Kubernetes 1.37 has been tested by the release but is not listed as officially supported. The repository's K3s installer targets 1.37, and K3s itself is not a Kubernetes distribution covered by CNPG's vanilla-Kubernetes support policy. The pinned installer requires an explicit opt-in for a 1.37 server. See the [official support matrix](https://cloudnative-pg.io/docs/1.30/supported_releases/).
 
 Prisma 7 schema is split across `packages/db/prisma/schema/auth.prisma` and `photo.prisma`. `prisma.config.ts` points at the migration directory and reads `DATABASE_URL`; client generation outputs under `packages/db/prisma/generated`. `createPrismaClient` in `packages/db/src/index.ts` uses the PostgreSQL adapter.
 

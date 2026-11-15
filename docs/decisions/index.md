@@ -6,3 +6,4 @@ These lightweight records summarize choices visible in code and configuration. W
 - [ADR 0002: PostgreSQL and Prisma](0002-postgres-prisma.md)
 - [ADR 0003: Redis and BullMQ](0003-redis-bullmq.md)
 - [ADR 0004: Citus experiment](0004-citus-experiment.md)
+- [ADR 0007: PostgreSQL replication and sharding scope](0007-replication-sharding.md)

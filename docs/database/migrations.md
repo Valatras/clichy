@@ -26,7 +26,8 @@ The environment script uses the namespace Secret and loopback port-forward. It d
 ```mermaid
 flowchart TD
   SHA[Checked out SHA + matching immutable images] --> Verify[Verify clean source, node and target Secret]
-  Verify --> Forward[Loopback port-forward and PostgreSQL SELECT 1]
+  Verify --> Ready[Wait for CNPG Cluster Ready]
+  Ready --> Forward[Loopback port-forward through clichy-postgres-rw and PostgreSQL SELECT 1]
   Forward --> Migrate[prisma migrate deploy]
   Migrate -->|success| Apply[Render and apply environment Kustomize overlay]
   Migrate -->|failure| Stop[Stop; app manifests not applied]

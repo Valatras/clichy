@@ -4,6 +4,7 @@ namespace: clichy-test
 resources:
   - namespace.yaml
   - ../../base
+  - database
   - hpa.yaml
 configMapGenerator:
   - name: clichy-server-config

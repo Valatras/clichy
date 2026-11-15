@@ -54,6 +54,10 @@ prometheus:
       matchLabels:
         release: prometheus-stack
     serviceMonitorNamespaceSelector: {}
+    podMonitorSelector:
+      matchLabels:
+        release: prometheus-stack
+    podMonitorNamespaceSelector: {}
     ruleSelector:
       matchLabels:
         release: prometheus-stack

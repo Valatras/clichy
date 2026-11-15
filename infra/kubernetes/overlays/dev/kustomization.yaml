@@ -4,6 +4,7 @@ namespace: clichy-dev
 resources:
   - namespace.yaml
   - ../../base
+  - database
 configMapGenerator:
   - name: clichy-server-config
     literals:
