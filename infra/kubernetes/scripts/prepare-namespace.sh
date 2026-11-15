@@ -88,7 +88,25 @@ if [[ "$ENVIRONMENT" == "prod" ]]; then
       echo "Prod storage path '$path' must be a real directory, not a symlink." >&2
       exit 1
     fi
-    if [[ -z "$(sudo find "$path" -mindepth 1 -maxdepth 1 -print -quit)" ]]; then
+    if [[ "$directory" == "postgres" ]]; then
+      # The official postgres:18 image runs PostgreSQL as UID/GID 999. Its
+      # PGDATA is nested below /var/lib/postgresql, which is the mounted PV.
+      # Prepare an empty PV accordingly; never recursively chown a populated
+      # database as part of this general-purpose setup script.
+      if [[ -z "$(sudo find "$path" -mindepth 1 -maxdepth 1 -print -quit)" ]]; then
+        sudo chown 999:999 -- "$path"
+        sudo chmod 0700 -- "$path"
+      elif [[ "$(sudo stat -c '%u' -- "$path")" != "999" ]] ||
+        [[ -n "$(sudo find "$path" -xdev ! -uid 999 -print -quit)" ]]; then
+        echo "PostgreSQL storage '$path' contains files not owned by UID 999." >&2
+        echo "Stop the clichy-postgres StatefulSet, review the data, then repair ownership with:" >&2
+        echo "  sudo chown -R 999:999 '$path'" >&2
+        echo "Afterward, rerun this script. No database contents were changed." >&2
+        exit 1
+      else
+        sudo chmod 0700 -- "$path"
+      fi
+    elif [[ -z "$(sudo find "$path" -mindepth 1 -maxdepth 1 -print -quit)" ]]; then
       sudo chown root:1000 -- "$path"
       sudo chmod 2770 -- "$path"
     else

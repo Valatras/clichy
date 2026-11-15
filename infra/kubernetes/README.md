@@ -243,6 +243,13 @@ continuent d'utiliser `local-path`. Les commandes manuelles ci-dessous restent
 une alternative pour préparer les Secrets séparément ; elles ne remplacent
 pas la préparation des PV et de PostgreSQL.
 
+Pour PostgreSQL 18, le répertoire de données Prod doit être accessible à
+l'utilisateur `postgres` (UID/GID 999). Le script initialise un répertoire vide
+avec ces droits. Si un volume non vide a un propriétaire différent, il s'arrête
+sans modifier les données et affiche les commandes de réparation ; arrêtez le
+StatefulSet et vérifiez le contenu avant de corriger récursivement son
+propriétaire.
+
 Créez d'abord le namespace puis stockez les valeurs dans un fichier local
 protégé, ou faites écrire ce fichier par votre gestionnaire de secrets. Ne
 placez jamais ces valeurs dans Git, dans cette documentation ou dans les logs :
