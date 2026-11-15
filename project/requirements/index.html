@@ -1920,7 +1920,7 @@
 
 
 <h1 id="assignment-requirements-traceability">Assignment requirements traceability<a class="headerlink" href="#assignment-requirements-traceability" title="Permanent link">&para;</a></h1>
-<p>Statuses describe the repository configuration after adding the CNPG implementation. “Configured, not deployed/verified” means manifests or scripts exist but the live <code>valtask</code> cluster was not changed or observed in this work.</p>
+<p>Statuses distinguish repository configuration from observed live behavior. Production CNPG was observed Ready with two instances and application database connectivity restored; direct streaming-state and failover evidence is still outstanding. Dev/Test live state is not asserted here.</p>
 <table>
 <thead>
 <tr>
@@ -1957,8 +1957,8 @@
 </tr>
 <tr>
 <td>Database replication</td>
-<td>Configured, not deployed/verified</td>
-<td>Pinned CNPG 1.30.1 operator installer, two-instance async PostgreSQL 18.6 Clusters, separate PVCs, role services and failover configuration are checked in. Operator, WAL streaming, promotion and recovery still require live verification.</td>
+<td>Production deployed; Cluster healthy; streaming/failover not fully evidenced</td>
+<td>Pinned CNPG 1.30.1 operator and two-instance async PostgreSQL 18.6 Cluster are configured with separate PVCs and role Services. Production was observed Ready with both instances running. Capture <code>pg_stat_replication</code> and a controlled Test failover/recovery before claiming those behaviors verified.</td>
 </tr>
 <tr>
 <td>Schema migrations</td>
@@ -2038,7 +2038,7 @@
 </tbody>
 </table>
 <h2 id="evaluation-notes">Evaluation notes<a class="headerlink" href="#evaluation-notes" title="Permanent link">&para;</a></h2>
-<p>Key gaps for a demonstration are deployment and verification of CNPG replication, the assignment's still-missing database sharding, repeatable Test refresh with anonymization, proof of zero downtime, multi-replica application behavior, Redis availability, and a verified metrics/HPA path. CNPG 1.30 officially supports Kubernetes 1.34–1.36; 1.37 is tested but not officially supported, which matters because the repository's K3s installer targets 1.37. Before marking configured features operational, capture workflow runs, cluster status, Prometheus targets, Headlamp visibility, and a controlled rollout observation.</p>
+<p>Key gaps for a demonstration are direct verification of CNPG WAL streaming and failover, the assignment's still-missing database sharding, repeatable Test refresh with anonymization, proof of zero downtime, multi-replica application behavior, Redis availability, and a verified metrics/HPA path. CNPG 1.30 officially supports Kubernetes 1.34–1.36; 1.37 is tested but not officially supported, which matters because the repository's K3s installer targets 1.37. Before marking configured features operational, capture workflow runs, cluster status, Prometheus targets, Headlamp visibility, and a controlled rollout observation.</p>
 
 
 

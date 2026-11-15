@@ -1853,7 +1853,7 @@
 
 
 <h1 id="roadmap-and-development-status">Roadmap and development status<a class="headerlink" href="#roadmap-and-development-status" title="Permanent link">&para;</a></h1>
-<p>The entries distinguish repository configuration from live behavior. The CNPG manifests and scripts have not yet been applied to the home server.</p>
+<p>The entries distinguish repository configuration from live behavior. Production CNPG is deployed on <code>valtask</code>; the Cluster was observed Ready with two instances and application DB connectivity has been restored. A direct replication-state query and failover exercise are still outstanding. Dev/Test live status should be checked separately.</p>
 <table>
 <thead>
 <tr>
@@ -1870,8 +1870,8 @@
 </tr>
 <tr>
 <td>2. Authentication and Storage</td>
-<td>Better Auth, Prisma and photo storage implemented; DB is being replaced with fresh CNPG clusters</td>
-<td>Run schema migrations, verify authentication and new uploads; prototype DB contents are intentionally not imported.</td>
+<td>Better Auth, Prisma, photo storage, and fresh CNPG Production DB are in use</td>
+<td>Verify fresh uploads and processing on the live environments; prototype DB contents were intentionally not imported.</td>
 </tr>
 <tr>
 <td>3. Image Processing</td>
@@ -1885,8 +1885,8 @@
 </tr>
 <tr>
 <td>5. Kubernetes Deployment</td>
-<td>K3s, Kustomize overlays, Ingress, PV and CI deployment scripts exist</td>
-<td>Install operator, create CNPG clusters, run migrations, verify app and external traffic.</td>
+<td>Production CNPG Cluster is Ready and application DB connectivity is restored; Dev/Test live status and full traffic checks need evidence</td>
+<td>Verify all namespace deployments, application traffic, storage, and the complete promotion path.</td>
 </tr>
 <tr>
 <td>6. Asynchronous Processing</td>
@@ -1895,8 +1895,8 @@
 </tr>
 <tr>
 <td>7. Infrastructure and deployment improvements</td>
-<td>Partially configured</td>
-<td>Complete CNPG deployment/replication/failover verification, Prometheus scraping and Headlamp view, zero-downtime rollout evidence, Prod promotion validation. Assignment gaps remain: sharding, Test refresh/anonymization, Redis replication and backup/restore.</td>
+<td>In progress; CNPG is deployed in Production</td>
+<td>Capture PostgreSQL streaming status and controlled Test failover evidence, verify Prometheus targets/panels and Headlamp coverage, and demonstrate zero-downtime rollout and Prod promotion. Assignment gaps remain: sharding, Test refresh/anonymization, Redis replication and backup/restore.</td>
 </tr>
 <tr>
 <td>8. Paused</td>
