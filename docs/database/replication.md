@@ -54,7 +54,7 @@ After operator install and namespace preparation, inspect roles and PVCs:
 
 ```sh
 kubectl get cluster,pods,svc,pvc -n clichy-prod -o wide
-kubectl get pods -n clichy-prod -l cnpg.io/cluster=clichy-postgres -L role
+kubectl get pods -n clichy-prod -l cnpg.io/cluster=clichy-postgres -L cnpg.io/instanceRole
 kubectl get endpointslice -n clichy-prod -l kubernetes.io/service-name=clichy-postgres-rw
 kubectl describe cluster clichy-postgres -n clichy-prod
 ```
@@ -82,8 +82,8 @@ Use `clichy-test`, never Production, for destructive simulation. The following c
 
 ```sh
 NS=clichy-test
-PRIMARY=$(kubectl get pod -n "$NS" -l cnpg.io/cluster=clichy-postgres,role=primary -o jsonpath='{.items[0].metadata.name}')
-REPLICA=$(kubectl get pod -n "$NS" -l cnpg.io/cluster=clichy-postgres,role=replica -o jsonpath='{.items[0].metadata.name}')
+PRIMARY=$(kubectl get pod -n "$NS" -l cnpg.io/cluster=clichy-postgres,cnpg.io/instanceRole=primary -o jsonpath='{.items[0].metadata.name}')
+REPLICA=$(kubectl get pod -n "$NS" -l cnpg.io/cluster=clichy-postgres,cnpg.io/instanceRole=replica -o jsonpath='{.items[0].metadata.name}')
 kubectl exec -n "$NS" "$PRIMARY" -- psql -U postgres -d clichy_test -v ON_ERROR_STOP=1 -c \
   "CREATE TABLE cnpg_replication_demo (id integer PRIMARY KEY, marker text NOT NULL); INSERT INTO cnpg_replication_demo VALUES (1, 'wal-check');"
 kubectl exec -n "$NS" "$REPLICA" -- psql -U postgres -d clichy_test -c \
@@ -97,7 +97,7 @@ kubectl exec -n "$NS" "$PRIMARY" -- psql -U postgres -d clichy_test -c \
   "DROP TABLE cnpg_replication_demo;"
 ```
 
-For failover, record the current primary Pod using `kubectl get pods ... -L role`, then manually delete only that Pod in `clichy-test` (`kubectl delete pod <primary-pod> -n clichy-test`). This changes cluster state and causes a brief database connection interruption while CNPG promotes the standby. Do not delete its PVC. Watch `kubectl get cluster,pods,endpointslice -w -n clichy-test`, Pod roles and the `clichy-postgres-rw` EndpointSlice. Once the Cluster returns Ready, run a write/read through `-rw`, verify `pg_is_in_recovery()` on the promoted primary, then verify that CNPG has recreated/rejoined the old instance as the new standby. Repeat only after confirming the state is healthy. Pod deletion is not evidence of node-level HA.
+For failover, record the current primary Pod using `kubectl get pods -l cnpg.io/cluster=clichy-postgres -L cnpg.io/instanceRole -n clichy-test`, then manually delete only that Pod in `clichy-test` (`kubectl delete pod <primary-pod> -n clichy-test`). This changes cluster state and causes a brief database connection interruption while CNPG promotes the standby. Do not delete its PVC. Watch `kubectl get cluster,pods,endpointslice -w -n clichy-test`, Pod roles and the `clichy-postgres-rw` EndpointSlice. Once the Cluster returns Ready, run a write/read through `-rw`, verify `pg_is_in_recovery()` on the promoted primary, then verify that CNPG has recreated/rejoined the old instance as the new standby. Repeat only after confirming the state is healthy. Pod deletion is not evidence of node-level HA.
 
 Restart/recovery persistence can similarly be demonstrated in Test by restarting a CNPG instance Pod without deleting its PVC, then checking the test row and standby state. Avoid direct Pod manipulations in Prod during evaluation unless a separate backup and maintenance window are in place.
 

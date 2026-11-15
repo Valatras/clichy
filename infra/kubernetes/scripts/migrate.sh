@@ -207,6 +207,10 @@ DATABASE_URL="$(
           }
           url.hostname = "127.0.0.1";
           url.port = process.env.LOCAL_DB_PORT;
+          // The local node-postgres readiness probe uses plaintext unless TLS
+          // is explicitly enabled. Make Prisma use the same mode for this
+          // loopback-only port-forward instead of its default sslmode=prefer.
+          url.searchParams.set("sslmode", "disable");
           process.stdout.write(url.toString());
         } catch {
           process.stderr.write(
