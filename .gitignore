@@ -64,3 +64,6 @@ temp
 DEVELOPMENT.md
 IMPLEMENTATION_MILESTONES_5_6_7.md
 AGENTS.md
+
+# Ignore les builds locaux MkDocs
+/site/
