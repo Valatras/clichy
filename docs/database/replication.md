@@ -2,7 +2,7 @@
 
 ## Current state
 
-CloudNativePG (CNPG) is configured in the repository for two PostgreSQL 18.6 instances in each app namespace. CNPG manages the primary and standby, their distinct PVCs, physical WAL streaming, role-aware Services, health checks and failover. The application connection is the `clichy-postgres-rw` Service; it follows the primary after promotion. This is configured in Git but has not yet been installed or verified against the live cluster.
+CloudNativePG (CNPG) is configured for two PostgreSQL 18.6 instances in each app namespace. In Production on `valtask`, the cluster has been observed Ready with two running instances, and the application database connection has been restored. The primary/standby roles and WAL streaming are configured, but the evidence collected so far does not include a live `pg_stat_replication` result or a failover test. Dev and Test live status should be checked separately.
 
 The old PostgreSQL StatefulSet is no longer included in the environment overlays. Its existing production PV and data directory are retained and are not reused by CNPG. CNPG provisions one independent PVC per instance. Production uses two pre-bound, retained local PVs; Dev and Test use K3s `local-path` dynamic provisioning. The operator affinity retains preferred anti-affinity, allowing both instances on this one-node cluster while still preferring separation if nodes are added later.
 
@@ -19,7 +19,7 @@ flowchart LR
   Operator -. watches, repairs, promotes .-> Standby
 ```
 
-PostgreSQL records changes in its write-ahead log (WAL). The primary streams WAL records continuously to the standby, which replays them into its own data directory. Asynchronous replication is selected (`minSyncReplicas: 0`, `maxSyncReplicas: 0`): writes do not wait for standby acknowledgement, so a sudden primary loss can lose the most recent unreceived transactions. Synchronous replication waits for configured standbys and can reduce that loss window, but adds write latency and can block writes when acknowledgers are unavailable; it is not enabled here.
+CNPG configures and supervises the PostgreSQL instances; PostgreSQL itself streams write-ahead log (WAL) records from the primary and replays them on the standby. Asynchronous replication is selected (`minSyncReplicas: 0`, `maxSyncReplicas: 0`): writes do not wait for standby acknowledgement, so a sudden primary loss can lose the most recent unreceived transactions. Synchronous replication waits for configured standbys and can reduce that loss window, but adds write latency and can block writes when acknowledgers are unavailable; it is not enabled here.
 
 CNPG runs a controller in `cnpg-system`, exposes `clichy-postgres-rw` and read-only `-ro`/`-r` role services, and reconciles the cluster resource. The app uses only `-rw`; no replica read routing is configured. CNPG promotes an eligible standby after it determines the primary has failed, updates the role service, and recreates/rejoins the former primary as a standby when possible. A deliberate Pod deletion tests the controller's Pod failure recovery path, but it is not equivalent to loss of the node or a controlled PostgreSQL shutdown.
 
@@ -75,6 +75,21 @@ SELECT pg_is_in_recovery(), pg_last_wal_receive_lsn(), pg_last_wal_replay_lsn();
 ```
 
 The primary should return `false` for `pg_is_in_recovery()` and list a streaming standby in `pg_stat_replication`. The standby should return `true`; receive/replay positions should advance after writes. `pg_stat_replication` is queried on the primary; it does not show the standby from itself.
+
+For a quick live check on Production, query the primary from its Pod:
+
+```sh
+NS=clichy-prod
+PRIMARY=$(kubectl get pod -n "$NS" \
+  -l cnpg.io/cluster=clichy-postgres,cnpg.io/instanceRole=primary \
+  -o jsonpath='{.items[0].metadata.name}')
+kubectl exec -n "$NS" "$PRIMARY" -- psql -U postgres -d postgres -c \
+  "SELECT application_name, state, sync_state, sent_lsn, replay_lsn, \
+   pg_size_pretty(pg_wal_lsn_diff(sent_lsn, replay_lsn)::bigint) AS byte_lag \
+   FROM pg_stat_replication;"
+```
+
+Expect one row for the standby with `state = streaming` and `sync_state = async`. A `NULL` lag can occur when there is no recent WAL activity; the streaming state is the key check. This command reads status only and does not change the cluster.
 
 ## Demonstrate replication and failover (Test only)
 

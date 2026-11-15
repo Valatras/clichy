@@ -49,7 +49,7 @@ Versions shown in manifests and package files are the repository's declarations 
 | Video ingestion | Not implemented in inspected API pipeline |
 | Kubernetes deployment | Manifests and scripts implemented; live state is not established by source review |
 | Test then Production automation | Implemented in workflow; actual recent run status is not checked here |
-| Database replication | CNPG configured in repository; not deployed or verified |
+| Database replication | CNPG deployed in Production; two instances observed healthy; live WAL status and failover still need explicit verification |
 | Database sharding | Not implemented |
 | Zero-downtime rollout | Intended by Deployment rolling update behavior, but not verified and replicas are one |
 

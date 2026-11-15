@@ -1,16 +1,16 @@
 # Roadmap and development status
 
-The entries distinguish repository configuration from live behavior. The CNPG manifests and scripts have not yet been applied to the home server.
+The entries distinguish repository configuration from live behavior. Production CNPG is deployed on `valtask`; the Cluster was observed Ready with two instances and application DB connectivity has been restored. A direct replication-state query and failover exercise are still outstanding. Dev/Test live status should be checked separately.
 
 | Stage | Status | Remaining work |
 |---|---|---|
 | 1. Foundation | Base application and environment setup exist | Verify onboarding and environment preparation after CNPG setup. |
-| 2. Authentication and Storage | Better Auth, Prisma and photo storage implemented; DB is being replaced with fresh CNPG clusters | Run schema migrations, verify authentication and new uploads; prototype DB contents are intentionally not imported. |
+| 2. Authentication and Storage | Better Auth, Prisma, photo storage, and fresh CNPG Production DB are in use | Verify fresh uploads and processing on the live environments; prototype DB contents were intentionally not imported. |
 | 3. Image Processing | Processing and duplicate-comparison foundations exist | Exercise complete upload, processing and comparison workflow live. |
 | 4. Containerization | Web/API/worker images and local DB/Redis Compose exist | Continue validating exact-SHA image pipeline. |
-| 5. Kubernetes Deployment | K3s, Kustomize overlays, Ingress, PV and CI deployment scripts exist | Install operator, create CNPG clusters, run migrations, verify app and external traffic. |
+| 5. Kubernetes Deployment | Production CNPG Cluster is Ready and application DB connectivity is restored; Dev/Test live status and full traffic checks need evidence | Verify all namespace deployments, application traffic, storage, and the complete promotion path. |
 | 6. Asynchronous Processing | Redis/BullMQ workers, retries, outbox and recovery logic exist | Verify queue, shared photo volume and worker recovery in Test. |
-| 7. Infrastructure and deployment improvements | Partially configured | Complete CNPG deployment/replication/failover verification, Prometheus scraping and Headlamp view, zero-downtime rollout evidence, Prod promotion validation. Assignment gaps remain: sharding, Test refresh/anonymization, Redis replication and backup/restore. |
+| 7. Infrastructure and deployment improvements | In progress; CNPG is deployed in Production | Capture PostgreSQL streaming status and controlled Test failover evidence, verify Prometheus targets/panels and Headlamp coverage, and demonstrate zero-downtime rollout and Prod promotion. Assignment gaps remain: sharding, Test refresh/anonymization, Redis replication and backup/restore. |
 | 8. Paused | On hold | No work planned. |
 | 9. Paused | On hold | No work planned. |
 

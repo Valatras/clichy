@@ -16,4 +16,4 @@ A PostgreSQL operator is selected over custom StatefulSet replication. Citus rem
 
 ## Consequences
 
-The checked-in CNPG configuration is not yet deployed or operationally verified. Both instances share the same node, asynchronous replication may lose recent unreplicated writes, and replication is not a backup. Sharding remains absent.
+CNPG is deployed in Production and the Cluster was observed healthy with two instances; a direct WAL streaming query and failover exercise are not yet evidenced. Both instances share the same node, asynchronous replication may lose recent unreplicated writes, and replication is not a backup. Sharding remains absent.

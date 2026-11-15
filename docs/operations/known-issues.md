@@ -36,7 +36,7 @@ This is a record of issues evidenced by current documentation, source, or Git hi
 
 ### Production CNPG application role mismatch
 
-**Status:** Cause confirmed from cluster logs; the credential correction was applied on `valtask`, but authentication remains unverified until CNPG applies the role password.
+**Status:** Resolved; user confirmed the Production database connection and deployment flow work after the Secret reload correction.
 
 **Symptoms:** Production `migrate.sh` port-forward failed on its first database connection. The primary Pod remained `Running`, and the direct local socket query returned `pg_is_in_recovery() = false`.
 
@@ -44,7 +44,7 @@ This is a record of issues evidenced by current documentation, source, or Git hi
 
 **Resolution:** `prepare-namespace.sh` normalizes the local DB URL and `POSTGRES_USER` to `clichy`, retaining the current password and database name, and labels `clichy-postgres-app` with `cnpg.io/reload: "true"`. Apply the label immediately with `kubectl label secret clichy-postgres-app -n clichy-prod cnpg.io/reload=true --overwrite`; then confirm CNPG synchronizes the password before retrying migrations. Sync the updated script before the next environment preparation so the label persists. Do not delete or recreate the Cluster or its PVCs.
 
-**Verification required:** Confirm a fresh PostgreSQL authentication attempt succeeds and CNPG logs stop reporting password/owner errors, then run `./infra/kubernetes/scripts/migrate.sh prod status` and the Production workflow. Do not mark the Production correction operational until these succeed.
+**Verification:** User confirmed that the corrected Production setup works. A successful migration-status/deployment run is operational evidence for database connectivity; it does not by itself verify physical streaming or failover.
 
 **Relevant files:** `infra/kubernetes/scripts/prepare-namespace.sh`, `infra/kubernetes/cnpg/cluster.yaml`, `infra/kubernetes/overlays/prod/database/kustomization.yaml`, `infra/kubernetes/scripts/migrate.sh`.
 
@@ -83,4 +83,4 @@ This is a record of issues evidenced by current documentation, source, or Git hi
 
 ## Operational gaps (not recorded incidents)
 
-These are limitations established by configuration, not claims of past failures: CNPG replication is configured but not yet deployed/verified, PostgreSQL sharding is absent, no tested backup/restore runbook exists, Redis is a single instance, and no Test refresh/anonymization procedure exists. See the database pages and requirements matrix.
+These are limitations established by configuration, not claims of past failures: Production CNPG is deployed and healthy, but direct WAL streaming/failover evidence is still outstanding; PostgreSQL sharding is absent, no tested backup/restore runbook exists, Redis is a single instance, and no Test refresh/anonymization procedure exists. See the database pages and requirements matrix.
