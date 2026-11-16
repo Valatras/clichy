@@ -18,10 +18,10 @@ process.env.CORS_ORIGIN = "http://localhost:5173";
 process.env.DATABASE_URL = "postgresql://test:test@localhost:5432/test";
 process.env.PHOTO_STORAGE_PATH = tmpdir();
 
-const [{ createPhotoRoutes }, { FileSystemStorage }] = await Promise.all([
-  import("./routes/photos"),
-  import("./storage"),
-]);
+const [
+  { createPhotoRoutes, persistPhotoAndOutbox },
+  { FileSystemStorage },
+] = await Promise.all([import("./routes/photos"), import("./storage")]);
 type PhotoRouteDb = Parameters<typeof createPhotoRoutesType>[0]["db"];
 
 function createDb(
@@ -197,6 +197,57 @@ test("valid upload saves an original and atomically registers a pending photo", 
   assert.equal(createdInput?.mimeType, "image/png");
   assert.ok(createdInput?.storageKey);
   assert.deepEqual(await storage.read(createdInput!.storageKey), image);
+});
+
+test("photo and outbox rows are written through the same database transaction", async () => {
+  const calls: string[] = [];
+  const input = {
+    userId: "user-a",
+    filename: "test.png",
+    mimeType: "image/png",
+    size: 123,
+    storageKey: "user-a/photo.png",
+  };
+  const transaction = {
+    photo: {
+      create: async ({ data }: { data: typeof input }) => {
+        calls.push("photo");
+        assert.deepEqual(data, input);
+        return {
+          id: "photo-transactional",
+          filename: input.filename,
+          mimeType: input.mimeType,
+          size: input.size,
+          createdAt: new Date("2026-11-16T12:00:00.000Z"),
+        };
+      },
+    },
+    photoProcessingOutbox: {
+      create: async ({ data }: { data: { photoId: string } }) => {
+        calls.push("outbox");
+        assert.deepEqual(data, { photoId: "photo-transactional" });
+        return {};
+      },
+    },
+  };
+  let transactionCalls = 0;
+  const database = {
+    $transaction: async (
+      callback: (transactionClient: typeof transaction) => Promise<unknown>,
+    ) => {
+      transactionCalls += 1;
+      return callback(transaction);
+    },
+  };
+
+  const photo = await persistPhotoAndOutbox(
+    database as unknown as Parameters<typeof persistPhotoAndOutbox>[0],
+    input,
+  );
+
+  assert.equal(transactionCalls, 1);
+  assert.deepEqual(calls, ["photo", "outbox"]);
+  assert.equal(photo.id, "photo-transactional");
 });
 
 test("upload removes the stored original if durable photo registration fails", async (t) => {

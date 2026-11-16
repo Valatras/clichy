@@ -54,6 +54,36 @@ type PhotoRouteDependencies = {
   ) => Promise<{ user: { id: string } } | null>;
 };
 
+type PhotoUploadInput = {
+  userId: string;
+  filename: string;
+  mimeType: string;
+  size: number;
+  storageKey: string;
+};
+
+export async function persistPhotoAndOutbox(
+  database: Pick<Database, "$transaction">,
+  input: PhotoUploadInput,
+) {
+  return database.$transaction(async (transaction) => {
+    const photo = await transaction.photo.create({
+      data: input,
+      select: {
+        id: true,
+        filename: true,
+        mimeType: true,
+        size: true,
+        createdAt: true,
+      },
+    });
+    await transaction.photoProcessingOutbox.create({
+      data: { photoId: photo.id },
+    });
+    return photo;
+  });
+}
+
 function isMissingFile(error: unknown): boolean {
   return error instanceof Error && "code" in error && error.code === "ENOENT";
 }
@@ -507,22 +537,6 @@ export function createPhotoRoutes({
 export default createPhotoRoutes({
   db,
   storage: new FileSystemStorage(),
-  createPhotoWithOutbox: (input) =>
-    db.$transaction(async (transaction) => {
-      const photo = await transaction.photo.create({
-        data: input,
-        select: {
-          id: true,
-          filename: true,
-          mimeType: true,
-          size: true,
-          createdAt: true,
-        },
-      });
-      await transaction.photoProcessingOutbox.create({
-        data: { photoId: photo.id },
-      });
-      return photo;
-    }),
+  createPhotoWithOutbox: (input) => persistPhotoAndOutbox(db, input),
   getSession: getAuthSession,
 });

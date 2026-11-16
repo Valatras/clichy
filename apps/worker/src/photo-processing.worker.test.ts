@@ -160,6 +160,38 @@ test("worker safely skips deleted and already claimed photos", async (t) => {
   );
 });
 
+test("a duplicate delivery cannot process a photo after another worker wins the claim", async (t) => {
+  const harness = await createHarness(t);
+  let originalReads = 0;
+  harness.storage.read = async () => {
+    originalReads += 1;
+    throw new Error("A delivery that lost the claim must not read the original");
+  };
+  harness.db.photo.updateMany = (async () => ({
+    count: 0,
+  })) as unknown as typeof harness.db.photo.updateMany;
+
+  await processPhotoJob(
+    harness.db,
+    harness.storage,
+    "photo-a",
+    0,
+    4,
+    harness.logger,
+  );
+
+  assert.equal(originalReads, 0);
+  assert.equal(harness.status(), "PENDING");
+  for (const variant of ["thumbnail", "medium", "large"] as const) {
+    assert.equal(
+      await harness.storage.exists(
+        harness.storage.derivativeKey("photo-a", variant),
+      ),
+      false,
+    );
+  }
+});
+
 test("worker safely acknowledges a job for a photo that no longer exists", async (t) => {
   const harness = await createHarness(t);
   harness.setPhotoExists(false);
