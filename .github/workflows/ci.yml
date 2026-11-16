@@ -5,6 +5,13 @@ on:
     branches: [master]
   pull_request:
     branches: [master]
+  workflow_dispatch:
+    inputs:
+      deploy_prod:
+        description: Deploy the tested master commit to Production
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -75,7 +82,7 @@ jobs:
         with:
           context: .
           file: infra/docker_clichy_server/Dockerfile
-          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+          push: ${{ github.ref == 'refs/heads/master' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
           tags: ghcr.io/valatras/clichy-server:sha-${{ github.sha }}
 
       - name: Build and publish web image
@@ -83,7 +90,7 @@ jobs:
         with:
           context: .
           file: infra/docker_clichy_web/Dockerfile
-          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+          push: ${{ github.ref == 'refs/heads/master' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
           tags: ghcr.io/valatras/clichy-web:sha-${{ github.sha }}
           build-args: |
             VITE_SERVER_URL=http://localhost:3000
@@ -93,7 +100,7 @@ jobs:
         with:
           context: .
           file: infra/docker_clichy_worker/Dockerfile
-          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+          push: ${{ github.ref == 'refs/heads/master' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
           tags: ghcr.io/valatras/clichy-worker:sha-${{ github.sha }}
 
   deploy-test:
@@ -102,7 +109,7 @@ jobs:
     env:
       KUBECONFIG: /home/valatras/.kube/config
     needs: [ci, package]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/master' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     concurrency:
       group: clichy-test-deployment
       cancel-in-progress: false
@@ -175,7 +182,7 @@ jobs:
     env:
       KUBECONFIG: /home/valatras/.kube/config
     needs: [ci, package, deploy-test]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master' && inputs.deploy_prod
     environment:
       name: production
     concurrency:

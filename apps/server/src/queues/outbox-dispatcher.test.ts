@@ -13,6 +13,7 @@ type OutboxDb = Parameters<typeof dispatchOutboxOnce>[0];
 function createHarness(options: { failPublishedUpdateOnce?: boolean } = {}) {
   const event = {
     id: "outbox-a",
+    userId: "user-a",
     photoId: "photo-a",
     attempts: 0,
   };
@@ -70,8 +71,8 @@ test("outbox publishes the minimum payload with a stable job ID", async () => {
   assert.deepEqual(result, { published: 1, failed: 0 });
   assert.deepEqual(enqueued, [
     "process-photo",
-    { photoId: "photo-a" },
-    { jobId: photoProcessingJobId("photo-a") },
+    { userId: "user-a", photoId: "photo-a" },
+    { jobId: photoProcessingJobId("user-a", "photo-a") },
   ]);
   assert.ok(harness.state().publishedAt);
 });
@@ -117,7 +118,7 @@ test("outbox retries the enqueue/ack crash window without creating a second Bull
     },
     add: async (
       _name: string,
-      _data: { photoId: string },
+      _data: { userId: string; photoId: string },
       options: { jobId: string } | undefined,
     ) => {
       addCalls += 1;
@@ -173,7 +174,9 @@ test("stale processing records are reset and get a transactional recovery event"
     photo: {
       findMany: async () => {
         findManyCalls += 1;
-        return findManyCalls === 1 ? [{ id: "legacy-processing" }] : [];
+        return findManyCalls === 1
+          ? [{ id: "legacy-processing", userId: "user-a" }]
+          : [];
       },
       updateMany: async ({
         where,
@@ -200,7 +203,7 @@ test("stale processing records are reset and get a transactional recovery event"
           }) => Promise<{ count: number }>;
         };
         photoProcessingOutbox: {
-          create: (args: { data: { photoId: string } }) => Promise<unknown>;
+          create: (args: { data: { userId: string; photoId: string } }) => Promise<unknown>;
         };
       }) => Promise<number>,
     ) =>

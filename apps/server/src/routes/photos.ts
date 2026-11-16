@@ -78,7 +78,7 @@ export async function persistPhotoAndOutbox(
       },
     });
     await transaction.photoProcessingOutbox.create({
-      data: { photoId: photo.id },
+      data: { userId: input.userId, photoId: photo.id },
     });
     return photo;
   });

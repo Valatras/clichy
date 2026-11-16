@@ -23,16 +23,25 @@ function isMissingFile(error: unknown): boolean {
 export async function processPhotoJob(
   db: WorkerDatabase,
   storage: FileSystemStorage,
+  userId: string | undefined,
   photoId: string,
   attemptsMade: number,
   maxAttempts: number,
   logger: WorkerLogger,
-  actualJobId = photoProcessingJobId(photoId),
+  actualJobId?: string,
 ): Promise<void> {
   const startedAt = Date.now();
-  const jobId = actualJobId;
-  const photo = await db.photo.findUnique({
+  const ownerId = userId ?? (await db.photo.findFirst({
     where: { id: photoId },
+    select: { userId: true },
+  }))?.userId;
+  if (!ownerId) {
+    logger.info({ photoId }, "Legacy photo job skipped because its photo is absent");
+    return;
+  }
+  const jobId = actualJobId ?? photoProcessingJobId(ownerId, photoId);
+  const photo = await db.photo.findUnique({
+    where: { userId_id: { userId: ownerId, id: photoId } },
     select: { id: true, processingStatus: true, deletingAt: true },
   });
   if (!photo || photo.deletingAt || photo.processingStatus === "COMPLETED") {
@@ -41,7 +50,7 @@ export async function processPhotoJob(
   }
 
   try {
-    const outcome = await processPhoto(db, storage, photoId);
+    const outcome = await processPhoto(db, storage, ownerId, photoId);
     if (outcome === "processed") {
       logger.info(
         { photoId, jobId, durationMs: Date.now() - startedAt },
@@ -61,6 +70,7 @@ export async function processPhotoJob(
     const status = finalFailure ? "FAILED" : "PENDING";
     await db.photo.updateMany({
       where: {
+        userId: ownerId,
         id: photoId,
         processingStatus: "PROCESSING",
         deletingAt: null,

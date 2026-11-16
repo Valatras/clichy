@@ -6,7 +6,7 @@ const storage = new FileSystemStorage();
 const PAGE_SIZE = 100;
 
 async function backfillPhotos() {
-  let lastId: string | undefined;
+  let lastPhoto: { userId: string; id: string } | undefined;
   let queued = 0;
   let failed = 0;
   let skipped = 0;
@@ -14,11 +14,19 @@ async function backfillPhotos() {
   try {
     while (true) {
       const photos = await db.photo.findMany({
-        where: lastId ? { id: { gt: lastId } } : undefined,
-        orderBy: { id: "asc" },
+        where: lastPhoto
+          ? {
+              OR: [
+                { userId: { gt: lastPhoto.userId } },
+                { userId: lastPhoto.userId, id: { gt: lastPhoto.id } },
+              ],
+            }
+          : undefined,
+        orderBy: [{ userId: "asc" }, { id: "asc" }],
         take: PAGE_SIZE,
         select: {
           id: true,
+          userId: true,
           processingStatus: true,
           processingVersion: true,
           deletingAt: true,
@@ -30,7 +38,7 @@ async function backfillPhotos() {
       }
 
       for (const photo of photos) {
-        lastId = photo.id;
+        lastPhoto = { userId: photo.userId, id: photo.id };
 
         if (photo.deletingAt || photo.processingStatus === "PROCESSING") {
           skipped += 1;
@@ -65,6 +73,7 @@ async function backfillPhotos() {
           const created = await db.$transaction(async (transaction) => {
             const claimed = await transaction.photo.updateMany({
               where: {
+                userId: photo.userId,
                 id: photo.id,
                 deletingAt: null,
                 processingStatus: { not: "PROCESSING" },
@@ -79,12 +88,16 @@ async function backfillPhotos() {
             if (claimed.count === 0) return false;
             const pendingEvent =
               await transaction.photoProcessingOutbox.findFirst({
-                where: { photoId: photo.id, publishedAt: null },
+                where: {
+                  userId: photo.userId,
+                  photoId: photo.id,
+                  publishedAt: null,
+                },
                 select: { id: true },
               });
             if (!pendingEvent) {
               await transaction.photoProcessingOutbox.create({
-                data: { photoId: photo.id },
+                data: { userId: photo.userId, photoId: photo.id },
               });
             }
             return true;

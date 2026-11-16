@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: clichy-citus-rw
+spec:
+  selector:
+    app: clichy-citus
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres

@@ -82,11 +82,15 @@ const worker = new Worker<PhotoProcessingJob>(
       await processPhotoJob(
         db,
         storage,
+        job.data.userId,
         job.data.photoId,
         job.attemptsMade,
         Number(job.opts.attempts ?? 1),
         logger,
-        job.id ?? photoProcessingJobId(job.data.photoId),
+        job.id ??
+          (job.data.userId
+            ? photoProcessingJobId(job.data.userId, job.data.photoId)
+            : undefined),
       );
       completedJobs.inc();
     } catch (error) {

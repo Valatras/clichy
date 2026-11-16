@@ -72,6 +72,14 @@ kubectl wait --namespace="$NAMESPACE" --for=condition=Ready \
   cluster.postgresql.cnpg.io/clichy-postgres --timeout=900s ||
   die "CNPG cluster clichy-postgres is not Ready; application deployment was not started."
 
+if [[ "$ENVIRONMENT" == "test" ]]; then
+  kubectl apply -k "$ROOT_DIR/infra/kubernetes/citus" ||
+    die "Could not apply the Test Citus resources."
+  kubectl rollout status deployment/clichy-citus \
+    --namespace="$NAMESPACE" --timeout=600s ||
+    die "The Test Citus database is not Ready; application deployment was not started."
+fi
+
 if [[ "$ENVIRONMENT" == "prod" ]]; then
   kubectl apply --filename="$OVERLAY_DIR/namespace.yaml" ||
     die "Could not create or verify namespace $NAMESPACE."

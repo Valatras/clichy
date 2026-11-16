@@ -105,6 +105,7 @@ test("worker processes a photo and writes all derivatives", async (t) => {
   await processPhotoJob(
     harness.db,
     harness.storage,
+    "user-a",
     "photo-a",
     0,
     4,
@@ -129,6 +130,7 @@ test("worker safely skips deleted and already claimed photos", async (t) => {
   await processPhotoJob(
     deleting.db,
     deleting.storage,
+    "user-a",
     "photo-a",
     0,
     4,
@@ -146,6 +148,7 @@ test("worker safely skips deleted and already claimed photos", async (t) => {
   await processPhotoJob(
     claimed.db,
     claimed.storage,
+    "user-a",
     "photo-a",
     0,
     4,
@@ -174,6 +177,7 @@ test("a duplicate delivery cannot process a photo after another worker wins the 
   await processPhotoJob(
     harness.db,
     harness.storage,
+    "user-a",
     "photo-a",
     0,
     4,
@@ -199,6 +203,7 @@ test("worker safely acknowledges a job for a photo that no longer exists", async
   await processPhotoJob(
     harness.db,
     harness.storage,
+    "user-a",
     "deleted-photo",
     0,
     4,
@@ -224,6 +229,7 @@ test("missing originals and completed duplicate jobs do not reprocess a photo", 
     processPhotoJob(
       missingOriginal.db,
       missingOriginal.storage,
+      "user-a",
       "photo-a",
       0,
       4,
@@ -238,6 +244,7 @@ test("missing originals and completed duplicate jobs do not reprocess a photo", 
   await processPhotoJob(
     completed.db,
     completed.storage,
+    "user-a",
     "photo-a",
     0,
     4,
@@ -262,6 +269,7 @@ test("transient storage failures are reset to PENDING for BullMQ retry", async (
     processPhotoJob(
       harness.db,
       harness.storage,
+      "user-a",
       "photo-a",
       0,
       4,
@@ -280,6 +288,7 @@ test("invalid images fail permanently without being retried", async (t) => {
     processPhotoJob(
       harness.db,
       harness.storage,
+      "user-a",
       "photo-a",
       0,
       4,

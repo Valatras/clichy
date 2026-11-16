@@ -265,10 +265,11 @@ type ProcessingDatabase = Pick<Database, "photo">;
 export async function processPhoto(
   db: ProcessingDatabase,
   storage: FileSystemStorage,
+  userId: string,
   photoId: string,
 ): Promise<"processed" | "skipped"> {
   const photo = await db.photo.findUnique({
-    where: { id: photoId },
+    where: { userId_id: { userId, id: photoId } },
     select: { storageKey: true, processingStatus: true, deletingAt: true },
   });
   if (!photo || photo.deletingAt || photo.processingStatus === "COMPLETED") {
@@ -277,6 +278,7 @@ export async function processPhoto(
 
   const claimed = await db.photo.updateMany({
     where: {
+      userId,
       id: photoId,
       deletingAt: null,
       processingStatus: { in: ["PENDING", "FAILED"] },
@@ -299,6 +301,7 @@ export async function processPhoto(
 
   const completed = await db.photo.updateMany({
     where: {
+      userId,
       id: photoId,
       deletingAt: null,
       processingStatus: "PROCESSING",

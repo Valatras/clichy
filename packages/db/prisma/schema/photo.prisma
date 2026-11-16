@@ -6,12 +6,12 @@ enum ImageProcessingStatus {
 }
 
 model Photo {
-  id                String                @id @default(cuid())
+  id                String                @default(cuid())
   userId            String
   filename          String
   mimeType          String
   size              Int
-  storageKey        String                @unique
+  storageKey        String
   sha256            String?               @db.VarChar(64)
   perceptualHash    String?               @db.VarChar(16)
   imageFormat       String?
@@ -35,9 +35,11 @@ model Photo {
   processedAt         DateTime?
   createdAt           DateTime              @default(now())
 
-  user             User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user             User                     @relation(fields: [userId], references: [id], onDelete: Restrict)
   processingOutbox PhotoProcessingOutbox[]
 
+  @@id([userId, id])
+  @@unique([userId, storageKey])
   @@index([userId])
   @@index([userId, sha256])
   @@index([userId, perceptualHash])
@@ -46,14 +48,17 @@ model Photo {
 }
 
 model PhotoProcessingOutbox {
-  id          String    @id @default(cuid())
+  id          String    @default(cuid())
+  userId      String
   photoId     String
   createdAt   DateTime  @default(now())
   publishedAt DateTime?
   attempts    Int       @default(0)
   lastError   String?
 
-  photo Photo @relation(fields: [photoId], references: [id], onDelete: Cascade)
+  photo Photo @relation(fields: [userId, photoId], references: [userId, id], onDelete: Cascade)
 
+  @@id([userId, id])
+  @@index([userId, photoId])
   @@index([publishedAt, createdAt])
 }

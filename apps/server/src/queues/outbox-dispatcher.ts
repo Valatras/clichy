@@ -11,7 +11,7 @@ type OutboxDatabase = Pick<
 type PhotoQueue = {
   add: (
     name: string,
-    data: { photoId: string },
+    data: { userId: string; photoId: string },
     options?: { jobId: string },
   ) => Promise<unknown>;
   getJob: (jobId: string) => Promise<{
@@ -48,14 +48,15 @@ export async function recoverStalePhotos(
     where: staleProcessingWhere,
     orderBy: { processingStartedAt: "asc" },
     take: OUTBOX_BATCH_SIZE,
-    select: { id: true },
+    select: { id: true, userId: true },
   });
 
   let recovered = 0;
-  for (const { id } of abandoned) {
+  for (const { id, userId } of abandoned) {
     const updated = await db.$transaction(async (transaction) => {
       const result = await transaction.photo.updateMany({
         where: {
+          userId,
           id,
           ...staleProcessingWhere,
         },
@@ -67,14 +68,14 @@ export async function recoverStalePhotos(
       });
       if (result.count > 0) {
         await transaction.photoProcessingOutbox.create({
-          data: { photoId: id },
+          data: { userId, photoId: id },
         });
       }
       return result.count;
     });
     if (updated > 0) {
       recovered += 1;
-      logger.warn({ photoId: id }, "Recovered stale photo processing");
+      logger.warn({ userId, photoId: id }, "Recovered stale photo processing");
     }
   }
 
@@ -89,12 +90,12 @@ export async function recoverStalePhotos(
     },
     orderBy: { createdAt: "asc" },
     take: OUTBOX_BATCH_SIZE,
-    select: { id: true },
+    select: { id: true, userId: true },
   });
-  for (const { id } of pending) {
-    await db.photoProcessingOutbox.create({ data: { photoId: id } });
+  for (const { id, userId } of pending) {
+    await db.photoProcessingOutbox.create({ data: { userId, photoId: id } });
     recovered += 1;
-    logger.warn({ photoId: id }, "Created recovery event for pending photo");
+    logger.warn({ userId, photoId: id }, "Created recovery event for pending photo");
   }
 
   return recovered;
@@ -109,14 +110,31 @@ export async function dispatchOutboxOnce(
     where: { publishedAt: null },
     orderBy: { createdAt: "asc" },
     take: OUTBOX_BATCH_SIZE,
-    select: { id: true, photoId: true, attempts: true },
+    select: { id: true, userId: true, photoId: true, attempts: true },
   });
   let published = 0;
   let failed = 0;
 
   for (const event of events) {
+    let userId: string | undefined = event.userId;
     try {
-      const jobId = photoProcessingJobId(event.photoId);
+      if (!userId) {
+        // During the production rolling deployment, the previous API version
+        // may still create outbox rows without userId. Resolve and backfill
+        // those rows before building a shard-routed job.
+        const photo = await db.photo.findFirst({
+          where: { id: event.photoId },
+          select: { userId: true },
+        });
+        if (!photo) throw new Error("Outbox photo does not exist");
+        userId = photo.userId;
+        await db.photoProcessingOutbox.updateMany({
+          where: { id: event.id },
+          data: { userId },
+        });
+      }
+
+      const jobId = photoProcessingJobId(userId, event.photoId);
       const previousJob = await queue.getJob(jobId);
       if (previousJob) {
         const state = await previousJob.getState();
@@ -126,11 +144,11 @@ export async function dispatchOutboxOnce(
       }
       await queue.add(
         PHOTO_PROCESSING_JOB,
-        { photoId: event.photoId },
+        { userId, photoId: event.photoId },
         { jobId },
       );
       await db.photoProcessingOutbox.update({
-        where: { id: event.id },
+        where: { userId_id: { userId, id: event.id } },
         data: {
           publishedAt: new Date(),
           attempts: { increment: 1 },
@@ -138,22 +156,30 @@ export async function dispatchOutboxOnce(
         },
       });
       published += 1;
-      logger.info({ photoId: event.photoId, jobId }, "Photo job enqueued");
+      logger.info({ userId, photoId: event.photoId, jobId }, "Photo job enqueued");
     } catch (error) {
       failed += 1;
       logger.error(
-        { err: error, photoId: event.photoId, attempts: event.attempts + 1 },
+        { err: error, userId, photoId: event.photoId, attempts: event.attempts + 1 },
         "Unable to publish photo outbox event; it will be retried",
       );
-      await db.photoProcessingOutbox.update({
-        where: { id: event.id },
-        data: {
-          attempts: { increment: 1 },
-          lastError: (
-            error instanceof Error ? error.message : String(error)
-          ).slice(0, 1000),
-        },
-      });
+      const data = {
+        attempts: { increment: 1 },
+        lastError: (
+          error instanceof Error ? error.message : String(error)
+        ).slice(0, 1000),
+      };
+      if (userId) {
+        await db.photoProcessingOutbox.update({
+          where: { userId_id: { userId, id: event.id } },
+          data,
+        });
+      } else {
+        await db.photoProcessingOutbox.updateMany({
+          where: { id: event.id },
+          data,
+        });
+      }
     }
   }
 

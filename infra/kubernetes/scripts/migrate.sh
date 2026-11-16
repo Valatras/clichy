@@ -32,7 +32,7 @@ ACTION="${2:-deploy}"
 case "$ENVIRONMENT" in
   test)
     NAMESPACE="clichy-test"
-    SERVICE="clichy-postgres-rw"
+    SERVICE="clichy-citus-rw"
     SECRET="clichy-server-secrets"
     EXPECTED_DATABASE="clichy_test"
     ;;
@@ -70,6 +70,7 @@ if [[ "$ACTION" == "deploy" ]]; then
     infra/kubernetes/scripts/deploy.sh \
     infra/kubernetes/scripts/migrate.sh \
     infra/kubernetes/base \
+    infra/kubernetes/citus \
     "infra/kubernetes/overlays/$ENVIRONMENT" \
     packages/db/package.json \
     packages/db/prisma.config.ts \
@@ -186,7 +187,9 @@ fi
 
 DATABASE_URL="$(
   printf '%s' "$database_url_encoded" |
-    EXPECTED_DATABASE="$EXPECTED_DATABASE" LOCAL_DB_PORT="$local_port" node -e '
+    EXPECTED_DATABASE="$EXPECTED_DATABASE" \
+    EXPECTED_DATABASE_HOST="$SERVICE" \
+    LOCAL_DB_PORT="$local_port" node -e '
       let encoded = "";
       process.stdin.setEncoding("utf8");
       process.stdin.on("data", (chunk) => encoded += chunk);
@@ -196,6 +199,13 @@ DATABASE_URL="$(
           const url = new URL(value);
           if (!["postgres:", "postgresql:"].includes(url.protocol)) {
             throw new Error();
+          }
+          if (url.hostname !== process.env.EXPECTED_DATABASE_HOST) {
+            process.stderr.write(
+              "DATABASE_URL does not target the expected environment database Service.\n",
+            );
+            process.exitCode = 1;
+            return;
           }
           const database = decodeURIComponent(url.pathname.replace(/^\/+/, ""));
           if (database !== process.env.EXPECTED_DATABASE) {
@@ -271,6 +281,14 @@ case "$ACTION" in
     echo "Applying pending Prisma migrations for $ENVIRONMENT."
     if ! pnpm --filter @clichy/db db:migrate:deploy; then
       die "Prisma migrate deploy failed for $ENVIRONMENT; the application deployment was not applied."
+    fi
+    if [[ "$ENVIRONMENT" == "test" ]]; then
+      echo "Registering the Test photo tables as Citus-sharded tables."
+      kubectl exec --namespace="$NAMESPACE" deployment/clichy-citus -- \
+        psql --username=clichy --dbname="$EXPECTED_DATABASE" \
+        --set ON_ERROR_STOP=1 \
+        --file=/opt/clichy/enable-user-sharding.sql ||
+        die "Could not register the Test photo tables with Citus."
     fi
     ;;
   status)

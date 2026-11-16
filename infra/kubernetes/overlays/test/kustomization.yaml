@@ -4,6 +4,7 @@ namespace: clichy-test
 resources:
   - namespace.yaml
   - ../../base
+  - ../../citus
   - database
   - hpa.yaml
 configMapGenerator:

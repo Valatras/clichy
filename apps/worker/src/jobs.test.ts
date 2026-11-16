@@ -8,8 +8,8 @@ import {
 import { redisOptions } from "@clichy/jobs/redis";
 
 test("photo jobs use deterministic BullMQ-safe identifiers and bounded retry retention", () => {
-  const first = photoProcessingJobId("photo:with:reserved:characters");
-  assert.equal(first, photoProcessingJobId("photo:with:reserved:characters"));
+  const first = photoProcessingJobId("user-a", "photo:with:reserved:characters");
+  assert.equal(first, photoProcessingJobId("user-a", "photo:with:reserved:characters"));
   assert.ok(!first.includes(":"));
   assert.equal(PHOTO_JOB_OPTIONS.attempts, 4);
   assert.deepEqual(PHOTO_JOB_OPTIONS.backoff, {

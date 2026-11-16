@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clichy-citus
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: clichy-citus
+  template:
+    metadata:
+      labels:
+        app: clichy-citus
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: postgres
+          image: citusdata/citus:14.2.0
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: POSTGRES_DB
+              value: clichy_test
+            - name: PGDATA
+              value: /var/lib/postgresql/18/docker
+            - name: POSTGRES_USER
+              value: clichy
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: clichy-postgres-app
+                  key: password
+          ports:
+            - name: postgres
+              containerPort: 5432
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - clichy
+                - -d
+                - clichy_test
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - clichy
+                - -d
+                - clichy_test
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql
+            - name: init
+              mountPath: /docker-entrypoint-initdb.d/001-enable-citus.sh
+              subPath: init-citus.sh
+              readOnly: true
+            - name: init
+              mountPath: /opt/clichy
+              readOnly: true
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: clichy-citus-data
+        - name: init
+          configMap:
+            name: clichy-citus-init
+            defaultMode: 0555

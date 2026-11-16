@@ -17,7 +17,11 @@ esac
 
 NAMESPACE="clichy-${ENVIRONMENT}"
 DATABASE="clichy_${ENVIRONMENT}"
+DATABASE_HOST="clichy-postgres-rw"
 APP_SECRET_NAME="clichy-server-secrets"
+if [[ "$ENVIRONMENT" == "test" ]]; then
+  DATABASE_HOST="clichy-citus-rw"
+fi
 if [[ "$ENVIRONMENT" == "prod" ]]; then
   APP_SECRET_NAME="clichy-prod-secrets"
 fi
@@ -75,11 +79,12 @@ fi
 
 if [[ -f "$SECRET_FILE" ]]; then
   echo "Le fichier existant $SECRET_FILE sera conservé, avec son hôte DB et son utilisateur normalisés."
-  echo "L'hôte DB deviendra le Service CNPG -rw et l'utilisateur 'clichy'; mot de passe et base restent inchangés."
+  echo "L'hôte DB deviendra le Service $DATABASE_HOST et l'utilisateur 'clichy'; mot de passe et base restent inchangés."
   echo "Les valeurs normalisées seront appliquées aux Secrets Kubernetes de $NAMESPACE."
 else
   echo "Le script créera un fichier de secrets protégé dans $SECRET_DIR."
 fi
+echo "DATABASE_URL utilisera le Service $DATABASE_HOST dans $NAMESPACE."
 echo "Il créera ou mettra à jour les Secrets applicatifs/GHCR et PostgreSQL dans $NAMESPACE."
 if [[ "$ENVIRONMENT" == "prod" ]]; then
   echo "Il préparera les nouveaux PV CNPG sous /srv/clichy/k3s-storage/prod/postgres-cnpg-{1,2}, sans toucher à l'ancien PostgreSQL."
@@ -141,7 +146,7 @@ if [[ ! -f "$SECRET_FILE" ]]; then
   )"
   auth_secret="$(openssl rand -base64 32)"
   cat >"$SECRET_FILE" <<EOF
-DATABASE_URL=postgresql://clichy:${encoded_password}@clichy-postgres-rw:5432/${DATABASE}?schema=public
+DATABASE_URL=postgresql://clichy:${encoded_password}@${DATABASE_HOST}:5432/${DATABASE}?schema=public
 POSTGRES_DB=${DATABASE}
 POSTGRES_USER=clichy
 POSTGRES_PASSWORD=${postgres_password}
@@ -153,9 +158,10 @@ else
   chmod 600 "$SECRET_FILE"
 fi
 
-# Normalize legacy local secret files to the CNPG -rw Service and the database
-# owner declared in the Cluster. Keep the existing password and database name.
+# Normalize local secrets to the environment database Service and owner.
+# Keep the existing password and database name.
 EXPECTED_NAMESPACE="$NAMESPACE" EXPECTED_DATABASE_USER=clichy \
+  EXPECTED_DATABASE_HOST="$DATABASE_HOST" \
   python3 - "$SECRET_FILE" <<'PY'
 from pathlib import Path
 from urllib.parse import quote, unquote, urlsplit, urlunsplit
@@ -185,14 +191,18 @@ for line in lines:
         parsed = urlsplit(raw_url)
         if unquote(parsed.username or "") != configured_user:
             raise SystemExit("DATABASE_URL username does not match POSTGRES_USER.")
-        old_hosts = {"clichy-postgres",
-                     f"clichy-postgres.{os.environ['EXPECTED_NAMESPACE']}.svc.cluster.local"}
+        old_hosts = {
+            "clichy-postgres",
+            "clichy-postgres-rw",
+            "clichy-citus-rw",
+            f"clichy-postgres.{os.environ['EXPECTED_NAMESPACE']}.svc.cluster.local",
+            f"clichy-postgres-rw.{os.environ['EXPECTED_NAMESPACE']}.svc.cluster.local",
+            f"clichy-citus-rw.{os.environ['EXPECTED_NAMESPACE']}.svc.cluster.local",
+        }
         if parsed.hostname in old_hosts:
-            host = "clichy-postgres-rw"
-        elif parsed.hostname == "clichy-postgres-rw":
-            host = parsed.hostname
+            host = os.environ["EXPECTED_DATABASE_HOST"]
         else:
-            raise SystemExit("DATABASE_URL must target the Clichy CNPG -rw Service.")
+            raise SystemExit("DATABASE_URL must target a known Clichy database Service.")
         userinfo = quote(expected_user, safe="")
         if parsed.password is not None:
             userinfo += ":" + quote(unquote(parsed.password), safe="")
@@ -219,7 +229,7 @@ for key in DATABASE_URL POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD BETTER_AUTH_
   fi
 done
 
-if ! EXPECTED_DATABASE="$DATABASE" \
+if ! EXPECTED_DATABASE="$DATABASE" EXPECTED_DATABASE_HOST="$DATABASE_HOST" \
   python3 - "$SECRET_FILE" <<'PY'
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
@@ -238,7 +248,7 @@ try:
     database = unquote(url.path.lstrip("/"))
     valid = (
         url.scheme in {"postgres", "postgresql"}
-        and url.hostname == "clichy-postgres-rw"
+        and url.hostname == os.environ["EXPECTED_DATABASE_HOST"]
         and url.port == 5432
         and database == os.environ["EXPECTED_DATABASE"]
         and values["POSTGRES_DB"] == os.environ["EXPECTED_DATABASE"]
@@ -319,6 +329,11 @@ PY
 kubectl apply -k "$ROOT_DIR/infra/kubernetes/overlays/$ENVIRONMENT/database"
 kubectl wait --namespace="$NAMESPACE" --for=condition=Ready \
   cluster.postgresql.cnpg.io/clichy-postgres --timeout=900s
+if [[ "$ENVIRONMENT" == "test" ]]; then
+  kubectl apply -k "$ROOT_DIR/infra/kubernetes/citus"
+  kubectl rollout status deployment/clichy-citus \
+    --namespace="$NAMESPACE" --timeout=600s
+fi
 kubectl get clusters.postgresql.cnpg.io,pods,services,pvc \
   --namespace="$NAMESPACE" --output=wide
 echo "Namespace $NAMESPACE prêt. Fichier local : $SECRET_FILE"

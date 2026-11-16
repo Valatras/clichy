@@ -9,11 +9,14 @@ export const PHOTO_PROCESSING_JOB = "process-photo";
 export const DEFAULT_PHOTO_QUEUE_NAME = "photo-processing";
 
 export type PhotoProcessingJob = {
+  userId?: string;
   photoId: string;
 };
 
-export function photoProcessingJobId(photoId: string): string {
-  return `photo-${createHash("sha256").update(photoId).digest("hex")}`;
+export function photoProcessingJobId(userId: string, photoId: string): string {
+  return `photo-${createHash("sha256")
+    .update(JSON.stringify([userId, photoId]))
+    .digest("hex")}`;
 }
 
 export const PHOTO_JOB_OPTIONS: JobsOptions = {

@@ -223,9 +223,12 @@ test("photo and outbox rows are written through the same database transaction", 
       },
     },
     photoProcessingOutbox: {
-      create: async ({ data }: { data: { photoId: string } }) => {
+      create: async ({ data }: { data: { userId: string; photoId: string } }) => {
         calls.push("outbox");
-        assert.deepEqual(data, { photoId: "photo-transactional" });
+        assert.deepEqual(data, {
+          userId: "user-a",
+          photoId: "photo-transactional",
+        });
         return {};
       },
     },
