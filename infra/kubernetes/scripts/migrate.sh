@@ -5,7 +5,7 @@ ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../.." && pwd)"
 cd -- "$ROOT_DIR"
 
 usage() {
-  echo "Usage: $0 test|prod [deploy|status]" >&2
+  echo "Usage: $0 test|prod [deploy|status|resolve-citus-failure]" >&2
   exit 2
 }
 
@@ -48,9 +48,13 @@ case "$ENVIRONMENT" in
 esac
 
 case "$ACTION" in
-  deploy|status) ;;
+  deploy|status|resolve-citus-failure) ;;
   *) usage ;;
 esac
+
+if [[ "$ACTION" == "resolve-citus-failure" && "$ENVIRONMENT" != "test" ]]; then
+  die "resolve-citus-failure is restricted to the Test Citus database."
+fi
 
 unset DATABASE_URL
 
@@ -300,5 +304,11 @@ case "$ACTION" in
       echo "Prisma migrate status exited with status $status_code; pending migrations may cause a non-zero status." >&2
       exit "$status_code"
     fi
+    ;;
+  resolve-citus-failure)
+    echo "Marking the known failed Test Citus migration as rolled back so its idempotent SQL can be retried."
+    pnpm --filter @clichy/db exec prisma migrate resolve \
+      --rolled-back 20261116090000_citus_user_sharding ||
+      die "Could not resolve the failed Citus migration in Test."
     ;;
 esac

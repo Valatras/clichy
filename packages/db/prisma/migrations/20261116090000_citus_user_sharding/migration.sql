@@ -1,40 +1,41 @@
 -- Make each user's photo rows and outbox events colocatable by Citus.
--- Test and local/Dev use the full composite primary keys. Production keeps
--- its old single-column keys during the rolling-compatible transition; the
--- matching composite unique indexes support the new Prisma client meanwhile.
-
+-- The statements before the branch are repeatable because Prisma does not roll
+-- back a failed migration automatically.
 ALTER TABLE "PhotoProcessingOutbox"
-  ADD COLUMN "userId" TEXT;
+  ADD COLUMN IF NOT EXISTS "userId" TEXT;
 
 UPDATE "PhotoProcessingOutbox" AS outbox
 SET "userId" = photo."userId"
 FROM "Photo" AS photo
-WHERE photo."id" = outbox."photoId";
+WHERE photo."id" = outbox."photoId"
+  AND outbox."userId" IS NULL;
 
 -- Citus does not support a cross-shard cascading delete from its replicated
 -- identity table into distributed Photo rows. Restrict deletion instead.
 ALTER TABLE "Photo"
-  DROP CONSTRAINT "Photo_userId_fkey";
+  DROP CONSTRAINT IF EXISTS "Photo_userId_fkey";
 
 ALTER TABLE "Photo"
   ADD CONSTRAINT "Photo_userId_fkey"
   FOREIGN KEY ("userId") REFERENCES "user"("id")
   ON DELETE RESTRICT ON UPDATE CASCADE;
 
-CREATE INDEX "PhotoProcessingOutbox_userId_photoId_idx"
+CREATE INDEX IF NOT EXISTS "PhotoProcessingOutbox_userId_photoId_idx"
   ON "PhotoProcessingOutbox"("userId", "photoId");
 
 DO $$
 BEGIN
   IF current_database() = 'clichy_prod' THEN
-    -- Keep existing write paths valid while the old Production Pods are still
-    -- running: they do not send userId when inserting outbox rows.
-    CREATE UNIQUE INDEX "Photo_userId_id_key"
+    -- Keep old Production Pods writable: they insert outbox rows without userId.
+    CREATE UNIQUE INDEX IF NOT EXISTS "Photo_userId_id_key"
       ON "Photo"("userId", "id");
-    CREATE UNIQUE INDEX "Photo_userId_storageKey_key"
+    CREATE UNIQUE INDEX IF NOT EXISTS "Photo_userId_storageKey_key"
       ON "Photo"("userId", "storageKey");
-    CREATE UNIQUE INDEX "PhotoProcessingOutbox_userId_id_key"
+    CREATE UNIQUE INDEX IF NOT EXISTS "PhotoProcessingOutbox_userId_id_key"
       ON "PhotoProcessingOutbox"("userId", "id");
+
+    ALTER TABLE "PhotoProcessingOutbox"
+      DROP CONSTRAINT IF EXISTS "PhotoProcessingOutbox_userId_photoId_fkey";
     ALTER TABLE "PhotoProcessingOutbox"
       ADD CONSTRAINT "PhotoProcessingOutbox_userId_photoId_fkey"
       FOREIGN KEY ("userId", "photoId")
@@ -42,21 +43,26 @@ BEGIN
       ON DELETE CASCADE ON UPDATE CASCADE;
   ELSE
     ALTER TABLE "PhotoProcessingOutbox"
-      DROP CONSTRAINT "PhotoProcessingOutbox_photoId_fkey";
+      DROP CONSTRAINT IF EXISTS "PhotoProcessingOutbox_userId_photoId_fkey";
+    ALTER TABLE "PhotoProcessingOutbox"
+      DROP CONSTRAINT IF EXISTS "PhotoProcessingOutbox_photoId_fkey";
     ALTER TABLE "PhotoProcessingOutbox"
       ALTER COLUMN "userId" SET NOT NULL;
 
     ALTER TABLE "Photo"
-      DROP CONSTRAINT "Photo_pkey";
+      DROP CONSTRAINT IF EXISTS "Photo_pkey";
     ALTER TABLE "Photo"
       ADD CONSTRAINT "Photo_pkey" PRIMARY KEY ("userId", "id");
+
+    -- Prisma created this as a standalone unique index, not a table constraint.
     ALTER TABLE "Photo"
-      DROP CONSTRAINT "Photo_storageKey_key";
-    CREATE UNIQUE INDEX "Photo_userId_storageKey_key"
+      DROP CONSTRAINT IF EXISTS "Photo_storageKey_key";
+    DROP INDEX IF EXISTS "Photo_storageKey_key";
+    CREATE UNIQUE INDEX IF NOT EXISTS "Photo_userId_storageKey_key"
       ON "Photo"("userId", "storageKey");
 
     ALTER TABLE "PhotoProcessingOutbox"
-      DROP CONSTRAINT "PhotoProcessingOutbox_pkey";
+      DROP CONSTRAINT IF EXISTS "PhotoProcessingOutbox_pkey";
     ALTER TABLE "PhotoProcessingOutbox"
       ADD CONSTRAINT "PhotoProcessingOutbox_pkey" PRIMARY KEY ("userId", "id");
     ALTER TABLE "PhotoProcessingOutbox"
