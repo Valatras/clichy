@@ -1419,34 +1419,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../operations/demo/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Démo
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../operations/troubleshooting/" class="md-nav__link">
         
   
@@ -1974,7 +1946,7 @@
 <h2 id="workload-behavior">Workload behavior<a class="headerlink" href="#workload-behavior" title="Permanent link">&para;</a></h2>
 <ul>
 <li>API and web use readiness/liveness HTTP checks on <code>/</code>; worker has <code>/ready</code> and <code>/live</code> probes on port 3001.</li>
-<li>CNPG runs two PostgreSQL 18.6 instances per namespace and provisions a separate 2 GiB PVC per instance. Prisma and application workloads use <code>clichy-postgres-rw</code>.</li>
+<li>CNPG runs two PostgreSQL 18.6 instances per namespace and provisions a separate 2 GiB PVC per instance. Dev and Production applications use <code>clichy-postgres-rw</code>. Test also runs a single-node Citus database with its own PVC; the Test application uses <code>clichy-citus-rw</code> for user-sharded photo tables while CNPG remains available for replication exercises.</li>
 <li>Redis uses a one-replica Deployment, AOF, <code>noeviction</code>, 256 MiB maxmemory, probes, and a PVC.</li>
 <li>API, worker, web and database have CPU/memory requests and limits in base manifests.</li>
 <li>Test adds CPU HPA for API and web (1–4 replicas, 70% utilization target). Dev and Production specify one replica for web/server/worker. Production does not include this HPA.</li>

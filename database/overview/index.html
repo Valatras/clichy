@@ -1360,34 +1360,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../operations/demo/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Démo
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../operations/troubleshooting/" class="md-nav__link">
         
   
@@ -1881,11 +1853,11 @@
 
 
 <h1 id="postgresql-and-prisma">PostgreSQL and Prisma<a class="headerlink" href="#postgresql-and-prisma" title="Permanent link">&para;</a></h1>
-<p>The Kubernetes deployment uses CloudNativePG (CNPG) 1.30.1 with PostgreSQL 18.6. Each <code>clichy-dev</code>, <code>clichy-test</code>, and <code>clichy-prod</code> namespace defines its own two-instance CNPG Cluster: one primary and one physical streaming standby. The application and Prisma use CNPG's <code>clichy-postgres-rw</code> Service, which selects the current primary. There is no read/write splitting. The PostgreSQL clusters bootstrap as empty databases; the prototype's previous database contents are intentionally not imported. Production was observed Ready with two instances and application database connectivity restored. Legacy StatefulSet/PV resources are retained until their cleanup is deliberately reviewed.</p>
+<p>CNPG 1.30.1 with PostgreSQL 18.6 provides two-instance clusters in Dev, Test, and Production for physical replication exercises. Dev and Production applications use CNPG's <code>clichy-postgres-rw</code> Service. Test additionally runs a separate single-node Citus 14.2/PostgreSQL 18 database, and the Test application uses <code>clichy-citus-rw</code> for its logically sharded photo tables. The Test CNPG cluster remains available for replication demonstrations. See <a href="../sharding/">Citus sharding</a> for scope and limitations.</p>
 <p>Production's operator and two-instance Cluster are deployed on <code>valtask</code>. The evidence currently recorded confirms Cluster readiness and database connectivity, but does not yet include a live WAL sender/receiver query or a failover exercise. Check those using the <a href="../replication/">Replication runbook</a>. Dev/Test live status should be verified separately. Both instances use separate PVCs but remain on the same physical node. This provides practice with PostgreSQL replication and Pod/storage recovery, not protection against loss of <code>valtask</code>.</p>
 <p>CNPG 1.30.1 supports Kubernetes 1.34–1.36; Kubernetes 1.37 has been tested by the release but is not listed as officially supported. The repository's K3s installer targets 1.37, and K3s itself is not a Kubernetes distribution covered by CNPG's vanilla-Kubernetes support policy. The pinned installer requires an explicit opt-in for a 1.37 server. See the <a href="https://cloudnative-pg.io/docs/1.30/supported_releases/">official support matrix</a>.</p>
-<p>Prisma 7 schema is split across <code>packages/db/prisma/schema/auth.prisma</code> and <code>photo.prisma</code>. <code>prisma.config.ts</code> points at the migration directory and reads <code>DATABASE_URL</code>; client generation outputs under <code>packages/db/prisma/generated</code>. <code>createPrismaClient</code> in <code>packages/db/src/index.ts</code> uses the PostgreSQL adapter.</p>
-<p>The schema contains Better Auth user/session/account/verification tables, Photo metadata and processing state, and PhotoProcessingOutbox. Photo indexes include user ownership, per-user SHA and perceptual hashes, processing state/start time, and deletion marker. Originals and derivatives are files on a PVC; the database stores storage keys and metadata, not photo bytes.</p>
+<p>Prisma 7 schema is split across <code>packages/db/prisma/schema/auth.prisma</code> and <code>photo.prisma</code>. <code>prisma.config.ts</code> points at the migration directory and reads <code>DATABASE_URL</code>; client generation outputs under <code>packages/db/prisma/generated</code>. <code>createPrismaClient</code> in <code>packages/db/src/index.ts</code> uses the PostgreSQL adapter against CNPG or Citus.</p>
+<p>The schema contains Better Auth user/session/account/verification tables, Photo metadata and processing state, and PhotoProcessingOutbox. Photo and outbox keys include <code>userId</code> so Citus can colocate each user's rows. Photo indexes include user ownership, per-user SHA and perceptual hashes, processing state/start time, and deletion marker. Originals and derivatives are files on a PVC; the database stores storage keys and metadata, not photo bytes.</p>
 <p>Migrations are committed under <code>packages/db/prisma/migrations</code>. See <a href="../migrations/">migration workflow</a>, <a href="../replication/">replication status</a>, <a href="../sharding/">sharding status</a>, and <a href="../backup-restore/">backup gaps</a>.</p>
 
 

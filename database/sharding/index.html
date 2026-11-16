@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#database-sharding-status" class="md-skip">
+        <a href="#citus-sharding" class="md-skip">
           Skip to content
         </a>
       
@@ -1267,10 +1267,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#current-state" class="md-nav__link">
+  <a href="#scope" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Current state
+        Scope
       
     </span>
   </a>
@@ -1278,10 +1278,43 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#future-work" class="md-nav__link">
+  <a href="#data-model" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Future work
+        Data model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#verify-on-valtask" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verify on valtask
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#limits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limits
       
     </span>
   </a>
@@ -1399,34 +1432,6 @@
     
   
     Deployment runbook
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../operations/demo/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Démo
   
 
     
@@ -1928,10 +1933,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#current-state" class="md-nav__link">
+  <a href="#scope" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Current state
+        Scope
       
     </span>
   </a>
@@ -1939,10 +1944,43 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#future-work" class="md-nav__link">
+  <a href="#data-model" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Future work
+        Data model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#verify-on-valtask" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verify on valtask
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#limits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limits
       
     </span>
   </a>
@@ -1969,12 +2007,46 @@
   
 
 
-<h1 id="database-sharding-status">Database sharding status<a class="headerlink" href="#database-sharding-status" title="Permanent link">&para;</a></h1>
-<h2 id="current-state">Current state<a class="headerlink" href="#current-state" title="Permanent link">&para;</a></h2>
-<p>Sharding is <strong>not implemented</strong>. Current code connects one Prisma client to one PostgreSQL database. Schema keys and queries are not documented as shard-aware; no routing layer, shard key, distributed transaction behavior, or Citus extension is configured in current manifests.</p>
-<p>Git history/context notes that Citus was explored experimentally and was not retained as a validated architecture. The current repo does not establish a working Citus deployment or operational sharding path. Do not treat that experiment as a feature.</p>
-<h2 id="future-work">Future work<a class="headerlink" href="#future-work" title="Permanent link">&para;</a></h2>
-<p>Before sharding, measure whether a single PostgreSQL instance is the limiting factor. A design would need a shard key (likely user ownership, but this is only a candidate), cross-shard query semantics, rebalancing, migrations, backup/restore, and operational observability. Replication and sharding solve different problems and neither is supplied by multiple Kubernetes Pods.</p>
+<h1 id="citus-sharding">Citus sharding<a class="headerlink" href="#citus-sharding" title="Permanent link">&para;</a></h1>
+<h2 id="scope">Scope<a class="headerlink" href="#scope" title="Permanent link">&para;</a></h2>
+<p>Test uses a separate Citus 14.2 / PostgreSQL 18 database. The existing two-instance CNPG cluster remains deployed for the replication exercises; the Test application connects to <code>clichy-citus-rw</code>. Dev and Production continue to use CNPG directly.</p>
+<p>This is a deliberately small <strong>single-node Citus</strong> setup. Citus divides photo metadata and processing-outbox rows into 32 logical shards by <code>userId</code>; rows for the same user are colocated. The Citus coordinator and all shards currently live in one PostgreSQL Pod on <code>valtask</code>. This demonstrates database-level logical sharding and Citus query routing, but it does not yet distribute data or failure domains across multiple database hosts.</p>
+<h2 id="data-model">Data model<a class="headerlink" href="#data-model" title="Permanent link">&para;</a></h2>
+<p><code>Photo</code> uses the compound primary key <code>(userId, id)</code>. <code>PhotoProcessingOutbox</code> carries <code>userId</code> and uses <code>(userId, id)</code> as its key, with a compound foreign key to its photo. Its Citus shard key is also <code>userId</code>, so a user's photo and outbox event are colocated. The small <code>user</code> identity table is a Citus reference table, replicated by Citus for foreign-key checks. The application includes <code>userId</code> in worker jobs and uses compound Prisma lookups so point reads/writes identify the shard.</p>
+<p>The Prisma migration changes keys but does not call Citus-only functions. Test, Dev, and local PostgreSQL use the compound primary keys. Production temporarily retains its existing single-column primary keys plus composite unique indexes, so the old application can keep writing during the migration-before-rollout window. Its outbox <code>userId</code> column remains nullable for that same transition; the new dispatcher repairs events created by the old version. Test-only distribution registration runs after Prisma migrations through <code>infra/kubernetes/citus/enable-user-sharding.sql</code>.</p>
+<h2 id="lifecycle">Lifecycle<a class="headerlink" href="#lifecycle" title="Permanent link">&para;</a></h2>
+<p><code>prepare-namespace.sh test</code> creates the Test Citus Secret credentials and applies the Citus Deployment/PVC. <code>deploy.sh test &lt;sha&gt;</code> waits for both CNPG and Citus, applies Prisma migrations through <code>clichy-citus-rw</code>, registers the tables with Citus, then deploys the app. The Test application Secret uses the <code>clichy-citus-rw</code> host. Production migrations continue through CNPG <code>clichy-postgres-rw</code>.</p>
+<p>The existing Test CNPG database is retained and is not automatically copied or deleted by the Citus setup. A fresh Citus database has no existing users/photos until data is deliberately migrated or recreated. Do not remove the old CNPG cluster or its PVCs as part of this change.</p>
+<h2 id="verify-on-valtask">Verify on valtask<a class="headerlink" href="#verify-on-valtask" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>deployment,pods,pvc,service<span class="w"> </span>-n<span class="w"> </span>clichy-test<span class="w"> </span>-l<span class="w"> </span><span class="nv">app</span><span class="o">=</span>clichy-citus<span class="w"> </span>-o<span class="w"> </span>wide
+kubectl<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-n<span class="w"> </span>clichy-test<span class="w"> </span>deployment/clichy-citus<span class="w"> </span>--<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>psql<span class="w"> </span>-U<span class="w"> </span>clichy<span class="w"> </span>-d<span class="w"> </span>clichy_test<span class="w"> </span>-c<span class="w"> </span><span class="s1">'SELECT citus_version();'</span>
+kubectl<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-n<span class="w"> </span>clichy-test<span class="w"> </span>deployment/clichy-citus<span class="w"> </span>--<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>psql<span class="w"> </span>-U<span class="w"> </span>clichy<span class="w"> </span>-d<span class="w"> </span>clichy_test<span class="w"> </span>-c<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="s2">"SELECT logicalrelid::regclass AS table_name, partmethod, partkey \</span>
+<span class="s2">   FROM pg_dist_partition ORDER BY 1;"</span>
+kubectl<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-n<span class="w"> </span>clichy-test<span class="w"> </span>deployment/clichy-citus<span class="w"> </span>--<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>psql<span class="w"> </span>-U<span class="w"> </span>clichy<span class="w"> </span>-d<span class="w"> </span>clichy_test<span class="w"> </span>-c<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="s2">"SELECT p.logicalrelid::regclass AS table_name, p.partkey, \</span>
+<span class="s2">          count(s.shardid) AS shard_count \</span>
+<span class="s2">   FROM pg_dist_partition p \</span>
+<span class="s2">   JOIN pg_dist_shard s USING (logicalrelid) \</span>
+<span class="s2">   GROUP BY p.logicalrelid, p.partkey \</span>
+<span class="s2">   ORDER BY p.logicalrelid::regclass::text;"</span>
+kubectl<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-n<span class="w"> </span>clichy-test<span class="w"> </span>deployment/clichy-citus<span class="w"> </span>--<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>psql<span class="w"> </span>-U<span class="w"> </span>clichy<span class="w"> </span>-d<span class="w"> </span>clichy_test<span class="w"> </span>-c<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="s2">"EXPLAIN SELECT id FROM \"Photo\" \</span>
+<span class="s2">   WHERE \"userId\" = 'demo-user' AND id = 'demo-photo';"</span>
+</code></pre></div>
+<p>To observe routing, issue a Test application photo lookup scoped by both <code>userId</code> and <code>id</code>, then inspect <code>EXPLAIN</code> for that query through the coordinator. A multi-worker Citus topology is a separate follow-up: it needs PostgreSQL/Citus workers, node registration and worker failure handling. Do not add that complexity until the single-node route is validated.</p>
+<h2 id="limits">Limits<a class="headerlink" href="#limits" title="Permanent link">&para;</a></h2>
+<ul>
+<li>A single Citus Pod is a single point of failure and does not inherit CNPG failover. Its PVC provides persistence, not high availability.</li>
+<li>All Citus shards currently share the same CPU, memory, storage and host. This is a functional sharding baseline, not a capacity/scaling benchmark.</li>
+<li>Global queries such as dispatcher batches can touch multiple shards. User-scoped photo queries and worker jobs carry the shard key.</li>
+<li>Photo bytes remain on the existing shared photos PVC; this change shards database rows, not image files.</li>
+<li>Citus requires the shard key in unique constraints and colocated foreign keys. Keep Prisma migrations and Citus registration SQL aligned when changing these models.</li>
+</ul>
 
 
 

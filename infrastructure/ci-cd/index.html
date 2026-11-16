@@ -1419,34 +1419,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../operations/demo/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Démo
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../operations/troubleshooting/" class="md-nav__link">
         
   
@@ -1979,7 +1951,8 @@
   GHCR --&gt; Test[Self-hosted runner: verify SHA + single valtask node]
   Test --&gt; TestMigrate[Prisma migrate deploy to Test]
   TestMigrate --&gt; TestApply[Apply Test manifests and await rollouts]
-  TestApply --&gt; ProdGate[GitHub production Environment]
+  TestApply --&gt; ProdDispatch{Manual workflow dispatch with deploy_prod=true?}
+  ProdDispatch --&gt;|yes| ProdGate[GitHub production Environment]
   ProdGate --&gt; ProdMigrate[Prisma migrate deploy to Production]
   ProdMigrate --&gt; ProdApply[Apply Production manifests and await rollouts]</code></pre>
 <h2 id="sequence-and-gates">Sequence and gates<a class="headerlink" href="#sequence-and-gates" title="Permanent link">&para;</a></h2>
@@ -1987,12 +1960,12 @@
 <li>CI uses GitHub-hosted Ubuntu, pnpm action, Node 24 and frozen lockfile. It runs <code>pnpm check-types</code>, server tests, worker tests, and <code>pnpm build</code>.</li>
 <li>Packaging builds three Docker images from root context and service Dockerfiles. Only push-to-master logs into GHCR and pushes tags <code>ghcr.io/valatras/clichy-{server,web,worker}:sha-${GITHUB_SHA}</code>. Pull requests build without publishing.</li>
 <li>Test deploy runs on a self-hosted Linux runner. It requires checked-out SHA to equal workflow SHA and exactly one cluster node named <code>valtask</code>. It applies monitoring manifests, runs <code>deploy.sh test sha-...</code>, and reports resources even on failure.</li>
-<li>Production depends on CI, package, and Test deploy; uses GitHub Environment <code>production</code>, then runs the same exact-SHA checks and deploy script for <code>prod</code>.</li>
+<li>Pushes deploy Test only. Production requires manually dispatching the workflow on <code>master</code> with <code>deploy_prod=true</code>; that run rebuilds, redeploys Test, then uses GitHub Environment <code>production</code> and the same exact-SHA checks before deploying <code>prod</code>.</li>
 <li><code>deploy.sh</code> invokes migration first. If migration fails, application manifests are not applied. On success it renders the overlay with the SHA, applies it, then waits up to five minutes for server, web, and worker rollouts.</li>
 </ol>
-<p>GitHub Environment review/approval is not configured in the YAML; it may be configured in repository settings. There is no separate human validation job, explicit Test smoke-test step, or automatic rollback job. A failing rollout stops the job, but rollback is an operator action. No zero-downtime demonstration is included.</p>
+<p>GitHub Environment review/approval is not configured in the YAML; it may be configured in repository settings. Production's manual dispatch gate prevents a Test push from automatically changing Prod. There is no separate Test smoke-test step or automatic rollback job. A failing rollout stops the job, but rollback is an operator action. No zero-downtime demonstration is included.</p>
 <h2 id="migration-workflow-detail">Migration workflow detail<a class="headerlink" href="#migration-workflow-detail" title="Permanent link">&para;</a></h2>
-<p><code>deploy.sh</code> first waits for the environment's CNPG Cluster to report Ready. <code>migrate.sh</code> verifies a clean checked-out migration/deployment source, verifies node <code>valtask</code>, reads the environment Secret's DATABASE_URL without printing it, port-forwards the CNPG <code>clichy-postgres-rw</code> Service to a loopback ephemeral port, performs a PostgreSQL protocol <code>SELECT 1</code>, then invokes <code>prisma migrate deploy</code> (or <code>prisma migrate status</code>). For this loopback-only port-forward it sets <code>sslmode=disable</code> so Prisma and the node-postgres readiness probe use the same protocol; the application Secret and in-cluster application URL are unchanged. It unsets credentials and cleans up the port-forward. It runs before new app manifests, so migrations must be compatible with currently running code during that interval.</p>
+<p><code>deploy.sh</code> waits for the environment CNPG Cluster. For Test, it also applies and waits for the standalone Citus Deployment. <code>migrate.sh</code> verifies a clean checked-out source, verifies node <code>valtask</code>, reads the environment Secret's DATABASE_URL without printing it, port-forwards the environment's database Service to an ephemeral loopback port, performs a PostgreSQL protocol <code>SELECT 1</code>, then invokes <code>prisma migrate deploy</code> (or <code>prisma migrate status</code>). Test migrations additionally register the photo and outbox tables as Citus-distributed; Dev and Production use CNPG. For the loopback-only port-forward it sets <code>sslmode=disable</code> so Prisma and the node-postgres probe use the same protocol. It unsets credentials and cleans up the port-forward. Migrations run before new app manifests, so they must remain compatible with currently running code during that interval.</p>
 
 
 

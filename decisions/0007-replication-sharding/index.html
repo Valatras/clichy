@@ -1348,34 +1348,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../operations/demo/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Démo
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../operations/troubleshooting/" class="md-nav__link">
         
   
@@ -2014,15 +1986,15 @@
 
 
 <h1 id="adr-0007-postgresql-replication-and-sharding-scope">ADR 0007: PostgreSQL replication and sharding scope<a class="headerlink" href="#adr-0007-postgresql-replication-and-sharding-scope" title="Permanent link">&para;</a></h1>
-<p><strong>Status:</strong> Replication selected and configured with CNPG; sharding remains unimplemented.</p>
+<p><strong>Status:</strong> CNPG replication retained in all environments; single-node Citus selected for Test sharding. Multi-node Citus remains deferred.</p>
 <h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
 <p>Assignment asks for replication and sharding. The previous configuration used a single PostgreSQL StatefulSet. The educational prototype remains on one physical K3s node and does not need node-level HA.</p>
 <h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
-<p>Use CloudNativePG to manage two PostgreSQL instances per environment with asynchronous physical streaming, separate PVCs, automatic Pod recovery/promotion, and the <code>-rw</code> Service for application connections. This is intended to demonstrate PostgreSQL replication mechanics, not protect against physical host failure. Do not implement sharding as part of the replication work; it remains an assignment requirement and needs a separate design decision. Do not scale database Pods directly.</p>
+<p>Use CloudNativePG to manage two PostgreSQL instances per environment with asynchronous physical streaming, separate PVCs, automatic Pod recovery/promotion, and the <code>-rw</code> Service for application connections. Test additionally uses Citus with <code>userId</code> as the distribution key for photo metadata and processing-outbox rows. Dev and Production remain plain CNPG PostgreSQL. Keep replication and sharding as separate concerns. Do not scale database Pods directly.</p>
 <h2 id="alternatives-considered">Alternatives considered<a class="headerlink" href="#alternatives-considered" title="Permanent link">&para;</a></h2>
-<p>A PostgreSQL operator is selected over custom StatefulSet replication. Citus remains excluded. Synchronous replication is not selected because the prototype does not require zero data loss and asynchronous streaming avoids making writes wait on the standby.</p>
+<p>A PostgreSQL operator is selected for physical replication. Multi-node Citus was deferred because it introduces worker membership and failure management. A single-node Citus instance in Test provides 32 logical shards and a low-complexity path to validate Citus routing. Synchronous replication is not selected because the prototype does not require zero data loss and asynchronous streaming avoids making writes wait on the standby.</p>
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
-<p>CNPG is deployed in Production and the Cluster was observed healthy with two instances; a direct WAL streaming query and failover exercise are not yet evidenced. Both instances share the same node, asynchronous replication may lose recent unreplicated writes, and replication is not a backup. Sharding remains absent.</p>
+<p>CNPG remains responsible for the replication exercise. Test Citus has one database Pod and no high availability; the CNPG Test cluster remains deployed separately. The 32 logical shards share one PostgreSQL process and host, so this is not multi-node capacity scaling or failure isolation. The data model uses compound keys containing <code>userId</code>, and outbox jobs carry that key so queries can be routed. Citus and Prisma migrations must stay aligned.</p>
 
 
 
