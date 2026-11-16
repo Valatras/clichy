@@ -1408,6 +1408,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../operations/demo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Démo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../operations/troubleshooting/" class="md-nav__link">
         
   
@@ -1941,9 +1969,11 @@
   W-&gt;&gt;FS: Read original; write derivatives
   W-&gt;&gt;DB: Store EXIF, dimensions, hashes, COMPLETED</code></pre>
 <p>The outbox reduces the chance that a database photo row is committed while its queue event is lost. Dispatcher logic is in <code>apps/server/src/queues/outbox-dispatcher.ts</code>; upload transaction is wired in <code>apps/server/src/routes/photos.ts</code>. A stable SHA-256-derived job ID makes repeated publication idempotent at the queue identity level.</p>
+<p>The original file is written before the database transaction. If the API process stops after the filesystem write but before the transaction commits, there is no photo row or outbox event to recover, and the repository has no orphan-file sweeper. When database registration returns an error, the route attempts to delete the original and logs cleanup failures, but that cleanup is best-effort.</p>
 <p>BullMQ defaults: four attempts, exponential backoff starting at 2 seconds, completed job retention up to one day/1000 jobs, failed up to seven days/5000 jobs. These can be set using <code>PHOTO_JOB_ATTEMPTS</code>, <code>PHOTO_JOB_BACKOFF_MS</code>; queue name defaults to <code>photo-processing</code>. Worker concurrency supports 1 or 2 in code; current overlays set 1.</p>
-<p>Worker marks invalid images or missing originals as terminal failures, and transient errors return the photo to pending for retry. The server dispatcher retries failed outbox publication; it runs every two seconds, recovers processing records older than 15 minutes and pending records older than 10 minutes, and removes published outbox rows after seven days. Redis uses AOF and a PVC in Kubernetes; it is still a single Redis instance without replication. No independent outbox process or Redis failover is configured.</p>
-<p>The worker exposes HTTP health on port 3001 (<code>/ready</code> returns readiness), but the inspected Deployment does not configure worker probes. Tests cover job behavior and outbox dispatch/recovery; live failure injection was not performed.</p>
+<p>Worker marks invalid images or missing originals as terminal failures, and transient errors return the photo to pending for retry. The server dispatcher retries failed outbox publication; it runs every two seconds, recovers processing records older than 15 minutes and pending records older than 10 minutes, and removes published outbox rows after seven days. If the worker is killed abruptly, the photo stays <code>PROCESSING</code> until stale-processing recovery runs; allow at least 15 minutes before expecting the outbox to republish it. A normal SIGTERM instead lets BullMQ close gracefully and finish its active job within Kubernetes' 120-second termination grace period.</p>
+<p>The worker exposes HTTP health on port 3001. The Deployment configures a liveness probe on <code>/live</code> and a readiness probe on <code>/ready</code>; readiness also requires the Redis connection to be ready. After BullMQ exhausts its retries, or finds an invalid image or missing original, the photo remains <code>FAILED</code>; there is no per-photo retry action in the UI. The operator can run the backfill script to reschedule incomplete photos, but it scans the whole library.</p>
+<p>Tests cover derivative creation, permanent and transient failures, a duplicate delivery losing the database claim, outbox publication failure, the enqueue/ack crash window, and stale-processing recovery. Live worker interruption and recovery still need to be demonstrated in Test.</p>
 
 
 

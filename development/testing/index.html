@@ -1360,6 +1360,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../operations/demo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Démo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../operations/troubleshooting/" class="md-nav__link">
         
   
@@ -1860,7 +1888,7 @@ pnpm<span class="w"> </span>--filter<span class="w"> </span>worker<span class="w
 pnpm<span class="w"> </span>build
 </code></pre></div>
 <p>CI uses the same commands after <code>pnpm install --frozen-lockfile</code>, with Node 24. Type checking receives a placeholder <code>DATABASE_URL</code> and web server URL; tests/build may depend on package environment configuration. The workflow does not run a dedicated lint task despite a root Turbo <code>lint</code> task definition.</p>
-<p>For focused debugging, execute the package script or the test file via its package runner, for example <code>pnpm --filter server exec tsx --test src/image-processing.test.ts</code>. No test command has been run during this documentation edit; see the validation report for documentation build status.</p>
+<p>For focused debugging, execute a package test file, for example <code>pnpm --filter server exec tsx --test src/image-processing.test.ts</code>. The server and worker test suites and type checks are run as part of the local validation for changes to the asynchronous photo pipeline.</p>
 
 
 
