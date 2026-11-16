@@ -23,7 +23,7 @@ const fastify = Fastify({
   logger: true,
 });
 
-registerServerMetrics(fastify);
+registerServerMetrics(fastify, db);
 
 fastify.register(fastifyMultipart, {
   limits: {

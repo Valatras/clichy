@@ -943,11 +943,14 @@ ne pas supprimer en masse les ReplicaSets à zéro réplique.
 
 ## Monitoring et administration
 
-Prometheus scrape les métriques cluster et le Server Clichy via le
-`ServiceMonitor` `clichy-server` (namespaces Dev/Test, chemin interne
-`/metrics`). Le ConfigMap dashboard est découvert par le sidecar Grafana ; les
+Prometheus scrape les métriques cluster, le Server Clichy via le
+`ServiceMonitor` `clichy-server`, les workers via le `PodMonitor`
+`clichy-worker` et CNPG via `clichy-postgres`, dans Dev/Test/Prod. Les services
+API et worker exposent `/metrics`; leurs séries couvrent l'HTTP, l'outbox et la
+file BullMQ. Le ConfigMap dashboard est découvert par le sidecar Grafana ; les
 alertes Clichy sont des `PrometheusRule`. L'Ingress Grafana utilise le port
-3000 sur Tailscale.
+3000 sur Tailscale. Vérifier l'état des cibles Prometheus après le déploiement;
+la présence des manifests seuls ne prouve pas que les séries sont collectées.
 
 Le premier mot de passe Grafana est local :
 

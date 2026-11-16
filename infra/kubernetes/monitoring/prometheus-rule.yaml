@@ -138,3 +138,35 @@ spec:
           annotations:
             summary: Clichy HPA has reached its replica ceiling
             description: "HPA {{ $labels.horizontalpodautoscaler }} in clichy-test has remained at its maximum replica count for 10 minutes."
+        - alert: ClichyPhotoQueueBacklogHigh
+          expr: sum by (namespace) (clichy_photo_queue_jobs{state="waiting",namespace=~"clichy-(dev|test|prod)"}) > 100
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Clichy photo queue has a sustained backlog
+            description: "The photo queue in {{ $labels.namespace }} has {{ $value }} waiting jobs for at least 10 minutes."
+        - alert: ClichyPhotoOutboxBacklogHigh
+          expr: clichy_photo_outbox_unpublished_events{namespace=~"clichy-(dev|test|prod)"} > 100
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Clichy photo outbox has a sustained backlog
+            description: "The database outbox in {{ $labels.namespace }} has {{ $value }} unpublished events for at least 10 minutes."
+        - alert: ClichyWorkerMetricsUnavailable
+          expr: up{namespace=~"clichy-(dev|test|prod)",pod=~"clichy-worker-.*"} == 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Clichy worker metrics scrape is failing
+            description: "Prometheus cannot scrape worker metrics from {{ $labels.namespace }}/{{ $labels.pod }}."
+        - alert: ClichyOutboxMetricsUnavailable
+          expr: clichy_photo_outbox_metrics_available{namespace=~"clichy-(dev|test|prod)"} == 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Clichy cannot query outbox health
+            description: "The API in {{ $labels.namespace }} cannot currently read outbox counts from PostgreSQL."

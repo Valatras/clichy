@@ -1,0 +1,20 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: clichy-worker
+  labels:
+    release: prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames:
+      - clichy-dev
+      - clichy-test
+      - clichy-prod
+  selector:
+    matchLabels:
+      app: clichy-worker
+  podMetricsEndpoints:
+    - port: health
+      path: /metrics
+      interval: 15s
+      scrapeTimeout: 5s

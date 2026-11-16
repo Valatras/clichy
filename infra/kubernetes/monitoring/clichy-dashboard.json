@@ -649,6 +649,186 @@
       ],
       "title": "PostgreSQL WAL Receiver Up",
       "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 63
+      },
+      "id": 19,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "expr": "clichy_photo_queue_jobs{namespace=~\"$namespace\"}",
+          "legendFormat": "{{namespace}} {{state}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Photo Queue Jobs by State",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 63
+      },
+      "id": 20,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (namespace) (rate(clichy_photo_worker_jobs_completed_total{namespace=~\"$namespace\"}[5m]))",
+          "legendFormat": "{{namespace}} completed/sec",
+          "refId": "A"
+        },
+        {
+          "expr": "sum by (namespace) (rate(clichy_photo_worker_job_failures_total{namespace=~\"$namespace\"}[5m]))",
+          "legendFormat": "{{namespace}} failed attempts/sec",
+          "refId": "B"
+        }
+      ],
+      "title": "Photo Worker Job Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 70
+      },
+      "id": 21,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (namespace, le) (rate(clichy_photo_worker_job_duration_seconds_bucket{namespace=~\"$namespace\"}[5m])))",
+          "legendFormat": "{{namespace}} p95",
+          "refId": "A"
+        }
+      ],
+      "title": "Photo Worker Job Duration (p95)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 70
+      },
+      "id": 22,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "expr": "clichy_photo_queue_metrics_available{namespace=~\"$namespace\"}",
+          "legendFormat": "{{namespace}} metrics available",
+          "refId": "A"
+        }
+      ],
+      "title": "Photo Queue Metrics Scrape Health",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 77
+      },
+      "id": 23,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "expr": "clichy_photo_outbox_unpublished_events{namespace=~\"$namespace\"}",
+          "legendFormat": "{{namespace}} unpublished",
+          "refId": "A"
+        },
+        {
+          "expr": "clichy_photo_outbox_metrics_available{namespace=~\"$namespace\"}",
+          "legendFormat": "{{namespace}} DB query available",
+          "refId": "B"
+        }
+      ],
+      "title": "Photo Outbox Backlog",
+      "type": "timeseries"
     }
   ],
   "refresh": "30s",

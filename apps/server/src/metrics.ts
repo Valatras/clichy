@@ -5,8 +5,14 @@ import {
   Registry,
 } from "@prometheus-io/client";
 import type { FastifyInstance } from "fastify";
+import type { Database } from "@clichy/db";
 
-export function registerServerMetrics(fastify: FastifyInstance): void {
+type OutboxMetricsDatabase = Pick<Database, "photoProcessingOutbox">;
+
+export function registerServerMetrics(
+  fastify: FastifyInstance,
+  db?: OutboxMetricsDatabase,
+): void {
   const registry = new Registry();
   const requests = new Counter({
     name: "clichy_http_requests_total",
@@ -26,6 +32,41 @@ export function registerServerMetrics(fastify: FastifyInstance): void {
     help: "Number of HTTP requests currently being handled.",
     registers: [registry],
   });
+  let stopOutboxMetrics: (() => void) | undefined;
+  if (db) {
+    const unpublishedOutboxEvents = new Gauge({
+      name: "clichy_photo_outbox_unpublished_events",
+      help: "Number of photo processing outbox events not yet published to BullMQ.",
+      registers: [registry],
+    });
+    const outboxMetricsAvailable = new Gauge({
+      name: "clichy_photo_outbox_metrics_available",
+      help: "Whether the API can currently query photo outbox metrics from PostgreSQL.",
+      registers: [registry],
+    });
+    outboxMetricsAvailable.set(0);
+    let stopped = false;
+    const refreshOutboxMetrics = async () => {
+      if (stopped) return;
+      try {
+        const count = await db.photoProcessingOutbox.count({
+          where: { publishedAt: null },
+        });
+        unpublishedOutboxEvents.set(count);
+        outboxMetricsAvailable.set(1);
+      } catch (error) {
+        outboxMetricsAvailable.set(0);
+        fastify.log.error({ err: error }, "Unable to refresh photo outbox metrics");
+      }
+    };
+    void refreshOutboxMetrics();
+    const timer = setInterval(() => void refreshOutboxMetrics(), 15_000);
+    timer.unref();
+    stopOutboxMetrics = () => {
+      stopped = true;
+      clearInterval(timer);
+    };
+  }
   const requestStartTimes = new WeakMap<object, bigint>();
 
   fastify.addHook("onRequest", async (request) => {
@@ -63,4 +104,8 @@ export function registerServerMetrics(fastify: FastifyInstance): void {
   fastify.get("/metrics", async (_request, reply) =>
     reply.type(registry.contentType).send(await registry.metrics()),
   );
+
+  if (stopOutboxMetrics) {
+    fastify.addHook("onClose", async () => stopOutboxMetrics?.());
+  }
 }

@@ -373,6 +373,9 @@ importers:
       '@clichy/jobs':
         specifier: workspace:*
         version: link:../../packages/jobs
+      '@prometheus-io/client':
+        specifier: ^0.16.1
+        version: 0.16.1
       bullmq:
         specifier: ^5.56.5
         version: 5.81.5
