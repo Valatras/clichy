@@ -49,6 +49,9 @@ jobs:
       - name: Run worker tests
         run: pnpm --filter worker test
 
+      - name: Check Citus sharding registration guards
+        run: node --test infra/kubernetes/citus/enable-user-sharding.test.mjs
+
       - name: Build applications
         run: pnpm build
         env:

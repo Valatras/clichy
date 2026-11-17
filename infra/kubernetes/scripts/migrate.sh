@@ -287,12 +287,12 @@ case "$ACTION" in
       die "Prisma migrate deploy failed for $ENVIRONMENT; the application deployment was not applied."
     fi
     if [[ "$ENVIRONMENT" == "test" ]]; then
-      echo "Registering the Test photo tables as Citus-sharded tables."
+      echo "Registering and validating the Test Citus sharding layout."
       kubectl exec --namespace="$NAMESPACE" deployment/clichy-citus -- \
         psql --username=clichy --dbname="$EXPECTED_DATABASE" \
         --set ON_ERROR_STOP=1 \
         --file=/opt/clichy/enable-user-sharding.sql ||
-        die "Could not register the Test photo tables with Citus."
+        die "Test Citus sharding registration or validation failed; application manifests were not applied."
     fi
     ;;
   status)
