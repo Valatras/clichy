@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: clichy-worker
 spec:
-  replicas: 1
+  replicas: 2
   revisionHistoryLimit: 2
   selector:
     matchLabels:

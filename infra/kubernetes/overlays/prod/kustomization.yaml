@@ -35,11 +35,11 @@ images:
     newTag: sha-REPLACE_WITH_TESTED_GIT_SHA
 replicas:
   - name: clichy-server
-    count: 1
+    count: 2
   - name: clichy-worker
-    count: 1
+    count: 2
   - name: clichy-web
-    count: 1
+    count: 2
 patches:
   - target:
       group: apps

@@ -14,7 +14,7 @@ kind: Deployment
 metadata:
   name: clichy-redis
 spec:
-  replicas: 1
+  replicas: 2
   revisionHistoryLimit: 2
   selector:
     matchLabels:
