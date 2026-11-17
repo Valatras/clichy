@@ -1,6 +1,6 @@
 # ADR 0007: PostgreSQL replication and sharding scope
 
-**Status:** Replication selected and configured with CNPG; sharding remains unimplemented.
+**Status:** CNPG replication retained in all environments; single-node Citus selected for Test sharding. Multi-node Citus remains deferred.
 
 ## Context
 
@@ -8,12 +8,12 @@ Assignment asks for replication and sharding. The previous configuration used a 
 
 ## Decision
 
-Use CloudNativePG to manage two PostgreSQL instances per environment with asynchronous physical streaming, separate PVCs, automatic Pod recovery/promotion, and the `-rw` Service for application connections. This is intended to demonstrate PostgreSQL replication mechanics, not protect against physical host failure. Do not implement sharding as part of the replication work; it remains an assignment requirement and needs a separate design decision. Do not scale database Pods directly.
+Use CloudNativePG to manage two PostgreSQL instances per environment with asynchronous physical streaming, separate PVCs, automatic Pod recovery/promotion, and the `-rw` Service for application connections. Test additionally uses Citus with `userId` as the distribution key for photo metadata and processing-outbox rows. Dev and Production remain plain CNPG PostgreSQL. Keep replication and sharding as separate concerns. Do not scale database Pods directly.
 
 ## Alternatives considered
 
-A PostgreSQL operator is selected over custom StatefulSet replication. Citus remains excluded. Synchronous replication is not selected because the prototype does not require zero data loss and asynchronous streaming avoids making writes wait on the standby.
+A PostgreSQL operator is selected for physical replication. Multi-node Citus was deferred because it introduces worker membership and failure management. A single-node Citus instance in Test provides 32 logical shards and a low-complexity path to validate Citus routing. Synchronous replication is not selected because the prototype does not require zero data loss and asynchronous streaming avoids making writes wait on the standby.
 
 ## Consequences
 
-CNPG is deployed in Production and the Cluster was observed healthy with two instances; a direct WAL streaming query and failover exercise are not yet evidenced. Both instances share the same node, asynchronous replication may lose recent unreplicated writes, and replication is not a backup. Sharding remains absent.
+CNPG remains responsible for the replication exercise. Test Citus has one database Pod and no high availability; the CNPG Test cluster remains deployed separately. The 32 logical shards share one PostgreSQL process and host, so this is not multi-node capacity scaling or failure isolation. The data model uses compound keys containing `userId`, and outbox jobs carry that key so queries can be routed. Citus and Prisma migrations must stay aligned.

@@ -48,16 +48,27 @@ This is a record of issues evidenced by current documentation, source, or Git hi
 
 **Relevant files:** `infra/kubernetes/scripts/prepare-namespace.sh`, `infra/kubernetes/cnpg/cluster.yaml`, `infra/kubernetes/overlays/prod/database/kustomization.yaml`, `infra/kubernetes/scripts/migrate.sh`.
 
-## Citus sharding experiment
+## Test Citus sharding migration failed on a unique index
 
-**Status:** Historical experiment; not operational
-**Affected component:** Database architecture
-**Symptoms:** Project context supplied for this documentation task reports Citus was experimentally introduced, encountered problems, and was not retained.
-**Root cause:** Not verified from current repository or available commit subjects.
-**Resolution:** Current architecture is standard PostgreSQL plus Redis/BullMQ; current schema/manifests show no Citus deployment.
-**Verification:** Current manifests and package files inspected; a working Citus setup is absent.
-**Relevant files:** `infra/kubernetes/base/postgres/`, `packages/db/`.
-**Related commits:** No Citus-specific commit was identified in current `master` history search. Treat the experiment history as project-provided context until historical commits/docs are made available.
+**Status:** Resolved; user confirmed the Test deployment workflow succeeded after the migration correction.
+**Affected component:** Test Citus database, Prisma migration `20261116090000_citus_user_sharding`.
+**Symptoms:** Test deployment stopped before applying application manifests. Prisma reported P3018 / PostgreSQL 42704 because the migration ran `ALTER TABLE "Photo" DROP CONSTRAINT "Photo_storageKey_key"`, but that object is a standalone unique index, not a table constraint.
+**Root cause:** Prisma had created `Photo_storageKey_key` as an index. The migration treated it as a constraint. The failing `DO` block was rolled back, while SQL statements before the block may already have committed; Prisma also records the migration as failed and will not retry it automatically.
+**Resolution:** The migration now drops the standalone unique index with `DROP INDEX IF EXISTS` and makes the pre-branch steps safe to rerun. The Test-only recovery helper marked the failed attempt rolled back so Prisma could retry it; it rejects Production.
+**Verification:** User confirmed the Test deployment workflow completed successfully after this correction. This does not confirm the separate Citus shard layout; see the incident below.
+**Relevant files:** `packages/db/prisma/migrations/20261116090000_citus_user_sharding/migration.sql`, `infra/kubernetes/scripts/migrate.sh`, `docs/database/migrations.md`.
+
+### Test photo tables registered with one shard instead of hash sharding
+
+**Status:** Resolved and verified on Test (`valtask`, commit `7769af8`).
+**Affected component:** Citus table registration for Test `Photo` and `PhotoProcessingOutbox`.
+**Symptoms:** Both tables appeared in `pg_dist_partition` with `partmethod = 'n'`, `repmodel = 's'`, colocation ID 0 and one metadata shard. Their row counts were zero. This describes coordinator-local tables tracked in Citus metadata, not reference replicas (`repmodel = 't'`).
+**Root cause:** Citus enables `citus.enable_local_reference_table_foreign_keys` by default and tracks local tables related to reference tables in its metadata. The registration SQL treated any metadata row as successful distribution and skipped `create_distributed_table`; the workflow had no post-registration invariant check. The execution output supplied by the user also came from the old ConfigMap: it printed “already distributed” and no final validation success. The `pg_get_expr(p.partkey, ...)` diagnostic failed because Citus stores `partkey` as text; use `column_to_column_name` instead.
+**Resolution:** The registration session disables automatic local-reference FK metadata tracking and validates that User is a reference and both photo tables are hash-distributed on `userId` with 32 shards and matching colocation IDs. The separately gated empty-state repair created the shards; migration `20261117120000_citus_shard_key_fk_update_restrict` restored both FKs with `ON UPDATE RESTRICT`. The repair script is not part of normal deployment and must not be rerun against the repaired state.
+**Verification:** User confirmed the Test workflow completed, Prisma records the new FK migration as finished, metadata reports 32 hash shards for both tables with colocation ID 2, and the parent plus shard-level constraints show the expected `ON UPDATE RESTRICT`, `ON DELETE RESTRICT` (Photo-to-User) and `ON DELETE CASCADE` (outbox-to-Photo).
+**Relevant files:** `infra/kubernetes/citus/enable-user-sharding.sql`, `infra/kubernetes/citus/repair-empty-local-photo-tables.sql`, `infra/kubernetes/citus/enable-user-sharding.test.mjs`, `docs/database/sharding.md`.
+
+**Follow-up:** The guarded repair initially stopped after shard creation because Citus rejected `ON UPDATE CASCADE` on a distribution-key FK. The subsequent Prisma migration restored both constraints with Citus-compatible update behavior; the final deployment and shard-level constraint check succeeded.
 
 ## Traefik Ingress routing corrections
 
@@ -83,4 +94,4 @@ This is a record of issues evidenced by current documentation, source, or Git hi
 
 ## Operational gaps (not recorded incidents)
 
-These are limitations established by configuration, not claims of past failures: Production CNPG is deployed and healthy, but direct WAL streaming/failover evidence is still outstanding; PostgreSQL sharding is absent, no tested backup/restore runbook exists, Redis is a single instance, and no Test refresh/anonymization procedure exists. See the database pages and requirements matrix.
+These are limitations established by configuration, not claims of past failures: direct CNPG WAL streaming/failover evidence is still outstanding; Test Citus is a single-node logical sharding baseline without HA or multi-node capacity; no tested backup/restore runbook exists, Redis is a single instance, and no Test refresh/anonymization procedure exists. See the database pages and requirements matrix.

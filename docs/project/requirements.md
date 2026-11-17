@@ -15,7 +15,7 @@ Statuses distinguish repository configuration from observed live behavior. Produ
 | Multiple application Pods | Partially implemented | Deployments can support replicas, but Dev/Prod overlay counts are one; Test HPA can scale web and server up to four if metrics are available. Worker stays one. |
 | Replicated cache layer | Not implemented | One Redis Deployment, one replica, AOF persistence; no Redis replication/Sentinel/Cluster. |
 | Single Ingress exposing application | Implemented | One Clichy Ingress routes `/api/auth`, `/photos` to server and `/` to web. Traefik is cluster ingress class. |
-| Dashboard for system load and app health | Configured, not verified | kube-prometheus-stack, Grafana dashboard JSON, API `/metrics`, Kubernetes alerts and a CNPG PodMonitor/dashboard panels are defined. Live scrape and dashboard import not verified. |
+| Dashboard for system load and app health | Configured, not verified | kube-prometheus-stack, Grafana dashboard JSON, API/worker `/metrics`, HTTP/outbox/BullMQ metrics, Kubernetes alerts and CNPG PodMonitor panels are defined. Live scrapes, alert evaluation and dashboard import still need valtask evidence. |
 | Manual or automatic scaling | Partially implemented | Kubernetes supports manual scale; Test HPA manifests target server/web CPU. Metrics API availability and actual HPA behavior are unverified. Headlamp CNPG Cluster visibility is read-only in RBAC, pending live UI confirmation. |
 | Kubernetes rolling updates | Implemented, not verified | Kubernetes Deployments and rollout status checks in deploy script. No rollout demonstration evidence checked. |
 | Migration during update | Implemented, not verified | Test and Prod jobs run migration before applying application manifests. |

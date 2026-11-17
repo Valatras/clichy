@@ -5,7 +5,7 @@ Kustomize base resources are under `infra/kubernetes/base`; environment overlays
 ## Workload behavior
 
 - API and web use readiness/liveness HTTP checks on `/`; worker has `/ready` and `/live` probes on port 3001.
-- CNPG runs two PostgreSQL 18.6 instances per namespace and provisions a separate 2 GiB PVC per instance. Prisma and application workloads use `clichy-postgres-rw`.
+- CNPG runs two PostgreSQL 18.6 instances per namespace and provisions a separate 2 GiB PVC per instance. Dev and Production applications use `clichy-postgres-rw`. Test also runs a single-node Citus database with its own PVC; the Test application uses `clichy-citus-rw` for user-sharded photo tables while CNPG remains available for replication exercises.
 - Redis uses a one-replica Deployment, AOF, `noeviction`, 256 MiB maxmemory, probes, and a PVC.
 - API, worker, web and database have CPU/memory requests and limits in base manifests.
 - Test adds CPU HPA for API and web (1–4 replicas, 70% utilization target). Dev and Production specify one replica for web/server/worker. Production does not include this HPA.

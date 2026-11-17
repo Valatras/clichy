@@ -11,4 +11,4 @@ pnpm build
 
 CI uses the same commands after `pnpm install --frozen-lockfile`, with Node 24. Type checking receives a placeholder `DATABASE_URL` and web server URL; tests/build may depend on package environment configuration. The workflow does not run a dedicated lint task despite a root Turbo `lint` task definition.
 
-For focused debugging, execute the package script or the test file via its package runner, for example `pnpm --filter server exec tsx --test src/image-processing.test.ts`. No test command has been run during this documentation edit; see the validation report for documentation build status.
+For focused debugging, execute a package test file, for example `pnpm --filter server exec tsx --test src/image-processing.test.ts`. The server and worker test suites and type checks are run as part of the local validation for changes to the asynchronous photo pipeline.

@@ -35,3 +35,13 @@ flowchart TD
 ```
 
 The workflow applies migrations before deploying the matching app images. The migration script confirms the target database name (`clichy_test` or `clichy_prod`) from the connection URL and checks commit cleanliness for relevant sources. Because old Pods may serve while DDL runs, use backward-compatible expand-and-contract migrations. No transactional rollback or automatic schema rollback is provided; Prisma migration failures require diagnosis and a forward repair plan.
+
+## Recovering the Test Citus sharding migration
+
+The first Test attempt at `20261116090000_citus_user_sharding` failed because it tried to drop the Prisma-created `Photo_storageKey_key` unique index as a table constraint. The migration is now repeatable across the already-committed statements, and drops that object as an index. Once the fix is present in the checkout on `valtask`, first mark the failed Test attempt as rolled back:
+
+```bash
+./infra/kubernetes/scripts/migrate.sh test resolve-citus-failure
+```
+
+Then rerun the failed Test deployment workflow. The helper connects only to the Test Citus Service and refuses Production. Do not use `migrate resolve --applied`, delete the Test database, or remove its PVC: the corrected migration must run and create the schema changes. Confirm the migration and app rollout in the workflow logs. This is a recovery for this migration ID; investigate other migration failures individually before resolving them.

@@ -93,28 +93,131 @@ Expect one row for the standby with `state = streaming` and `sync_state = async`
 
 ## Demonstrate replication and failover (Test only)
 
-Use `clichy-test`, never Production, for destructive simulation. The following commands locate the current roles and create a disposable marker on the primary:
+Run these steps on `valtask` with the context explicitly set to the intended cluster. Every state-changing command below targets `clichy-test`; do not copy it with a Production namespace. Confirm the cluster is healthy and has exactly one primary and one replica before starting:
 
 ```sh
 NS=clichy-test
+kubectl config current-context
+kubectl get cluster clichy-postgres -n "$NS" -o wide
+kubectl get pods -n "$NS" -l cnpg.io/cluster=clichy-postgres -L cnpg.io/instanceRole -o wide
+kubectl get pvc -n "$NS" -o wide
 PRIMARY=$(kubectl get pod -n "$NS" -l cnpg.io/cluster=clichy-postgres,cnpg.io/instanceRole=primary -o jsonpath='{.items[0].metadata.name}')
 REPLICA=$(kubectl get pod -n "$NS" -l cnpg.io/cluster=clichy-postgres,cnpg.io/instanceRole=replica -o jsonpath='{.items[0].metadata.name}')
-kubectl exec -n "$NS" "$PRIMARY" -- psql -U postgres -d clichy_test -v ON_ERROR_STOP=1 -c \
-  "CREATE TABLE cnpg_replication_demo (id integer PRIMARY KEY, marker text NOT NULL); INSERT INTO cnpg_replication_demo VALUES (1, 'wal-check');"
-kubectl exec -n "$NS" "$REPLICA" -- psql -U postgres -d clichy_test -c \
-  "SELECT * FROM cnpg_replication_demo;"
+test -n "$PRIMARY" && test -n "$REPLICA" && test "$PRIMARY" != "$REPLICA"
+printf 'primary=%s replica=%s namespace=%s\n' "$PRIMARY" "$REPLICA" "$NS"
 ```
 
-The standby query should return `1 | wal-check` after replay. Confirm sender state and LSNs with the SQL above. Remove the test table only after verification, if desired:
+On the primary, verify its role and WAL sender. On the replica, verify recovery mode and receiver/replay positions:
 
 ```sh
-kubectl exec -n "$NS" "$PRIMARY" -- psql -U postgres -d clichy_test -c \
-  "DROP TABLE cnpg_replication_demo;"
+kubectl exec -n "$NS" "$PRIMARY" -- psql -U postgres -d postgres -v ON_ERROR_STOP=1 -c \
+  "SELECT pg_is_in_recovery();" \
+  -c "SELECT application_name, state, sync_state, sent_lsn, replay_lsn FROM pg_stat_replication;"
+kubectl exec -n "$NS" "$REPLICA" -- psql -U postgres -d postgres -v ON_ERROR_STOP=1 -c \
+  "SELECT pg_is_in_recovery(), pg_last_wal_receive_lsn(), pg_last_wal_replay_lsn();"
 ```
 
-For failover, record the current primary Pod using `kubectl get pods -l cnpg.io/cluster=clichy-postgres -L cnpg.io/instanceRole -n clichy-test`, then manually delete only that Pod in `clichy-test` (`kubectl delete pod <primary-pod> -n clichy-test`). This changes cluster state and causes a brief database connection interruption while CNPG promotes the standby. Do not delete its PVC. Watch `kubectl get cluster,pods,endpointslice -w -n clichy-test`, Pod roles and the `clichy-postgres-rw` EndpointSlice. Once the Cluster returns Ready, run a write/read through `-rw`, verify `pg_is_in_recovery()` on the promoted primary, then verify that CNPG has recreated/rejoined the old instance as the new standby. Repeat only after confirming the state is healthy. Pod deletion is not evidence of node-level HA.
+The primary must report `false` and one sender in `streaming` state; the replica must report `true`. To prove replay, create a disposable marker on the primary and poll the read-only replica until asynchronous WAL replay catches up:
 
-Restart/recovery persistence can similarly be demonstrated in Test by restarting a CNPG instance Pod without deleting its PVC, then checking the test row and standby state. Avoid direct Pod manipulations in Prod during evaluation unless a separate backup and maintenance window are in place.
+```sh
+kubectl exec -n "$NS" "$PRIMARY" -- psql -U postgres -d clichy_test -v ON_ERROR_STOP=1 -c \
+  "DROP TABLE IF EXISTS cnpg_replication_demo; CREATE TABLE cnpg_replication_demo (id integer PRIMARY KEY, marker text NOT NULL); INSERT INTO cnpg_replication_demo VALUES (1, 'wal-check');"
+for attempt in $(seq 1 30); do
+  if kubectl exec -n "$NS" "$REPLICA" -- psql -U postgres -d clichy_test -Atqc \
+    "SELECT marker FROM cnpg_replication_demo WHERE id = 1;" | grep -qx wal-check; then
+    echo "WAL marker replayed on $REPLICA"
+    break
+  fi
+  if [ "$attempt" -eq 30 ]; then
+    echo "WAL marker did not appear on the replica within 30 seconds" >&2
+    exit 1
+  fi
+  sleep 1
+done
+```
+
+Wait until the replica returns the marker before switching; this avoids testing with an un-replayed asynchronous write. If the optional CNPG kubectl plugin is installed, request a planned switchover. The plugin is not installed by the repository's operator installer. If the command reports `unknown command "cnpg"`, skip this planned-switchover substep and continue with the automatic failover exercise below:
+
+```sh
+kubectl cnpg promote clichy-postgres "$REPLICA" -n "$NS"
+kubectl wait --for=condition=Ready cluster.postgresql.cnpg.io/clichy-postgres \
+  -n "$NS" --timeout=300s
+kubectl get pods -n "$NS" -l cnpg.io/cluster=clichy-postgres -L cnpg.io/instanceRole -o wide
+kubectl get endpointslice -n "$NS" -l kubernetes.io/service-name=clichy-postgres-rw -o wide
+```
+
+After a successful promote command, confirm that the former replica is now primary and that the `-rw` EndpointSlice points to it. For an actual Prisma CLI write through `clichy-postgres-rw`, open a loopback-only port-forward in Terminal A and leave it running while you execute the commands in Terminal B:
+
+```sh
+kubectl port-forward --address=127.0.0.1 -n clichy-test service/clichy-postgres-rw 15432:5432
+```
+
+In Terminal B, load the Test-only local secrets file created by `prepare-namespace.sh` (the commands do not print its contents), point Prisma at the local forwarded port, and create a uniquely named disposable table using Prisma:
+
+```sh
+set -a
+source "$HOME/.config/clichy/test-secrets.env"
+set +a
+test "$(node -e 'console.log(new URL(process.env.DATABASE_URL).pathname.slice(1))')" = clichy_test
+DATABASE_URL="$(node -e '
+  const url = new URL(process.env.DATABASE_URL);
+  if (url.hostname !== "clichy-postgres-rw" || url.pathname !== "/clichy_test") process.exit(1);
+  url.hostname = "127.0.0.1";
+  url.port = "15432";
+  url.searchParams.set("sslmode", "disable");
+  process.stdout.write(url.toString());
+')"
+export DATABASE_URL
+PSQL_URL="$(node -e '
+  const url = new URL(process.env.DATABASE_URL);
+  url.searchParams.delete("schema");
+  url.searchParams.set("sslmode", "disable");
+  process.stdout.write(url.toString());
+')"
+export PSQL_URL
+pnpm --filter @clichy/db exec prisma db execute --stdin <<'SQL'
+CREATE TABLE cnpg_prisma_failover_demo (id integer PRIMARY KEY, marker text NOT NULL);
+INSERT INTO cnpg_prisma_failover_demo VALUES (1, 'after-switchover');
+SQL
+psql "$PSQL_URL" -v ON_ERROR_STOP=1 -c \
+  "SELECT * FROM cnpg_prisma_failover_demo ORDER BY id;"
+psql "$PSQL_URL" -v ON_ERROR_STOP=1 -c \
+  "DROP TABLE cnpg_prisma_failover_demo;"
+unset DATABASE_URL PSQL_URL POSTGRES_PASSWORD
+```
+
+`prisma db execute` reads its datasource from `prisma.config.ts`; it does not accept `--schema`. `PSQL_URL` removes Prisma's `schema` query parameter because libpq rejects it. Both connections go through the `clichy-postgres-rw` port-forward. Prisma creates and inserts the row, then `psql` reads it back before cleanup. `./infra/kubernetes/scripts/migrate.sh test status` is an additional Prisma connectivity/migration check; it is read-only and does not prove a write. Stop Terminal A with Ctrl-C after Terminal B completes.
+
+If the evaluation specifically requires automatic failover after primary loss, perform this exercise after the replication marker was observed and the cluster is healthy. If you also ran a planned switchover, first confirm that it completed and the cluster returned Ready. This deliberately deletes the current primary Pod in Test (never its PVC), so expect a short connection interruption:
+
+```sh
+PRIMARY=$(kubectl get pod -n clichy-test \
+  -l cnpg.io/cluster=clichy-postgres,cnpg.io/instanceRole=primary \
+  -o jsonpath='{.items[0].metadata.name}')
+test -n "$PRIMARY"
+printf 'About to delete Test primary Pod %s in namespace clichy-test\n' "$PRIMARY"
+kubectl delete pod "$PRIMARY" -n clichy-test
+kubectl get pods -n clichy-test -l cnpg.io/cluster=clichy-postgres \
+  -L cnpg.io/instanceRole -w
+```
+
+Stop the watch once both Pods are Ready and the role label has moved to the former replica. Then check the Cluster and `-rw` endpoint separately:
+
+```sh
+kubectl get cluster clichy-postgres -n clichy-test -o wide
+kubectl get endpointslice -n clichy-test \
+  -l kubernetes.io/service-name=clichy-postgres-rw -o wide
+```
+
+Re-run the recovery and sender checks above. Recompute `PRIMARY` and `REPLICA` from labels because CNPG may assign different instance names, then reopen the loopback port-forward and repeat the Prisma CLI write/read check above through `clichy-postgres-rw`. Remove the WAL marker from the current primary when finished:
+
+```sh
+PRIMARY=$(kubectl get pod -n clichy-test -l cnpg.io/cluster=clichy-postgres,cnpg.io/instanceRole=primary -o jsonpath='{.items[0].metadata.name}')
+kubectl exec -n clichy-test "$PRIMARY" -- psql -U postgres -d clichy_test -v ON_ERROR_STOP=1 -c \
+  "DROP TABLE IF EXISTS cnpg_replication_demo;"
+```
+
+Pod deletion tests CNPG's automated response to primary Pod loss, but it does not simulate node-level HA and asynchronous replication can lose un-replayed transactions. Never delete either instance PVC. Do not perform either switchover or Pod deletion in Production for this demonstration.
 
 ## Retire the legacy StatefulSet after cutover
 
