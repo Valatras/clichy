@@ -11,10 +11,10 @@
       
       
       
-        <link rel="prev" href="../../infrastructure/cloud-migration/">
+        <link rel="prev" href="../ci-cd/">
       
       
-        <link rel="next" href="../migrations/">
+        <link rel="next" href="../monitoring/">
       
       
         
@@ -25,7 +25,7 @@
     
     
       
-        <title>PostgreSQL and Prisma - Clichy Documentation</title>
+        <title>Databases - Clichy Documentation</title>
       
     
     
@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#postgresql-and-prisma" class="md-skip">
+        <a href="#postgresql-citus-and-cloudnativepg" class="md-skip">
           Skip to content
         </a>
       
@@ -112,7 +112,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              PostgreSQL and Prisma
+              Databases
             
           </span>
         </div>
@@ -245,6 +245,58 @@
   
   
   
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
     <li class="md-nav__item">
       <a href="../.." class="md-nav__link">
         
@@ -253,86 +305,7 @@
   <span class="md-ellipsis">
     
   
-    Home
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    
-    
-    
-    
-      
-        
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
-        
-          
-          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Project
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_2">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Project
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../project/overview/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Overview
+    Clichy
   
 
     
@@ -345,320 +318,6 @@
   
 
               
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../project/requirements/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Requirements traceability
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../project/roadmap/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Roadmap and status
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../project/glossary/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Glossary
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    
-    
-    
-    
-      
-        
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
-        
-          
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Architecture
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_3">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Architecture
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../architecture/overview/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    System overview
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../architecture/application/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Application
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../architecture/networking/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Networking
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../architecture/asynchronous-processing/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Asynchronous processing
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    
-    
-    
-    
-      
-        
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
-        
-          
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Development
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Development
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
             
               
                 
@@ -674,91 +333,7 @@
   <span class="md-ellipsis">
     
   
-    Onboarding
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../development/prerequisites/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Prerequisites and configuration
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../development/local-development/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Local development
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../development/project-structure/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Project structure
+    Local setup
   
 
     
@@ -827,17 +402,17 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
         
           
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
             
   
   
   <span class="md-ellipsis">
     
   
-    Infrastructure
+    Architecture
   
 
     
@@ -848,12 +423,12 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
             
   
-    Infrastructure
+    Architecture
   
 
           </label>
@@ -866,14 +441,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../infrastructure/cluster-setup/" class="md-nav__link">
+      <a href="../../architecture/overview/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Cluster setup
+    Overview
   
 
     
@@ -894,14 +469,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../infrastructure/kubernetes/" class="md-nav__link">
+      <a href="../../architecture/application/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Kubernetes environments
+    Application and photo flow
   
 
     
@@ -922,126 +497,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../infrastructure/namespaces/" class="md-nav__link">
+      <a href="../../architecture/networking/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Namespaces and traffic
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../infrastructure/storage/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Storage
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../infrastructure/ci-cd/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    CI/CD
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../infrastructure/monitoring/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Monitoring and scaling
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../infrastructure/cloud-migration/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Cloud migration plan
+    Networking
   
 
     
@@ -1084,17 +547,17 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
-          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
             
   
   
   <span class="md-ellipsis">
     
   
-    Database
+    Infrastructure
   
 
     
@@ -1105,16 +568,72 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_6">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
   
-    Database
+    Infrastructure
   
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kubernetes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kubernetes and environments
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ci-cd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CI/CD
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -1132,6 +651,24 @@
         
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Databases
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
@@ -1139,7 +676,7 @@
   <span class="md-ellipsis">
     
   
-    PostgreSQL and Prisma
+    Databases
   
 
     
@@ -1148,6 +685,69 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#architecture-and-rollout-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architecture and rollout status
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#citus-logical-sharding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Citus: logical sharding
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#image-initialization-and-prisma" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Image, initialization and Prisma
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#replication-failure-and-limits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Replication, failure and limits
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -1161,98 +761,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../migrations/" class="md-nav__link">
+      <a href="../monitoring/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Schema and migrations
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../replication/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Replication
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../sharding/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Sharding
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../backup-restore/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Backup and restore
+    Redis, monitoring and scaling
   
 
     
@@ -1293,10 +809,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
         
           
-          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
             
   
   
@@ -1314,8 +830,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1360,7 +876,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../operations/healthchecks/" class="md-nav__link">
+      <a href="../../operations/healthchecks.md" class="md-nav__link">
         
   
   
@@ -1388,7 +904,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../operations/maintenance-audit/" class="md-nav__link">
+      <a href="../../operations/maintenance-audit.md" class="md-nav__link">
         
   
   
@@ -1444,6 +960,62 @@
   
   
     <li class="md-nav__item">
+      <a href="../../operations/deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deployment runbook
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operations/scripts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scripts & Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../operations/troubleshooting/" class="md-nav__link">
         
   
@@ -1465,21 +1037,28 @@
 
               
             
-              
-                
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
   
   
   
   
     <li class="md-nav__item">
-      <a href="../../operations/known-issues/" class="md-nav__link">
+      <a href="../../glossary/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Known issues and resolved incidents
+    Glossary
   
 
     
@@ -1488,14 +1067,6 @@
   
 
       </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
     </li>
   
 
@@ -1520,97 +1091,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
         
           
-          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Design
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_8">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Design
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../design/brand-guidelines/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Brand guidelines
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    
-    
-    
-    
-      
-        
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
-        
-          
-          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="">
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
             
   
   
@@ -1628,8 +1112,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_9">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1653,7 +1137,7 @@
   <span class="md-ellipsis">
     
   
-    ADR index
+    Index
   
 
     
@@ -1681,7 +1165,7 @@
   <span class="md-ellipsis">
     
   
-    Kubernetes and environments
+    Kubernetes
   
 
     
@@ -1765,7 +1249,7 @@
   <span class="md-ellipsis">
     
   
-    Citus experiment
+    Historical Citus experiment
   
 
     
@@ -1793,7 +1277,7 @@
   <span class="md-ellipsis">
     
   
-    Traefik ingress
+    Traefik
   
 
     
@@ -1849,7 +1333,7 @@
   <span class="md-ellipsis">
     
   
-    Database scaling gap
+    Replication and sharding
   
 
     
@@ -1877,7 +1361,35 @@
   <span class="md-ellipsis">
     
   
-    Zero-downtime status
+    Zero-downtime evidence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0009-unified-citus-cnpg/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Unified Citus and CNPG
   
 
     
@@ -1918,6 +1430,58 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#architecture-and-rollout-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architecture and rollout status
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#citus-logical-sharding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Citus: logical sharding
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#image-initialization-and-prisma" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Image, initialization and Prisma
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#replication-failure-and-limits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Replication, failure and limits
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -1936,13 +1500,110 @@
   
 
 
-<h1 id="postgresql-and-prisma">PostgreSQL and Prisma<a class="headerlink" href="#postgresql-and-prisma" title="Permanent link">&para;</a></h1>
-<p>CNPG 1.30.1 with PostgreSQL 18.6 provides two-instance clusters in Dev, Test, and Production for physical replication exercises. Dev and Production applications use CNPG's <code>clichy-postgres-rw</code> Service. Test additionally runs a separate single-node Citus 14.2/PostgreSQL 18 database, and the Test application uses <code>clichy-citus-rw</code> for its logically sharded photo tables. The Test CNPG cluster remains available for replication demonstrations. See <a href="../sharding/">Citus sharding</a> for scope and limitations.</p>
-<p>Production's operator and two-instance Cluster are deployed on <code>valtask</code>. The evidence currently recorded confirms Cluster readiness and database connectivity, but does not yet include a live WAL sender/receiver query or a failover exercise. Check those using the <a href="../replication/">Replication runbook</a>. Dev/Test live status should be verified separately. Both instances use separate PVCs but remain on the same physical node. This provides practice with PostgreSQL replication and Pod/storage recovery, not protection against loss of <code>valtask</code>.</p>
-<p>CNPG 1.30.1 supports Kubernetes 1.34–1.36; Kubernetes 1.37 has been tested by the release but is not listed as officially supported. The repository's K3s installer targets 1.37, and K3s itself is not a Kubernetes distribution covered by CNPG's vanilla-Kubernetes support policy. The pinned installer requires an explicit opt-in for a 1.37 server. See the <a href="https://cloudnative-pg.io/docs/1.30/supported_releases/">official support matrix</a>.</p>
-<p>Prisma 7 schema is split across <code>packages/db/prisma/schema/auth.prisma</code> and <code>photo.prisma</code>. <code>prisma.config.ts</code> points at the migration directory and reads <code>DATABASE_URL</code>; client generation outputs under <code>packages/db/prisma/generated</code>. <code>createPrismaClient</code> in <code>packages/db/src/index.ts</code> uses the PostgreSQL adapter against CNPG or Citus.</p>
-<p>The schema contains Better Auth user/session/account/verification tables, Photo metadata and processing state, and PhotoProcessingOutbox. Photo and outbox keys include <code>userId</code> so Citus can colocate each user's rows. Photo indexes include user ownership, per-user SHA and perceptual hashes, processing state/start time, and deletion marker. Originals and derivatives are files on a PVC; the database stores storage keys and metadata, not photo bytes.</p>
-<p>Migrations are committed under <code>packages/db/prisma/migrations</code>. See <a href="../migrations/">migration workflow</a>, <a href="../replication/">replication status</a>, <a href="../sharding/">sharding status</a>, and <a href="../backup-restore/">backup gaps</a>.</p>
+<h1 id="postgresql-citus-and-cloudnativepg">PostgreSQL, Citus and CloudNativePG<a class="headerlink" href="#postgresql-citus-and-cloudnativepg" title="Permanent link">&para;</a></h1>
+<p><strong>What is it?</strong> PostgreSQL stores relational data; Citus adds logical hash shards.
+CloudNativePG (CNPG) manages the PostgreSQL primary, standby and role Services.</p>
+<p><strong>Why Clichy uses it</strong> Test and Production target the same schema and topology:
+32 photo/outbox shards inside one writable PostgreSQL instance, physically
+replicated to a standby. This combines sharding and replication without worker groups.</p>
+<h2 id="architecture-and-rollout-status">Architecture and rollout status<a class="headerlink" href="#architecture-and-rollout-status" title="Permanent link">&para;</a></h2>
+<pre class="mermaid"><code>flowchart LR
+  App[API / Prisma / worker] --&gt; RW[CNPG read-write Service]
+  RW --&gt; Primary[Primary: PostgreSQL 18.6 + Citus 14.2]
+  Primary --&gt; Shards[Photo and outbox: 32 shards each on userId]
+  Primary --&gt; Users[user: reference table]
+  Primary --&gt;|WAL: rows, shard tables and Citus catalogs| Standby[Standby: same Citus binaries and replicated shards]
+  Primary --&gt; PV1[(Primary PVC)]
+  Standby --&gt; PV2[(Standby PVC)]
+  Operator[CNPG 1.30.1] -. supervises and promotes .-&gt; Standby</code></pre>
+<p>This is the <strong>repository target</strong>, not a claim that cutover already happened.
+The operator's 2026-11-17 read-only output confirmed:</p>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Observed state before cutover</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Active Test</td>
+<td>Standalone PostgreSQL 18.4/Citus 14.2; correct 32 colocated shards; zero users/photos/outbox rows</td>
+</tr>
+<tr>
+<td>Existing Test CNPG</td>
+<td>PostgreSQL 18.6, two streaming instances; a different database with one user/photo/outbox row and three migrations</td>
+</tr>
+<tr>
+<td>Production</td>
+<td>PostgreSQL 18.6, two streaming CNPG instances; no Citus; zero users/photos/outbox rows; single-column primary keys</td>
+</tr>
+</tbody>
+</table>
+<p>These databases are <strong>not interchangeable</strong>. Test import must preserve the old
+CNPG database separately, including its migration history; never merge or overwrite
+it based on the active Citus database's empty row count. The
+<a href="../../operations/deployment/#controlled-cutover">controlled procedure</a> is mandatory.</p>
+<h2 id="citus-logical-sharding">Citus: logical sharding<a class="headerlink" href="#citus-logical-sharding" title="Permanent link">&para;</a></h2>
+<p><strong>What is it?</strong> Citus routes rows by a distribution key. Colocation aligns the
+shard layout of related tables; reference tables support shared identity data.</p>
+<p><strong>Why Clichy uses it</strong> <code>Photo</code> and <code>PhotoProcessingOutbox</code> belong to users and can
+share <code>userId</code> routing and foreign-key enforcement in both environments.</p>
+<p>Each table uses <code>hash(userId)</code>, 32 shards and the same positive colocation ID.
+<code>user</code> is a reference table (<code>n/t</code>, one shard). Compound primary/unique keys
+include <code>userId</code>. Outbox references <code>Photo(userId,id)</code>; Photo-to-user delete is
+RESTRICT, outbox-to-photo delete is CASCADE, and both FK updates are RESTRICT.
+Images remain on the existing shared photos PVC. Existing coordinator-local
+auth-table registrations can remain in Test; they are not hash shards and are
+not converted or discarded.</p>
+<p>Only the local coordinator (<code>localhost:5432</code>, group 0) stores shards. WAL copies
+its catalogs and physical shard tables together. After promotion localhost means
+the promoted instance, so no external worker addresses need rewriting. Application
+connections use <code>clichy-postgres-rw</code>; do not point them at individual Pods.</p>
+<h2 id="image-initialization-and-prisma">Image, initialization and Prisma<a class="headerlink" href="#image-initialization-and-prisma" title="Permanent link">&para;</a></h2>
+<p>The Dockerfile under <code>infra/kubernetes/cnpg</code> pins the CNPG PostgreSQL 18.6 image
+and official Citus 14.2 image by digest, on Debian 13/PG18. It copies extension
+files rather than PostgreSQL executables, installs pinned libcurl and verifies
+runtime linkage. CI tests it and publishes a PG-major-prefixed SHA tag.
+This is a locally tested custom integration, not a vendor certification of Citus/CNPG.</p>
+<p>CNPG preloads Citus first, enables 100 prepared transactions and creates the
+extension through privileged bootstrap SQL on <strong>fresh</strong> clusters. Existing clusters
+need the explicitly approved extension step in the runbook; bootstrap SQL is not
+replayed on existing databases. The application role remains non-superuser.</p>
+<p>Citus COPY and some parallel queries open internal connections. Loopback-only
+<code>hostssl</code> rules authenticate the existing CNPG streaming client certificate with
+explicit mappings to postgres/clichy. <code>citus.node_conninfo</code> verifies the server CA;
+verify-ca is used because the endpoint is localhost, not a Service DNS identity.
+External clients retain SCRAM. No passwords are copied into SQL or pgpass files,
+and certificate rotation remains CNPG-managed. Actual CNPG certificate integration
+still needs the Test checkpoint before Production.</p>
+<p>Applied Prisma migrations are unchanged. New migration
+<code>20261117140000_unified_cnpg_citus</code> aligns Production's legacy keys, backfills
+nullable outbox owners, removes incompatible global uniqueness and registers
+missing tables transactionally. Existing correct Test shards are only validated.
+Unexpected metadata or orphan rows fail; no destructive conversion runs automatically.
+Dev/local PostgreSQL remains plain PostgreSQL and skips this migration.</p>
+<h2 id="replication-failure-and-limits">Replication, failure and limits<a class="headerlink" href="#replication-failure-and-limits" title="Permanent link">&para;</a></h2>
+<p><strong>What is it?</strong> Physical streaming replays WAL on a standby; promotion makes a
+standby writable. Failover is recovery after failure, not a backup.</p>
+<p><strong>Why Clichy uses it</strong> CNPG maintains two instances and redirects its read-write
+Service after promotion. Clients must reconnect; interrupted jobs may retry.</p>
+<p>Two 2 GiB PVCs and the existing CPU/memory budgets are retained. Replication is
+asynchronous: recent commits may be lost if the primary fails before replay.
+All instances share valtask's disk/host; this is neither horizontal capacity
+scaling nor node-level availability. K3s 1.37 remains outside CNPG 1.30's officially
+supported matrix even though it is tested; the installer keeps its explicit gate.</p>
+<p>Local disposable tests cover non-superuser SCRAM access, certificate-authenticated
+Citus COPY, logical restore, streaming and native PostgreSQL promotion with unchanged
+shard IDs and subsequent writes. <strong>CNPG-managed failover on Kubernetes is not yet
+verified.</strong> The <a href="../../operations/scripts/#healthchecks">healthcheck</a> observes configuration,
+shards and active streaming; it deliberately skips failover testing.
+A logical dump restores rows/schema/history, not Citus distribution metadata:
+the target must be registered by the versioned migration after restore. Archives
+already recording that migration need the explicit reviewed recovery step in the
+runbook. Physical WAL replication preserves the target's catalog/shard IDs.
+Coordinated database/photo backups and a restore rehearsal are prerequisites to cutover.
+See <a href="../../decisions/0009-unified-citus-cnpg/">ADR 0009</a> for the feasibility basis.</p>
 
 
 
@@ -2002,7 +1663,7 @@
     
       <script src="../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
-        <script src="https://unpkg.com/mermaid@11/dist/mermaid.min.js"></script>
+        <script src="https://unpkg.com/mermaid@11.17.2/dist/mermaid.min.js"></script>
       
         <script src="../../assets/mermaid-init.js"></script>
       
