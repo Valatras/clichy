@@ -959,6 +959,345 @@
   
 
     
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisions
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Decisions
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Index
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0001-kubernetes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kubernetes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0002-postgres-prisma/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PostgreSQL and Prisma
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0003-redis-bullmq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Redis and BullMQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0004-citus-experiment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Historical Citus experiment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0005-traefik/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Traefik
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0006-environment-isolation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Environment isolation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0007-replication-sharding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Replication and sharding
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0008-zero-downtime/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Zero-downtime evidence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0009-unified-citus-cnpg/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Unified Citus and CNPG
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
   </ul>
 </nav>
                   </div>
@@ -1075,21 +1414,23 @@ configuration, rollouts and scaling on the intentionally single-node <code>valta
 <tr>
 <td>Test</td>
 <td><code>clichy-test</code></td>
-<td>Citus; separate CNPG exercise</td>
+<td>CNPG + Citus target</td>
 <td>Local-path</td>
 </tr>
 <tr>
 <td>Production</td>
 <td><code>clichy-prod</code></td>
-<td>CNPG</td>
+<td>CNPG + Citus target</td>
 <td>Retained local PVs on valtask</td>
 </tr>
 </tbody>
 </table>
 <p><code>infra/kubernetes/base</code> defines Web/API/worker, Redis, photo storage and Ingress.
 <code>overlays/{dev,test,prod}</code> customize hosts, image names, configuration and replica
-counts. Their <code>database</code> subdirectories configure CNPG; standalone Test Citus
-is in <code>infra/kubernetes/citus</code>. Separate namespaces and Secrets are logical
+counts. Their separate <code>database</code> subdirectories configure CNPG. Test/Production application
+overlays deliberately exclude databases so a routine release cannot change a
+database image. The old standalone Test manifests remain only for the pending
+migration/rollback checkpoint and are no longer applied by deployment. Separate namespaces and Secrets are logical
 isolation, not separate clusters or host-level availability.</p>
 <h2 id="prepare-a-server">Prepare a server<a class="headerlink" href="#prepare-a-server" title="Permanent link">&para;</a></h2>
 <p>These steps modify a host/cluster; review scripts before running them. No
@@ -1116,7 +1457,12 @@ sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w
 <li>Run <code>./infra/kubernetes/scripts/prepare-namespace.sh test</code> (and <code>prod</code> when
    preparing Production). The script confirms the target, generates/reuses local
    mode-0600 secret files under <code>~/.config/clichy</code>, normalizes the DB host/user,
-   asks for GHCR read credentials, creates isolated Secrets and waits for databases.</li>
+   asks for GHCR read credentials, renders the database image for the checked-out
+   published commit, creates isolated Secrets and waits for databases. For a fresh
+   Test/Prod installation, apply Prisma migrations and acknowledge the validated
+   architecture before the first application release. Existing environments must
+   follow the <a href="../../operations/deployment/#controlled-cutover">cutover runbook</a>
+   instead of rerunning preparation to switch their Secrets early.</li>
 <li>Install monitoring and optionally Headlamp with their scripts. Use
    <code>configure-lan-access.sh</code> for the Traefik admin ports; it refuses to overwrite
    conflicting Traefik values. See <a href="../../operations/scripts/">scripts</a>.</li>
@@ -1128,7 +1474,7 @@ also has <code>clichy-postgres-app</code> and <code>ghcr-pull-secret</code>. Nev
 in logs or copy credentials between environments.</p>
 <h2 id="persistent-storage">Persistent storage<a class="headerlink" href="#persistent-storage" title="Permanent link">&para;</a></h2>
 <p>API and worker share the 10 GiB <code>clichy-server-photos</code> claim at <code>/data/photos</code>;
-Redis has a 1 GiB claim. Test Citus has its own claim. CNPG creates two separate
+Redis has a 1 GiB claim. The old Test Citus claim remains retained for rollback. CNPG creates two separate
 2 GiB claims per environment. Production pre-binds CNPG to local PVs under
 <code>/srv/clichy/k3s-storage/prod/postgres-cnpg-{1,2}</code>, with UID/GID 26, node affinity
 and <code>Retain</code>. Preparation refuses unsafe existing paths and requires the mount.</p>
@@ -1206,7 +1552,7 @@ cutover. No cloud overlay or tested migration automation is provided.</p>
     
       <script src="../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
-        <script src="https://unpkg.com/mermaid@11/dist/mermaid.min.js"></script>
+        <script src="https://unpkg.com/mermaid@11.17.2/dist/mermaid.min.js"></script>
       
         <script src="../../assets/mermaid-init.js"></script>
       

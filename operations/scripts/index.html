@@ -937,6 +937,345 @@
   
 
     
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisions
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Decisions
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Index
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0001-kubernetes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kubernetes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0002-postgres-prisma/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PostgreSQL and Prisma
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0003-redis-bullmq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Redis and BullMQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0004-citus-experiment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Historical Citus experiment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0005-traefik/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Traefik
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0006-environment-isolation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Environment isolation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0007-replication-sharding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Replication and sharding
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0008-zero-downtime/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Zero-downtime evidence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0009-unified-citus-cnpg/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Unified Citus and CNPG
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
   </ul>
 </nav>
                   </div>
@@ -1106,6 +1445,8 @@ testing should have clear responsibilities and predictable impact.</p>
 <p>Bash/Node test files are internal checks, not admin commands. Baseline host APT
 setup is documented directly in <a href="../../infrastructure/kubernetes/">Kubernetes setup</a>,
 without a separate wrapper. No active script performs the old empty-table repair.</p>
+<p>Database image preparation is explicit; application deployment is blocked until
+the <a href="../deployment/#normal-operation-after-cutover">cutover acknowledgement</a> exists.</p>
 <h2 id="healthchecks">Healthchecks<a class="headerlink" href="#healthchecks" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code>./infra/kubernetes/scripts/healthcheck.sh<span class="w"> </span><span class="nb">test</span>
 ./infra/kubernetes/scripts/healthcheck.sh<span class="w"> </span>prod
@@ -1125,15 +1466,15 @@ you expect in the environment. The script keeps the current context unchanged.</
 <tbody>
 <tr>
 <td>Both</td>
-<td>Namespace access, Web/API/worker/Redis rollouts and available replicas, PVC binding and required claims, Redis PING, internal API Service HTTP, applied/unfinished migration names</td>
+<td>Namespace, available Web/API/worker/Redis, PVCs, Redis PING, internal API HTTP, expected CNPG endpoint and a read-only SQL probe from the API Pod using its own credentials</td>
 </tr>
 <tr>
-<td>Test</td>
-<td>Citus rollout/connectivity, reference user table, hash(userId), 32 Photo/outbox shards, colocation, validated foreign keys and update/delete actions</td>
+<td>Both databases</td>
+<td>Two ready CNPG instances, primary/replica, connectivity, non-privileged app role, Citus extension/preload, local coordinator, hash(userId), 32 colocated shards per table, compound primary keys, validated FKs, migration history and active streaming</td>
 </tr>
 <tr>
-<td>Production</td>
-<td>CNPG Ready, primary/replica identification, PostgreSQL connectivity and streaming standby; Citus explicitly skipped</td>
+<td>Failover</td>
+<td>Explicit SKIP: requires an approved state-changing exercise</td>
 </tr>
 </tbody>
 </table>
@@ -1146,7 +1487,7 @@ For detailed investigation use <a href="../troubleshooting/">troubleshooting</a>
 <div class="highlight"><pre><span></span><code>PASS Kubernetes namespace access
 PASS Citus reference table, hash(userId), 32 shards and colocation
 WARN Migration checks compare names only; checksum drift requires Prisma migrate status
-Summary: PASS=20 WARN=1 FAIL=0 SKIP=0
+Summary: PASS=31 WARN=1 FAIL=0 SKIP=1
 </code></pre></div>
 <p>Exit <code>0</code>: no failed checks (warnings/skips allowed). Exit <code>1</code>: failed check or
 missing dependency. Exit <code>2</code>: invalid arguments. Missing required components fail.
@@ -1154,7 +1495,8 @@ Migration-name comparison does not prove checksum equality or detect all extra
 history; use <code>migrate.sh &lt;env&gt; status</code> for Prisma's full comparison.</p>
 <p>Internal HTTP is called from an API Pod; deployment probes cover Web/worker.
 This does not test public ingress, authentication, uploads, storage writes or
-job completion. Test CNPG streaming remains a separate replication exercise.
+job completion. Before the controlled cutover, the new target checks correctly
+fail on the old split topology rather than pretending it is unified.
 Healthchecks never apply resources, run migrations, delete data or repair state.</p>
 
 
@@ -1215,7 +1557,7 @@ Healthchecks never apply resources, run migrations, delete data or repair state.
     
       <script src="../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
-        <script src="https://unpkg.com/mermaid@11/dist/mermaid.min.js"></script>
+        <script src="https://unpkg.com/mermaid@11.17.2/dist/mermaid.min.js"></script>
       
         <script src="../../assets/mermaid-init.js"></script>
       

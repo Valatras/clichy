@@ -817,10 +817,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#normal-deployment" class="md-nav__link">
+  <a href="#normal-operation-after-cutover" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Normal deployment
+        Normal operation after cutover
       
     </span>
   </a>
@@ -828,24 +828,102 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#migration-commands" class="md-nav__link">
+  <a href="#controlled-cutover" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Migration commands
+        Controlled cutover
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Controlled cutover">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-publish-and-prepare-backups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Publish and prepare backups
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#observe-the-result" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#2-prepare-the-citus-capable-cnpg-image" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Observe the result
+        2. Prepare the Citus-capable CNPG image
       
     </span>
   </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-test-import-without-overwriting-the-old-cnpg-database" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Test: import without overwriting the old CNPG database
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-production-preserve-the-database-and-align-its-schema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Production: preserve the database and align its schema
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-verify-resume-and-acknowledge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Verify, resume and acknowledge
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rollback" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rollback
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Rollback">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#logical-backups-taken-after-unification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Logical backups taken after unification
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -948,6 +1026,345 @@
   
 
     
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisions
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Decisions
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Index
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0001-kubernetes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kubernetes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0002-postgres-prisma/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PostgreSQL and Prisma
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0003-redis-bullmq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Redis and BullMQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0004-citus-experiment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Historical Citus experiment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0005-traefik/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Traefik
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0006-environment-isolation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Environment isolation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0007-replication-sharding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Replication and sharding
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0008-zero-downtime/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Zero-downtime evidence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0009-unified-citus-cnpg/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Unified Citus and CNPG
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
   </ul>
 </nav>
                   </div>
@@ -975,10 +1392,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#normal-deployment" class="md-nav__link">
+  <a href="#normal-operation-after-cutover" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Normal deployment
+        Normal operation after cutover
       
     </span>
   </a>
@@ -986,24 +1403,102 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#migration-commands" class="md-nav__link">
+  <a href="#controlled-cutover" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Migration commands
+        Controlled cutover
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Controlled cutover">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-publish-and-prepare-backups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Publish and prepare backups
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#observe-the-result" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#2-prepare-the-citus-capable-cnpg-image" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Observe the result
+        2. Prepare the Citus-capable CNPG image
       
     </span>
   </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-test-import-without-overwriting-the-old-cnpg-database" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Test: import without overwriting the old CNPG database
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-production-preserve-the-database-and-align-its-schema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Production: preserve the database and align its schema
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-verify-resume-and-acknowledge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Verify, resume and acknowledge
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rollback" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rollback
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Rollback">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#logical-backups-taken-after-unification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Logical backups taken after unification
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1028,85 +1523,276 @@
 
 
 <h1 id="deployment-and-migrations">Deployment and migrations<a class="headerlink" href="#deployment-and-migrations" title="Permanent link">&para;</a></h1>
-<p><strong>What is it?</strong> A deployment rolls out images; a migration evolves the database
-schema through ordered versioned SQL. They have separate failure modes.</p>
-<p><strong>Why Clichy uses it</strong> The checked-out migration source and published images
-must describe the same commit, and database changes must precede new code.</p>
-<h2 id="normal-deployment">Normal deployment<a class="headerlink" href="#normal-deployment" title="Permanent link">&para;</a></h2>
-<p>Pushes to master deploy Test after CI. Production requires a manual dispatch
-with <code>deploy_prod=true</code> and its GitHub environment protections. See
-<a href="../../infrastructure/ci-cd/">CI/CD</a> for runner prerequisites.</p>
-<p>For an operator deployment, use a clean checkout matching already-published
-images, and review the context before confirming:</p>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>config<span class="w"> </span>current-context
-./infra/kubernetes/scripts/deploy.sh<span class="w"> </span><span class="nb">test</span><span class="w"> </span>sha-&lt;<span class="m">40</span>-character-commit-sha&gt;
-<span class="c1"># Production is a separate, explicitly confirmed operation:</span>
-./infra/kubernetes/scripts/deploy.sh<span class="w"> </span>prod<span class="w"> </span>sha-&lt;<span class="m">40</span>-character-commit-sha&gt;
+<p><strong>What is it?</strong> Deployment rolls out application images; migration evolves schema.
+Database image preparation is a separate, deliberately approved operation.</p>
+<p><strong>Why Clichy uses it</strong> Matching commit/image SHAs, namespace Secrets and
+migration-before-application ordering protect releases and existing data.</p>
+<h2 id="normal-operation-after-cutover">Normal operation after cutover<a class="headerlink" href="#normal-operation-after-cutover" title="Permanent link">&para;</a></h2>
+<p>Pushes to master deploy Test after CI. Production requires manual dispatch with
+<code>deploy_prod=true</code> and its GitHub environment protections. From a clean checkout
+matching published images, <code>deploy.sh test|prod sha-&lt;40-hex&gt;</code> verifies valtask/SHA,
+confirms, checks CNPG, migrates, renders exact-SHA application manifests and waits
+for Web/API/worker rollouts. It does <strong>not</strong> update the database image or apply the
+old standalone Citus resources. CI explicitly sets <code>CLICHY_DEPLOY_CONFIRM=yes</code>.</p>
+<p>Both application/migration connections use <code>clichy-postgres-rw</code>. <code>migrate.sh &lt;env&gt;
+status</code> is a Prisma diagnostic; <code>migrate.sh &lt;env&gt; deploy</code> applies pending SQL via
+an ephemeral loopback port-forward. The script validates the Secret's host/base
+without printing its URL and cleans processes/credentials. Loopback forwarding
+uses sslmode=disable for SCRAM; Citus's internal connections use certificates.
+A migration failure prevents application rollout. Applied SQL remains immutable.</p>
+<p>The one-time <code>clichy.io/database-architecture=cnpg-citus-v1</code> Cluster acknowledgement
+is required before a release may proceed. It prevents an ordinary push from
+silently choosing the old, unrelated Test CNPG database. Until the controlled
+cutover below is complete, this explicit refusal is expected.</p>
+<h2 id="controlled-cutover">Controlled cutover<a class="headerlink" href="#controlled-cutover" title="Permanent link">&para;</a></h2>
+<p><strong>Operator procedure, not commands already executed.</strong> Test first, Production only
+after Test restoration, application processing and CNPG switchover are verified.
+The operations below pause service, modify databases/Secrets and may change the
+primary. They require explicit approval, a maintenance window, verified database
+and photos backups, enough disk space, and a clean published checkout. No backup
+has yet been confirmed from valtask. Do not run the whole page unattended.</p>
+<h3 id="1-publish-and-prepare-backups">1. Publish and prepare backups<a class="headerlink" href="#1-publish-and-prepare-backups" title="Permanent link">&para;</a></h3>
+<p>Let CI build/test/package the reviewed commit. Its database image is
+<code>ghcr.io/valatras/clichy-postgres:18.6-citus14.2.0-sha-&lt;commit&gt;</code>.
+The Test deployment is intentionally blocked by the acknowledgement until cutover.
+Do not manually dispatch Production as a shortcut.</p>
+<p>For one environment at a time, start with <code>NS=clichy-test</code> (later <code>clichy-prod</code>).
+Save original replica counts and stop writers; this causes application downtime.
+The zero replica setting suspends HPA activity until explicitly scaled back up.</p>
+<div class="highlight"><pre><span></span><code><span class="nb">set</span><span class="w"> </span>-euo<span class="w"> </span>pipefail
+<span class="nv">NS</span><span class="o">=</span>clichy-test
+<span class="nb">test</span><span class="w"> </span><span class="s2">"</span><span class="k">$(</span>kubectl<span class="w"> </span>get<span class="w"> </span>nodes<span class="w"> </span>-o<span class="w"> </span><span class="s1">'jsonpath={range .items[*]}{.metadata.name}{end}'</span><span class="k">)</span><span class="s2">"</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>valtask<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="o">{</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s1">'Expected only valtask'</span><span class="p">;</span><span class="w"> </span><span class="nb">exit</span><span class="w"> </span><span class="m">1</span><span class="p">;</span><span class="w"> </span><span class="o">}</span>
+<span class="nb">umask</span><span class="w"> </span><span class="m">077</span>
+<span class="nv">BACKUP_DIR</span><span class="o">=</span><span class="s2">"</span><span class="nv">$HOME</span><span class="s2">/clichy-backups/</span><span class="k">$(</span>date<span class="w"> </span>+%Y%m%d-%H%M%S<span class="k">)</span><span class="s2">-</span><span class="nv">$NS</span><span class="s2">"</span>
+mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">"</span><span class="nv">$BACKUP_DIR</span><span class="s2">"</span>
+<span class="nb">printf</span><span class="w"> </span><span class="s1">'%s\n'</span><span class="w"> </span><span class="s2">"</span><span class="nv">$NS</span><span class="s2">"</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">"</span><span class="nv">$BACKUP_DIR</span><span class="s2">/namespace"</span>
+kubectl<span class="w"> </span>get<span class="w"> </span>deployment<span class="w"> </span>clichy-server<span class="w"> </span>clichy-worker<span class="w"> </span>-n<span class="w"> </span><span class="s2">"</span><span class="nv">$NS</span><span class="s2">"</span><span class="w"> </span>-o<span class="w"> </span>yaml<span class="w"> </span>&gt;<span class="w"> </span><span class="s2">"</span><span class="nv">$BACKUP_DIR</span><span class="s2">/writers.yaml"</span>
+kubectl<span class="w"> </span>get<span class="w"> </span>cluster.postgresql.cnpg.io<span class="w"> </span>clichy-postgres<span class="w"> </span>-n<span class="w"> </span><span class="s2">"</span><span class="nv">$NS</span><span class="s2">"</span><span class="w"> </span>-o<span class="w"> </span>yaml<span class="w"> </span>&gt;<span class="w"> </span><span class="s2">"</span><span class="nv">$BACKUP_DIR</span><span class="s2">/cluster.yaml"</span>
+<span class="c1"># Credential backup: protected file only; do not display or share it.</span>
+<span class="nv">secret</span><span class="o">=</span>clichy-server-secrets
+<span class="o">[</span><span class="w"> </span><span class="s2">"</span><span class="nv">$NS</span><span class="s2">"</span><span class="w"> </span>!<span class="o">=</span><span class="w"> </span>clichy-prod<span class="w"> </span><span class="o">]</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nv">secret</span><span class="o">=</span>clichy-prod-secrets
+kubectl<span class="w"> </span>get<span class="w"> </span>secret<span class="w"> </span><span class="s2">"</span><span class="nv">$secret</span><span class="s2">"</span><span class="w"> </span>-n<span class="w"> </span><span class="s2">"</span><span class="nv">$NS</span><span class="s2">"</span><span class="w"> </span>-o<span class="w"> </span>json<span class="w"> </span>&gt;<span class="w"> </span><span class="s2">"</span><span class="nv">$BACKUP_DIR</span><span class="s2">/app-secret.json"</span>
+kubectl<span class="w"> </span>scale<span class="w"> </span>deployment/clichy-server<span class="w"> </span>deployment/clichy-worker<span class="w"> </span>-n<span class="w"> </span><span class="s2">"</span><span class="nv">$NS</span><span class="s2">"</span><span class="w"> </span>--replicas<span class="o">=</span><span class="m">0</span>
+kubectl<span class="w"> </span><span class="nb">wait</span><span class="w"> </span>--for<span class="o">=</span>delete<span class="w"> </span>pod<span class="w"> </span>-n<span class="w"> </span><span class="s2">"</span><span class="nv">$NS</span><span class="s2">"</span><span class="w"> </span>-l<span class="w"> </span><span class="nv">app</span><span class="o">=</span>clichy-server<span class="w"> </span>--timeout<span class="o">=</span>180s
+kubectl<span class="w"> </span><span class="nb">wait</span><span class="w"> </span>--for<span class="o">=</span>delete<span class="w"> </span>pod<span class="w"> </span>-n<span class="w"> </span><span class="s2">"</span><span class="nv">$NS</span><span class="s2">"</span><span class="w"> </span>-l<span class="w"> </span><span class="nv">app</span><span class="o">=</span>clichy-worker<span class="w"> </span>--timeout<span class="o">=</span>180s
+<span class="nv">primary</span><span class="o">=</span><span class="s2">"</span><span class="k">$(</span>kubectl<span class="w"> </span>get<span class="w"> </span>cluster.postgresql.cnpg.io<span class="w"> </span>clichy-postgres<span class="w"> </span>-n<span class="w"> </span><span class="s2">"</span><span class="nv">$NS</span><span class="s2">"</span><span class="w"> </span>-o<span class="w"> </span><span class="s1">'jsonpath={.status.currentPrimary}'</span><span class="k">)</span><span class="s2">"</span>
+<span class="nv">db</span><span class="o">=</span>clichy_test
+<span class="o">[</span><span class="w"> </span><span class="s2">"</span><span class="nv">$NS</span><span class="s2">"</span><span class="w"> </span>!<span class="o">=</span><span class="w"> </span>clichy-prod<span class="w"> </span><span class="o">]</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nv">db</span><span class="o">=</span>clichy_prod
+kubectl<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-n<span class="w"> </span><span class="s2">"</span><span class="nv">$NS</span><span class="s2">"</span><span class="w"> </span><span class="s2">"</span><span class="nv">$primary</span><span class="s2">"</span><span class="w"> </span>-c<span class="w"> </span>postgres<span class="w"> </span>--<span class="w"> </span>pg_dump<span class="w"> </span>-U<span class="w"> </span>postgres<span class="w"> </span>-Fc<span class="w"> </span>-d<span class="w"> </span><span class="s2">"</span><span class="nv">$db</span><span class="s2">"</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">"</span><span class="nv">$BACKUP_DIR</span><span class="s2">/cnpg.dump"</span>
+<span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span><span class="s2">"</span><span class="nv">$NS</span><span class="s2">"</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>clichy-test<span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<span class="w">  </span>kubectl<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-n<span class="w"> </span><span class="s2">"</span><span class="nv">$NS</span><span class="s2">"</span><span class="w"> </span>deployment/clichy-citus<span class="w"> </span>-c<span class="w"> </span>postgres<span class="w"> </span>--<span class="w"> </span>pg_dump<span class="w"> </span>-U<span class="w"> </span>clichy<span class="w"> </span>-Fc<span class="w"> </span>-d<span class="w"> </span>clichy_test<span class="w"> </span>&gt;<span class="w"> </span><span class="s2">"</span><span class="nv">$BACKUP_DIR</span><span class="s2">/active-citus.dump"</span>
+<span class="k">fi</span>
 </code></pre></div>
-<p>The script requires exactly one node named valtask, a valid SHA tag matching
-HEAD, ready CNPG and isolated namespace Secrets. Test also prepares/waits for
-Citus. Production checks Secret keys and the GHCR pull-secret type. It runs
-<code>migrate.sh</code>, renders exact-SHA Kustomize images, applies them, waits for Web/API/
-worker rollouts and cleans temporary files. CI uses <code>CLICHY_DEPLOY_CONFIRM=yes</code>
-as explicit non-interactive confirmation; omit it for manual use.</p>
-<p>Migration failure stops application deployment. Deployment failure is not an
-automatic rollback: old/new Pods may coexist and applied database changes remain.
-Use backward-compatible expand/contract migrations and investigate before retrying.</p>
-<h2 id="migration-commands">Migration commands<a class="headerlink" href="#migration-commands" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>Command</th>
-<th>Impact</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>pnpm db:migrate</code></td>
-<td>Local <code>prisma migrate dev</code>; may create/apply SQL</td>
-</tr>
-<tr>
-<td><code>./infra/kubernetes/scripts/migrate.sh test status</code></td>
-<td>Read-only Prisma diagnostic through a temporary local port-forward</td>
-</tr>
-<tr>
-<td><code>./infra/kubernetes/scripts/migrate.sh prod status</code></td>
-<td>Same, against Production CNPG</td>
-</tr>
-<tr>
-<td><code>./infra/kubernetes/scripts/migrate.sh test deploy</code></td>
-<td>Apply pending versioned migrations to Test</td>
-</tr>
-<tr>
-<td><code>./infra/kubernetes/scripts/migrate.sh prod deploy</code></td>
-<td>Apply pending versioned migrations to Production</td>
-</tr>
-</tbody>
-</table>
-<p>Prefer <code>deploy.sh</code> for a release so migration and image ordering remain coupled.
-The migration script verifies relevant source cleanliness, workflow SHA when
-present, valtask, the environment Service and database name. It reads that
-namespace's Secret without printing the URL, opens a loopback-only ephemeral
-port-forward, probes PostgreSQL, runs Prisma and cleans credentials/processes.
-The loopback forwarding connection explicitly disables TLS; it is not a public
-PostgreSQL listener. <code>status</code> can exit nonzero for pending/failed history.</p>
-<p>Citus distribution is now part of migration history, not a second post-migration
-registration script. Existing correct shards/data are retained. A fresh Test
-volume gets the extension from its pinned image and distribution from migrations.
-Other database names skip the Citus migration; see <a href="../../infrastructure/databases/">databases</a>.
-Never edit applied SQL, reset a deployed database, or mark an unexplained failed
-migration applied. The historical one-off resolve command was removed; resolve
-new incidents only after inspecting their actual state.</p>
-<h2 id="observe-the-result">Observe the result<a class="headerlink" href="#observe-the-result" title="Permanent link">&para;</a></h2>
-<p>Run the environment <a href="../scripts/#healthchecks">healthcheck</a>, inspect workflow
-logs and perform a separate authenticated upload smoke test in Test if needed.
-The healthcheck does not validate end-to-end uploads or zero downtime.</p>
-<p>The first Test rollout of this simplification removes obsolete SQL mounts and
-restarts the Citus Pod under its existing <code>Recreate</code> strategy. Its PVC is reused;
-there may be a short Test database interruption. Old generated ConfigMaps are
-not pruned automatically. The pending registration migration is a no-op for an
-already-correct layout and for non-Test databases; it is still recorded by Prisma.
-No manual repair or volume recreation is required.</p>
+<p>Stop on any failed command; never treat a partial dump as a backup. Both Test
+sources must be backed up: the inactive CNPG database has a distinct row/history.
+The active Citus dump is the source for the new application database.</p>
+<p>Back up the quiesced photos volume through a temporary read-only Pod. This Pod
+uses the already-deployed application image, contains no application Secret env,
+and is deleted afterwards; the PVC is never deleted.</p>
+<div class="highlight"><pre><span></span><code><span class="nv">image</span><span class="o">=</span><span class="s2">"</span><span class="k">$(</span>kubectl<span class="w"> </span>get<span class="w"> </span>deployment<span class="w"> </span>clichy-server<span class="w"> </span>-n<span class="w"> </span><span class="s2">"</span><span class="nv">$NS</span><span class="s2">"</span><span class="w"> </span>-o<span class="w"> </span><span class="s1">'jsonpath={.spec.template.spec.containers[0].image}'</span><span class="k">)</span><span class="s2">"</span>
+kubectl<span class="w"> </span>run<span class="w"> </span>photo-backup<span class="w"> </span>-n<span class="w"> </span><span class="s2">"</span><span class="nv">$NS</span><span class="s2">"</span><span class="w"> </span>--image<span class="o">=</span><span class="s2">"</span><span class="nv">$image</span><span class="s2">"</span><span class="w"> </span>--restart<span class="o">=</span>Never<span class="w"> </span>--override-type<span class="o">=</span>strategic<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--overrides<span class="o">=</span><span class="s1">'{"spec":{"imagePullSecrets":[{"name":"ghcr-pull-secret"}],"securityContext":{"runAsNonRoot":true,"runAsUser":10001,"runAsGroup":2000,"supplementalGroups":[1000]},"containers":[{"name":"photo-backup","volumeMounts":[{"name":"photos","mountPath":"/data/photos","readOnly":true}]}],"volumes":[{"name":"photos","persistentVolumeClaim":{"claimName":"clichy-server-photos","readOnly":true}}]}}'</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--command<span class="w"> </span>--<span class="w"> </span>sleep<span class="w"> </span><span class="m">3600</span>
+kubectl<span class="w"> </span><span class="nb">wait</span><span class="w"> </span>pod/photo-backup<span class="w"> </span>-n<span class="w"> </span><span class="s2">"</span><span class="nv">$NS</span><span class="s2">"</span><span class="w"> </span>--for<span class="o">=</span><span class="nv">condition</span><span class="o">=</span>Ready<span class="w"> </span>--timeout<span class="o">=</span>120s
+kubectl<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-n<span class="w"> </span><span class="s2">"</span><span class="nv">$NS</span><span class="s2">"</span><span class="w"> </span>photo-backup<span class="w"> </span>--<span class="w"> </span>tar<span class="w"> </span>-C<span class="w"> </span>/data/photos<span class="w"> </span>-cf<span class="w"> </span>-<span class="w"> </span>.<span class="w"> </span>&gt;<span class="w"> </span><span class="s2">"</span><span class="nv">$BACKUP_DIR</span><span class="s2">/photos.tar"</span>
+kubectl<span class="w"> </span>delete<span class="w"> </span>pod<span class="w"> </span>photo-backup<span class="w"> </span>-n<span class="w"> </span><span class="s2">"</span><span class="nv">$NS</span><span class="s2">"</span><span class="w"> </span>--wait<span class="o">=</span><span class="nb">true</span>
+tar<span class="w"> </span>-tf<span class="w"> </span><span class="s2">"</span><span class="nv">$BACKUP_DIR</span><span class="s2">/photos.tar"</span><span class="w"> </span>&gt;/dev/null
+kubectl<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-i<span class="w"> </span>-n<span class="w"> </span><span class="s2">"</span><span class="nv">$NS</span><span class="s2">"</span><span class="w"> </span><span class="s2">"</span><span class="nv">$primary</span><span class="s2">"</span><span class="w"> </span>-c<span class="w"> </span>postgres<span class="w"> </span>--<span class="w"> </span>pg_restore<span class="w"> </span>--list<span class="w"> </span>&lt;<span class="w"> </span><span class="s2">"</span><span class="nv">$BACKUP_DIR</span><span class="s2">/cnpg.dump"</span><span class="w"> </span>&gt;/dev/null
+<span class="o">(</span><span class="nb">cd</span><span class="w"> </span><span class="s2">"</span><span class="nv">$BACKUP_DIR</span><span class="s2">"</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>sha256sum<span class="w"> </span>*.dump<span class="w"> </span>photos.tar<span class="w"> </span>&gt;<span class="w"> </span>SHA256SUMS<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>sha256sum<span class="w"> </span>-c<span class="w"> </span>SHA256SUMS<span class="o">)</span>
+</code></pre></div>
+<p>Archive listing/checksums do not replace a restore rehearsal. Copy/encrypt the
+backups off valtask and verify restoration before proceeding. If the window is
+aborted, restore the original writer replica counts; no database cutover has
+occurred. Do not restore Secrets or whole workload YAML blindly onto newer state.</p>
+<h3 id="2-prepare-the-citus-capable-cnpg-image">2. Prepare the Citus-capable CNPG image<a class="headerlink" href="#2-prepare-the-citus-capable-cnpg-image" title="Permanent link">&para;</a></h3>
+<p>Keep writers stopped. From the clean checkout that CI packaged, render and
+<strong>server-dry-run</strong> only the database overlay, then inspect the result. Applying it
+is a separate approved operation: it updates images/configuration and restarts
+instances, preserving their existing PVCs. Acknowledge the existing Kubernetes
+1.37/CNPG support limitation separately; do not weaken the installer gate.</p>
+<div class="highlight"><pre><span></span><code><span class="nb">test</span><span class="w"> </span><span class="s2">"</span><span class="k">$(</span>cat<span class="w"> </span><span class="s2">"</span><span class="nv">$BACKUP_DIR</span><span class="s2">/namespace"</span><span class="k">)</span><span class="s2">"</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"</span><span class="nv">$NS</span><span class="s2">"</span>
+<span class="nv">env_name</span><span class="o">=</span><span class="s2">"</span><span class="si">${</span><span class="nv">NS</span><span class="p">#clichy-</span><span class="si">}</span><span class="s2">"</span>
+<span class="nv">release_sha</span><span class="o">=</span><span class="s2">"</span><span class="k">$(</span>git<span class="w"> </span>rev-parse<span class="w"> </span>HEAD<span class="k">)</span><span class="s2">"</span>
+<span class="nb">test</span><span class="w"> </span>-z<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>git<span class="w"> </span>status<span class="w"> </span>--porcelain<span class="k">)</span><span class="s2">"</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="o">{</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s1">'Use a clean reviewed checkout'</span><span class="p">;</span><span class="w"> </span><span class="nb">exit</span><span class="w"> </span><span class="m">1</span><span class="p">;</span><span class="w"> </span><span class="o">}</span>
+kubectl<span class="w"> </span>kustomize<span class="w"> </span><span class="s2">"infra/kubernetes/overlays/</span><span class="nv">$env_name</span><span class="s2">/database"</span><span class="w"> </span><span class="p">|</span>
+<span class="w">  </span>sed<span class="w"> </span><span class="s2">"s/REPLACE_WITH_TESTED_GIT_SHA/</span><span class="nv">$release_sha</span><span class="s2">/g"</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">"</span><span class="nv">$BACKUP_DIR</span><span class="s2">/database-target.yaml"</span>
+kubectl<span class="w"> </span>apply<span class="w"> </span>--dry-run<span class="o">=</span>server<span class="w"> </span>-f<span class="w"> </span><span class="s2">"</span><span class="nv">$BACKUP_DIR</span><span class="s2">/database-target.yaml"</span>
+<span class="c1"># Only after reviewing the dry-run and approving the rolling database update:</span>
+kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span><span class="s2">"</span><span class="nv">$BACKUP_DIR</span><span class="s2">/database-target.yaml"</span>
+kubectl<span class="w"> </span><span class="nb">wait</span><span class="w"> </span>-n<span class="w"> </span><span class="s2">"</span><span class="nv">$NS</span><span class="s2">"</span><span class="w"> </span>--for<span class="o">=</span><span class="nv">condition</span><span class="o">=</span>Ready<span class="w"> </span>cluster.postgresql.cnpg.io/clichy-postgres<span class="w"> </span>--timeout<span class="o">=</span>900s
+<span class="nv">primary</span><span class="o">=</span><span class="s2">"</span><span class="k">$(</span>kubectl<span class="w"> </span>get<span class="w"> </span>cluster.postgresql.cnpg.io<span class="w"> </span>clichy-postgres<span class="w"> </span>-n<span class="w"> </span><span class="s2">"</span><span class="nv">$NS</span><span class="s2">"</span><span class="w"> </span>-o<span class="w"> </span><span class="s1">'jsonpath={.status.currentPrimary}'</span><span class="k">)</span><span class="s2">"</span>
+kubectl<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-n<span class="w"> </span><span class="s2">"</span><span class="nv">$NS</span><span class="s2">"</span><span class="w"> </span><span class="s2">"</span><span class="nv">$primary</span><span class="s2">"</span><span class="w"> </span>-c<span class="w"> </span>postgres<span class="w"> </span>--<span class="w"> </span>psql<span class="w"> </span>-X<span class="w"> </span>-U<span class="w"> </span>postgres<span class="w"> </span>-d<span class="w"> </span>postgres<span class="w"> </span>-c<span class="w"> </span><span class="s2">"SHOW shared_preload_libraries; SELECT application_name,state FROM pg_stat_replication; SELECT rolname,rolsuper,rolreplication FROM pg_roles WHERE rolname='clichy';"</span>
+</code></pre></div>
+<p>The last output must show Citus first, a streaming standby and a non-superuser/non-replication clichy role. Stop if those conditions differ; role changes are not automatic. Verify actual
+operator-generated certificates and loopback authentication during restoration.
+Do not proceed on an admission, image, preload or replication error.</p>
+<h3 id="3-test-import-without-overwriting-the-old-cnpg-database">3. Test: import without overwriting the old CNPG database<a class="headerlink" href="#3-test-import-without-overwriting-the-old-cnpg-database" title="Permanent link">&para;</a></h3>
+<p>Create a new staging database; an existing name causes a safe stop. Restore the
+<strong>active Citus</strong> archive as postgres, preserving object ownership and every Prisma
+history row. The existing clichy role stays non-superuser; pg_dump does not restore
+role attributes. Do not run Prisma migrations while the staging name is in use:
+environment-guarded SQL must run only after the canonical name is restored.</p>
+<p>First verify that the two existing namespace credentials agree, without displaying
+them. A mismatch requires diagnosis before renaming databases or changing Secrets:</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>secret<span class="w"> </span>clichy-server-secrets<span class="w"> </span>clichy-postgres-app<span class="w"> </span>-n<span class="w"> </span>clichy-test<span class="w"> </span>-o<span class="w"> </span>json<span class="w"> </span><span class="p">|</span>
+python3<span class="w"> </span>-c<span class="w"> </span><span class="s1">'</span>
+<span class="s1">import base64,json,sys</span>
+<span class="s1">from urllib.parse import urlsplit,unquote</span>
+<span class="s1">items={x["metadata"]["name"]:x["data"] for x in json.load(sys.stdin)["items"]}</span>
+<span class="s1">u=urlsplit(base64.b64decode(items["clichy-server-secrets"]["DATABASE_URL"]).decode())</span>
+<span class="s1">p=base64.b64decode(items["clichy-postgres-app"]["password"]).decode()</span>
+<span class="s1">assert u.username=="clichy" and unquote(u.password or "")==p, "Credential mismatch: stop; no values displayed"</span>
+<span class="s1">print("PASS namespace credential consistency")'</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="nb">test</span><span class="w"> </span><span class="s2">"</span><span class="nv">$NS</span><span class="s2">"</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>clichy-test
+<span class="nb">test</span><span class="w"> </span><span class="s2">"</span><span class="k">$(</span>cat<span class="w"> </span><span class="s2">"</span><span class="nv">$BACKUP_DIR</span><span class="s2">/namespace"</span><span class="k">)</span><span class="s2">"</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"</span><span class="nv">$NS</span><span class="s2">"</span>
+kubectl<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-n<span class="w"> </span>clichy-test<span class="w"> </span><span class="s2">"</span><span class="nv">$primary</span><span class="s2">"</span><span class="w"> </span>-c<span class="w"> </span>postgres<span class="w"> </span>--<span class="w"> </span>createdb<span class="w"> </span>-U<span class="w"> </span>postgres<span class="w"> </span>-O<span class="w"> </span>clichy<span class="w"> </span>clichy_test_import
+kubectl<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-n<span class="w"> </span>clichy-test<span class="w"> </span><span class="s2">"</span><span class="nv">$primary</span><span class="s2">"</span><span class="w"> </span>-c<span class="w"> </span>postgres<span class="w"> </span>--<span class="w"> </span>psql<span class="w"> </span>-X<span class="w"> </span>-U<span class="w"> </span>postgres<span class="w"> </span>-d<span class="w"> </span>clichy_test_import<span class="w"> </span>-v<span class="w"> </span><span class="nv">ON_ERROR_STOP</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>-c<span class="w"> </span><span class="s1">'CREATE EXTENSION citus;'</span>
+kubectl<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-i<span class="w"> </span>-n<span class="w"> </span>clichy-test<span class="w"> </span><span class="s2">"</span><span class="nv">$primary</span><span class="s2">"</span><span class="w"> </span>-c<span class="w"> </span>postgres<span class="w"> </span>--<span class="w"> </span>pg_restore<span class="w"> </span>-U<span class="w"> </span>postgres<span class="w"> </span>--exit-on-error<span class="w"> </span>-d<span class="w"> </span>clichy_test_import<span class="w"> </span>&lt;<span class="w"> </span><span class="s2">"</span><span class="nv">$BACKUP_DIR</span><span class="s2">/active-citus.dump"</span>
+kubectl<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-n<span class="w"> </span>clichy-test<span class="w"> </span><span class="s2">"</span><span class="nv">$primary</span><span class="s2">"</span><span class="w"> </span>-c<span class="w"> </span>postgres<span class="w"> </span>--<span class="w"> </span>psql<span class="w"> </span>-X<span class="w"> </span>-U<span class="w"> </span>postgres<span class="w"> </span>-d<span class="w"> </span>clichy_test_import<span class="w"> </span>-c<span class="w"> </span><span class="s1">'SELECT count(*) FROM "Photo"; SELECT migration_name,finished_at,rolled_back_at FROM "_prisma_migrations" ORDER BY migration_name;'</span>
+</code></pre></div>
+<p>Compare counts, all migration rows (including the rolled-back attempt) and keys/FKs
+with the source. A logical pg_dump restores ordinary tables and their rows, <strong>not
+Citus distribution catalogs</strong>. Do not claim sharding is restored at this point:
+the still-pending new migration will register the restored tables after the
+canonical name switch. Original source tables/shards remain untouched. Retain the old Test CNPG database and
+its one-row dataset under a different name. The following switch terminates
+connections to both Test databases; no rows, tables or PVCs are dropped.</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-i<span class="w"> </span>-n<span class="w"> </span>clichy-test<span class="w"> </span><span class="s2">"</span><span class="nv">$primary</span><span class="s2">"</span><span class="w"> </span>-c<span class="w"> </span>postgres<span class="w"> </span>--<span class="w"> </span>psql<span class="w"> </span>-X<span class="w"> </span>-U<span class="w"> </span>postgres<span class="w"> </span>-d<span class="w"> </span>postgres<span class="w"> </span>-v<span class="w"> </span><span class="nv">ON_ERROR_STOP</span><span class="o">=</span><span class="m">1</span><span class="w"> </span><span class="s">&lt;&lt;'SQL'</span>
+<span class="s">DO $$ BEGIN IF EXISTS(SELECT 1 FROM pg_database WHERE datname='clichy_test_before_unify') THEN RAISE EXCEPTION 'Retained database name already exists; inspect first'; END IF; END $$;</span>
+<span class="s">ALTER DATABASE clichy_test ALLOW_CONNECTIONS false;</span>
+<span class="s">ALTER DATABASE clichy_test_import ALLOW_CONNECTIONS false;</span>
+<span class="s">SELECT pg_terminate_backend(pid,10000) FROM pg_stat_activity WHERE datname IN ('clichy_test','clichy_test_import');</span>
+<span class="s">ALTER DATABASE clichy_test RENAME TO clichy_test_before_unify;</span>
+<span class="s">ALTER DATABASE clichy_test_import RENAME TO clichy_test;</span>
+<span class="s">ALTER DATABASE clichy_test ALLOW_CONNECTIONS true;</span>
+<span class="s">SQL</span>
+</code></pre></div>
+<p>Update only Test's Secret database hostname, preserving credentials and database
+name. The JSON patch flows directly into kubectl; do not add shell tracing or
+print intermediate values. Keep the protected Secret backup for rollback.</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>secret<span class="w"> </span>clichy-server-secrets<span class="w"> </span>-n<span class="w"> </span>clichy-test<span class="w"> </span>-o<span class="w"> </span>json<span class="w"> </span><span class="p">|</span>
+python3<span class="w"> </span>-c<span class="w"> </span><span class="s1">'</span>
+<span class="s1">import base64,json,sys</span>
+<span class="s1">from urllib.parse import urlsplit,urlunsplit</span>
+<span class="s1">s=json.load(sys.stdin); u=urlsplit(base64.b64decode(s["data"]["DATABASE_URL"]).decode())</span>
+<span class="s1">assert u.scheme in ("postgres","postgresql") and u.hostname == "clichy-citus-rw" and u.path == "/clichy_test" and u.username == "clichy" and u.password is not None, "Unexpected source endpoint; stop"</span>
+<span class="s1">credentials=u.netloc.rsplit("@",1)[0]</span>
+<span class="s1">value=urlunsplit((u.scheme,credentials+"@clichy-postgres-rw:5432",u.path,u.query,u.fragment))</span>
+<span class="s1">json.dump([{"op":"replace","path":"/data/DATABASE_URL","value":base64.b64encode(value.encode()).decode()}],sys.stdout)</span>
+<span class="s1">'</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>kubectl<span class="w"> </span>patch<span class="w"> </span>secret<span class="w"> </span>clichy-server-secrets<span class="w"> </span>-n<span class="w"> </span>clichy-test<span class="w"> </span>--type<span class="o">=</span>json<span class="w"> </span>--patch-file<span class="o">=</span>/dev/stdin
+./infra/kubernetes/scripts/migrate.sh<span class="w"> </span><span class="nb">test</span><span class="w"> </span>deploy
+</code></pre></div>
+<p>The new migration must now establish the 32 colocated shards without changing
+row counts or prior history. The original Citus shard IDs need not be the IDs
+allocated in this new logical copy. Once established, <strong>WAL promotion</strong> must
+preserve the target's shard IDs; do not confuse these two kinds of transition.</p>
+<h3 id="4-production-preserve-the-database-and-align-its-schema">4. Production: preserve the database and align its schema<a class="headerlink" href="#4-production-preserve-the-database-and-align-its-schema" title="Permanent link">&para;</a></h3>
+<p>Only after Test's checkpoints succeed, repeat backup/write-pause/image preparation
+for NS=clichy-prod. Its endpoint already uses CNPG; no import or Secret host change
+is needed. Existing-cluster bootstrap SQL is not rerun, so create the extension
+explicitly, then apply the new additive migration as the non-superuser application
+role through the existing helper:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">test</span><span class="w"> </span><span class="s2">"</span><span class="nv">$NS</span><span class="s2">"</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>clichy-prod
+<span class="nb">test</span><span class="w"> </span><span class="s2">"</span><span class="k">$(</span>cat<span class="w"> </span><span class="s2">"</span><span class="nv">$BACKUP_DIR</span><span class="s2">/namespace"</span><span class="k">)</span><span class="s2">"</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"</span><span class="nv">$NS</span><span class="s2">"</span>
+kubectl<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-n<span class="w"> </span>clichy-prod<span class="w"> </span><span class="s2">"</span><span class="nv">$primary</span><span class="s2">"</span><span class="w"> </span>-c<span class="w"> </span>postgres<span class="w"> </span>--<span class="w"> </span>psql<span class="w"> </span>-X<span class="w"> </span>-U<span class="w"> </span>postgres<span class="w"> </span>-d<span class="w"> </span>clichy_prod<span class="w"> </span>-v<span class="w"> </span><span class="nv">ON_ERROR_STOP</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>-c<span class="w"> </span><span class="s1">'CREATE EXTENSION IF NOT EXISTS citus;'</span>
+./infra/kubernetes/scripts/migrate.sh<span class="w"> </span>prod<span class="w"> </span>deploy
+</code></pre></div>
+<p>Production conversion takes table locks and redistributes rows into new logical
+shards within its transaction. Downtime is intentional; no zero-downtime promise
+is made. Null owners are backfilled; irreconcilable rows or unexpected node metadata
+stop the migration. Do not mark it applied blindly or modify historical SQL.</p>
+<h3 id="5-verify-resume-and-acknowledge">5. Verify, resume and acknowledge<a class="headerlink" href="#5-verify-resume-and-acknowledge" title="Permanent link">&para;</a></h3>
+<p>Restore the original writer replica counts (normally one each), then run the
+healthcheck from this checkout. Test also needs an authenticated photo upload,
+processing/thumbnail check, and a controlled CNPG switchover before Production.
+The switchover command requires the official kubectl CNPG plugin and explicit
+approval: it changes leadership, drops existing connections and may lose unreceived
+async commits if treated as forced failover. Pause writes and verify catch-up first.</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>scale<span class="w"> </span>deployment/clichy-server<span class="w"> </span>deployment/clichy-worker<span class="w"> </span>-n<span class="w"> </span><span class="s2">"</span><span class="nv">$NS</span><span class="s2">"</span><span class="w"> </span>--replicas<span class="o">=</span><span class="m">1</span>
+./infra/kubernetes/scripts/healthcheck.sh<span class="w"> </span><span class="s2">"</span><span class="si">${</span><span class="nv">NS</span><span class="p">#clichy-</span><span class="si">}</span><span class="s2">"</span>
+<span class="c1"># Approved Test-only controlled switchover, after replica catch-up:</span>
+kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-n<span class="w"> </span>clichy-test<span class="w"> </span>-l<span class="w"> </span>cnpg.io/cluster<span class="o">=</span>clichy-postgres<span class="w"> </span>-L<span class="w"> </span>cnpg.io/instanceRole
+<span class="nv">standby</span><span class="o">=</span><span class="s2">"</span><span class="k">$(</span>kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-n<span class="w"> </span>clichy-test<span class="w"> </span>-l<span class="w"> </span>cnpg.io/cluster<span class="o">=</span>clichy-postgres,cnpg.io/instanceRole<span class="o">=</span>replica<span class="w"> </span>-o<span class="w"> </span><span class="s1">'jsonpath={.items[0].metadata.name}'</span><span class="k">)</span><span class="s2">"</span>
+<span class="nb">test</span><span class="w"> </span>-n<span class="w"> </span><span class="s2">"</span><span class="nv">$standby</span><span class="s2">"</span>
+kubectl<span class="w"> </span>cnpg<span class="w"> </span>promote<span class="w"> </span>clichy-postgres<span class="w"> </span><span class="s2">"</span><span class="nv">$standby</span><span class="s2">"</span><span class="w"> </span>-n<span class="w"> </span>clichy-test
+kubectl<span class="w"> </span><span class="nb">wait</span><span class="w"> </span>-n<span class="w"> </span>clichy-test<span class="w"> </span>--for<span class="o">=</span><span class="s2">"jsonpath={.status.currentPrimary}=</span><span class="nv">$standby</span><span class="s2">"</span><span class="w"> </span>cluster.postgresql.cnpg.io/clichy-postgres<span class="w"> </span>--timeout<span class="o">=</span>900s
+kubectl<span class="w"> </span><span class="nb">wait</span><span class="w"> </span>-n<span class="w"> </span>clichy-test<span class="w"> </span>--for<span class="o">=</span><span class="nv">condition</span><span class="o">=</span>Ready<span class="w"> </span>cluster.postgresql.cnpg.io/clichy-postgres<span class="w"> </span>--timeout<span class="o">=</span>900s
+./infra/kubernetes/scripts/healthcheck.sh<span class="w"> </span><span class="nb">test</span>
+<span class="c1"># Only after data/history, application and certificate checks pass:</span>
+kubectl<span class="w"> </span>annotate<span class="w"> </span>cluster.postgresql.cnpg.io<span class="w"> </span>clichy-postgres<span class="w"> </span>-n<span class="w"> </span><span class="s2">"</span><span class="nv">$NS</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>clichy.io/database-architecture<span class="o">=</span>cnpg-citus-v1<span class="w"> </span>--overwrite
+</code></pre></div>
+<p>Confirm primary name changed, the -rw Service follows it, shard IDs/row counts/FKs
+are unchanged, streaming resumes, and reads/writes/processing work. Record the
+actual evidence: the healthcheck does not perform this test. A controlled
+switchover is not an automatic failure-recovery demonstration. Once acknowledged,
+rerun the failed Test deployment job. Production remains a separate manual action.</p>
+<p>After <strong>successful, operator-confirmed Test cutover</strong>, retire the old standalone
+Deployment/Service and remove <code>infra/kubernetes/citus</code> from the active repository.
+Those four files are currently retained for rollback and are no longer referenced
+by normal deployment. Do not remove its PVC, the retained Test database or backups.
+No automatic pruning is enabled. After that explicit checkpoint, cluster cleanup
+can remove only the two obsolete resources (never <code>kubectl delete -k</code>, which would
+also delete the PVC):</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>delete<span class="w"> </span>deployment/clichy-citus<span class="w"> </span>service/clichy-citus-rw<span class="w"> </span>-n<span class="w"> </span>clichy-test
+</code></pre></div>
+<p>Repository cleanup is a subsequent reviewed source change, after the operator
+confirms migration/rollback validation; do not edit the clean server checkout in
+place or delete the retained claim.</p>
+<h2 id="rollback">Rollback<a class="headerlink" href="#rollback" title="Permanent link">&para;</a></h2>
+<p>Before schema conversion, an error means stop and inspect; preserve all backups
+and original connection details. If a rename step is interrupted, inspect the
+existing names and ALLOW_CONNECTIONS flags before enabling the intended database.</p>
+<p>A failed transactional migration rolls back its DDL/data changes, but Prisma may
+record a failed attempt. Diagnose first; use Prisma resolve only for the specific
+inspected failure, not an old hard-coded repair.</p>
+<p>Before new writes resume, Test can restore its original endpoint without touching
+CNPG data: <code>kubectl apply -f "$BACKUP_DIR/app-secret.json"</code>, keep/restart the old
+Citus Deployment, restore writer counts and remove the acknowledgement with
+<code>kubectl annotate cluster.postgresql.cnpg.io clichy-postgres -n clichy-test clichy.io/database-architecture-</code>.</p>
+<p>After committed Production DDL, retain the Citus-capable image. Restore cnpg.dump
+into a <strong>new</strong> database (created with owner clichy) using the same createdb/pg_restore
+steps above, verify it, pause writers, and perform the same two-database name switch
+from postgres, retaining the failed target under a different unused name. Do not
+use --clean, delete PVCs or downgrade to an image missing Citus while Citus databases
+remain. After any post-cutover writes, restoring an older snapshot would lose
+those writes: reconcile them before choosing rollback. The photos archive belongs
+to the same backup point; never overwrite live photo storage blindly.</p>
+<p>For a Production restore rollback, keep writers at zero and choose unused names:</p>
+<div class="highlight"><pre><span></span><code><span class="nv">NS</span><span class="o">=</span>clichy-prod
+<span class="nv">primary</span><span class="o">=</span><span class="s2">"</span><span class="k">$(</span>kubectl<span class="w"> </span>get<span class="w"> </span>cluster.postgresql.cnpg.io<span class="w"> </span>clichy-postgres<span class="w"> </span>-n<span class="w"> </span><span class="s2">"</span><span class="nv">$NS</span><span class="s2">"</span><span class="w"> </span>-o<span class="w"> </span><span class="s1">'jsonpath={.status.currentPrimary}'</span><span class="k">)</span><span class="s2">"</span>
+kubectl<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-n<span class="w"> </span><span class="s2">"</span><span class="nv">$NS</span><span class="s2">"</span><span class="w"> </span><span class="s2">"</span><span class="nv">$primary</span><span class="s2">"</span><span class="w"> </span>-c<span class="w"> </span>postgres<span class="w"> </span>--<span class="w"> </span>createdb<span class="w"> </span>-U<span class="w"> </span>postgres<span class="w"> </span>-O<span class="w"> </span>clichy<span class="w"> </span>clichy_prod_restore
+kubectl<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-i<span class="w"> </span>-n<span class="w"> </span><span class="s2">"</span><span class="nv">$NS</span><span class="s2">"</span><span class="w"> </span><span class="s2">"</span><span class="nv">$primary</span><span class="s2">"</span><span class="w"> </span>-c<span class="w"> </span>postgres<span class="w"> </span>--<span class="w"> </span>pg_restore<span class="w"> </span>-U<span class="w"> </span>postgres<span class="w"> </span>--exit-on-error<span class="w"> </span>-d<span class="w"> </span>clichy_prod_restore<span class="w"> </span>&lt;<span class="w"> </span><span class="s2">"</span><span class="nv">$BACKUP_DIR</span><span class="s2">/cnpg.dump"</span>
+<span class="c1"># Verify restored counts, keys and migration history BEFORE the name switch.</span>
+kubectl<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-i<span class="w"> </span>-n<span class="w"> </span><span class="s2">"</span><span class="nv">$NS</span><span class="s2">"</span><span class="w"> </span><span class="s2">"</span><span class="nv">$primary</span><span class="s2">"</span><span class="w"> </span>-c<span class="w"> </span>postgres<span class="w"> </span>--<span class="w"> </span>psql<span class="w"> </span>-X<span class="w"> </span>-U<span class="w"> </span>postgres<span class="w"> </span>-d<span class="w"> </span>postgres<span class="w"> </span>-v<span class="w"> </span><span class="nv">ON_ERROR_STOP</span><span class="o">=</span><span class="m">1</span><span class="w"> </span><span class="s">&lt;&lt;'SQL'</span>
+<span class="s">DO $$ BEGIN IF EXISTS(SELECT 1 FROM pg_database WHERE datname='clichy_prod_after_failed_unify') THEN RAISE EXCEPTION 'Retained name exists; inspect first'; END IF; END $$;</span>
+<span class="s">ALTER DATABASE clichy_prod ALLOW_CONNECTIONS false;</span>
+<span class="s">ALTER DATABASE clichy_prod_restore ALLOW_CONNECTIONS false;</span>
+<span class="s">SELECT pg_terminate_backend(pid,10000) FROM pg_stat_activity WHERE datname IN ('clichy_prod','clichy_prod_restore');</span>
+<span class="s">ALTER DATABASE clichy_prod RENAME TO clichy_prod_after_failed_unify;</span>
+<span class="s">ALTER DATABASE clichy_prod_restore RENAME TO clichy_prod;</span>
+<span class="s">ALTER DATABASE clichy_prod ALLOW_CONNECTIONS true;</span>
+<span class="s">SQL</span>
+kubectl<span class="w"> </span>annotate<span class="w"> </span>cluster.postgresql.cnpg.io<span class="w"> </span>clichy-postgres<span class="w"> </span>-n<span class="w"> </span><span class="s2">"</span><span class="nv">$NS</span><span class="s2">"</span><span class="w"> </span>clichy.io/database-architecture-
+<span class="c1"># Restore the original writer counts only after validating the restored database.</span>
+</code></pre></div>
+<h3 id="logical-backups-taken-after-unification">Logical backups taken after unification<a class="headerlink" href="#logical-backups-taken-after-unification" title="Permanent link">&para;</a></h3>
+<p>A post-cutover archive already records migration 20261117140000 as applied, yet
+still does not contain Citus distribution catalogs. A plain restore followed by
+<code>migrate deploy</code> alone is therefore insufficient. On a <strong>restored, isolated copy</strong>
+with its canonical database name, after reviewing the archived schema/version,
+replay the same immutable migration SQL explicitly to reconstruct/validate layout
+without rewriting Prisma history:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># State-changing restore recovery, not routine deployment or healthchecking.</span>
+<span class="c1"># NS, primary and db must identify the reviewed restored copy, with writers paused.</span>
+kubectl<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-i<span class="w"> </span>-n<span class="w"> </span><span class="s2">"</span><span class="nv">$NS</span><span class="s2">"</span><span class="w"> </span><span class="s2">"</span><span class="nv">$primary</span><span class="s2">"</span><span class="w"> </span>-c<span class="w"> </span>postgres<span class="w"> </span>--<span class="w"> </span>psql<span class="w"> </span>-X<span class="w"> </span>-U<span class="w"> </span>postgres<span class="w"> </span>-d<span class="w"> </span><span class="s2">"</span><span class="nv">$db</span><span class="s2">"</span><span class="w"> </span>-v<span class="w"> </span><span class="nv">ON_ERROR_STOP</span><span class="o">=</span><span class="m">1</span><span class="w">   </span>&lt;<span class="w"> </span>packages/db/prisma/migrations/20261117140000_unified_cnpg_citus/migration.sql
+</code></pre></div>
+<p>Verify counts, FKs, ownership, migration history and sharding before resuming.
+This uses the existing versioned SQL, not a second registration script. Never
+replay an old layout against a newer schema without review. Physical backups
+preserve catalogs and shard IDs; a production CNPG backup/recovery provider and
+its restore rehearsal remain operational work, not an automation delivered here.</p>
 
 
 
@@ -1166,7 +1852,7 @@ No manual repair or volume recreation is required.</p>
     
       <script src="../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
-        <script src="https://unpkg.com/mermaid@11/dist/mermaid.min.js"></script>
+        <script src="https://unpkg.com/mermaid@11.17.2/dist/mermaid.min.js"></script>
       
         <script src="../../assets/mermaid-init.js"></script>
       

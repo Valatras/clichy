@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#postgresql-prisma-citus-and-cnpg" class="md-skip">
+        <a href="#postgresql-citus-and-cloudnativepg" class="md-skip">
           Skip to content
         </a>
       
@@ -702,10 +702,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#postgresql-and-prisma" class="md-nav__link">
+  <a href="#architecture-and-rollout-status" class="md-nav__link">
     <span class="md-ellipsis">
       
-        PostgreSQL and Prisma
+        Architecture and rollout status
       
     </span>
   </a>
@@ -713,10 +713,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#citus-test-photo-metadata" class="md-nav__link">
+  <a href="#citus-logical-sharding" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Citus: Test photo metadata
+        Citus: logical sharding
       
     </span>
   </a>
@@ -724,10 +724,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#cloudnativepg-physical-replication" class="md-nav__link">
+  <a href="#image-initialization-and-prisma" class="md-nav__link">
     <span class="md-ellipsis">
       
-        CloudNativePG: physical replication
+        Image, initialization and Prisma
       
     </span>
   </a>
@@ -735,10 +735,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#backups-and-limits" class="md-nav__link">
+  <a href="#replication-failure-and-limits" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Backups and limits
+        Replication, failure and limits
       
     </span>
   </a>
@@ -959,6 +959,345 @@
   
 
     
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisions
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Decisions
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Index
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0001-kubernetes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kubernetes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0002-postgres-prisma/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PostgreSQL and Prisma
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0003-redis-bullmq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Redis and BullMQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0004-citus-experiment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Historical Citus experiment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0005-traefik/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Traefik
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0006-environment-isolation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Environment isolation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0007-replication-sharding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Replication and sharding
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0008-zero-downtime/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Zero-downtime evidence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0009-unified-citus-cnpg/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Unified Citus and CNPG
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
   </ul>
 </nav>
                   </div>
@@ -986,10 +1325,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#postgresql-and-prisma" class="md-nav__link">
+  <a href="#architecture-and-rollout-status" class="md-nav__link">
     <span class="md-ellipsis">
       
-        PostgreSQL and Prisma
+        Architecture and rollout status
       
     </span>
   </a>
@@ -997,10 +1336,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#citus-test-photo-metadata" class="md-nav__link">
+  <a href="#citus-logical-sharding" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Citus: Test photo metadata
+        Citus: logical sharding
       
     </span>
   </a>
@@ -1008,10 +1347,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#cloudnativepg-physical-replication" class="md-nav__link">
+  <a href="#image-initialization-and-prisma" class="md-nav__link">
     <span class="md-ellipsis">
       
-        CloudNativePG: physical replication
+        Image, initialization and Prisma
       
     </span>
   </a>
@@ -1019,10 +1358,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#backups-and-limits" class="md-nav__link">
+  <a href="#replication-failure-and-limits" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Backups and limits
+        Replication, failure and limits
       
     </span>
   </a>
@@ -1049,84 +1388,110 @@
   
 
 
-<h1 id="postgresql-prisma-citus-and-cnpg">PostgreSQL, Prisma, Citus and CNPG<a class="headerlink" href="#postgresql-prisma-citus-and-cnpg" title="Permanent link">&para;</a></h1>
-<h2 id="postgresql-and-prisma">PostgreSQL and Prisma<a class="headerlink" href="#postgresql-and-prisma" title="Permanent link">&para;</a></h2>
-<p><strong>What is it?</strong> PostgreSQL is the relational database; Prisma supplies typed
-queries and versioned SQL migrations. A schema describes tables and constraints.</p>
-<p><strong>Why Clichy uses it</strong> Users, sessions, photo metadata and outbox events need
-consistent transactions. Image bytes remain on the photos volume.</p>
-<p>Schemas and immutable migration history live in <code>packages/db/prisma</code>.
-Use <code>prisma migrate dev</code> locally and <code>prisma migrate deploy</code> for deployed
-environments, through the <a href="../../operations/deployment/">documented entry points</a>.
-Never edit an applied migration or replace its history with <code>db push</code>.</p>
-<h2 id="citus-test-photo-metadata">Citus: Test photo metadata<a class="headerlink" href="#citus-test-photo-metadata" title="Permanent link">&para;</a></h2>
-<p><strong>What is it?</strong> Citus extends PostgreSQL with distributed/reference tables.
-A distribution key selects a hash shard; colocated tables share shard placement.</p>
-<p><strong>Why Clichy uses it</strong> Test demonstrates logical sharding by user, keeping a
-photo and its processing outbox colocated. Production and Dev do not use Citus.</p>
+<h1 id="postgresql-citus-and-cloudnativepg">PostgreSQL, Citus and CloudNativePG<a class="headerlink" href="#postgresql-citus-and-cloudnativepg" title="Permanent link">&para;</a></h1>
+<p><strong>What is it?</strong> PostgreSQL stores relational data; Citus adds logical hash shards.
+CloudNativePG (CNPG) manages the PostgreSQL primary, standby and role Services.</p>
+<p><strong>Why Clichy uses it</strong> Test and Production target the same schema and topology:
+32 photo/outbox shards inside one writable PostgreSQL instance, physically
+replicated to a standby. This combines sharding and replication without worker groups.</p>
+<h2 id="architecture-and-rollout-status">Architecture and rollout status<a class="headerlink" href="#architecture-and-rollout-status" title="Permanent link">&para;</a></h2>
 <pre class="mermaid"><code>flowchart LR
-  App[Test API and worker] --&gt; Citus[One Citus Pod / clichy-citus-rw]
-  Citus --&gt; User[user: reference table]
-  Citus --&gt; Photo[Photo: hash userId / 32 shards]
-  Citus --&gt; Outbox[PhotoProcessingOutbox: hash userId / 32 shards]
-  Photo ---|same colocation ID| Outbox
-  Citus --&gt; PVC[(One data PVC on valtask)]</code></pre>
-<p>The pinned <code>citusdata/citus:14.2.0</code> image initializes its own extension on a fresh
-volume. No repository init/repair ConfigMap is needed. Migration
-<code>20261117130000_register_citus_sharding</code> owns registration: it only acts in
-<code>clichy_test</code>, requires the extension, creates missing registrations and checks
-the expected layout in one transaction. Existing correct shards are left intact;
-incorrect existing registrations fail without automatic conversion. Future
-sharding changes belong in new migrations, not a second post-deploy SQL mechanism.</p>
-<p><code>user</code> is a reference table (<code>n/t</code>, one shard); Photo/outbox use <code>hash(userId)</code>,
-32 shards each and the same positive colocation ID. Primary/unique keys include
-<code>userId</code>; the outbox FK is <code>(userId, photoId) -&gt; Photo(userId, id)</code>. Photo-to-user
-delete is <code>RESTRICT</code>, outbox-to-photo delete is <code>CASCADE</code>; both updates are
-<code>RESTRICT</code>, since shard keys are immutable. Application jobs/queries carry <code>userId</code>.</p>
-<p>This is one PostgreSQL process on one host, not multi-node scale-out or HA.
-The <a href="../../operations/scripts/#healthchecks">healthcheck</a> checks layout and FKs
-without executing migrations. For detailed metadata inspection:</p>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-i<span class="w"> </span>-n<span class="w"> </span>clichy-test<span class="w"> </span>deployment/clichy-citus<span class="w"> </span>--<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>env<span class="w"> </span><span class="nv">PGOPTIONS</span><span class="o">=</span><span class="s1">'-c default_transaction_read_only=on -c statement_timeout=10000'</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>psql<span class="w"> </span>-X<span class="w"> </span>-U<span class="w"> </span>clichy<span class="w"> </span>-d<span class="w"> </span>clichy_test<span class="w"> </span><span class="s">&lt;&lt;'SQL'</span>
-<span class="s">SELECT logicalrelid::regclass, partmethod, repmodel, colocationid,</span>
-<span class="s">       CASE WHEN partmethod = 'h' THEN column_to_column_name(logicalrelid, partkey) END AS key</span>
-<span class="s">FROM pg_dist_partition;</span>
-<span class="s">SELECT logicalrelid::regclass, count(*) FROM pg_dist_shard GROUP BY logicalrelid;</span>
-<span class="s">SQL</span>
-</code></pre></div>
-<p>A one-task <code>EXPLAIN</code> alone does not prove hash distribution. Scope routing
-queries by <code>userId</code>; inspect catalog metadata to distinguish local/reference
-registrations from hash shards.</p>
-<h2 id="cloudnativepg-physical-replication">CloudNativePG: physical replication<a class="headerlink" href="#cloudnativepg-physical-replication" title="Permanent link">&para;</a></h2>
-<p><strong>What is it?</strong> CNPG is a Kubernetes operator managing PostgreSQL primary/replica
-Pods and failover. PostgreSQL streams WAL (write-ahead log) to a standby.</p>
-<p><strong>Why Clichy uses it</strong> Dev/Production use its primary Service directly, while
-Test retains a separate CNPG cluster for replication exercises. CNPG does not
-replicate Test's Citus database.</p>
-<pre class="mermaid"><code>flowchart LR
-  App[Dev / Production application] --&gt; RW[clichy-postgres-rw Service]
-  RW --&gt; Primary[Primary Pod and PVC]
-  Primary --&gt;|Asynchronous WAL streaming| Replica[Replica Pod and separate PVC]
-  Operator[CNPG operator] -. reconciles and promotes .-&gt; Primary
-  Operator -. supervises .-&gt; Replica</code></pre>
-<p><code>cnpg/cluster.yaml</code> declares two PostgreSQL instances with preferred anti-affinity
-and asynchronous streaming (<code>minSyncReplicas: 0</code>, <code>maxSyncReplicas: 0</code>). Both run
-on the same host. Writes do not wait for standby acknowledgement, so failover
-can lose recent transactions. The operator updates the <code>-rw</code> Service after
-promotion; the app has no replica-read routing.</p>
-<p>Check live roles using <code>kubectl get pods -n clichy-prod -l cnpg.io/cluster=clichy-postgres -L cnpg.io/instanceRole</code>.
-On the primary, <code>SELECT application_name, state, sync_state FROM pg_stat_replication;</code>
-shows senders. The Production healthcheck observes a streaming standby; neither
-that observation nor Ready status demonstrates failover or zero data loss.
-The optional <code>kubectl cnpg status</code> command requires a separate plugin.</p>
-<h2 id="backups-and-limits">Backups and limits<a class="headerlink" href="#backups-and-limits" title="Permanent link">&para;</a></h2>
-<p>There is no tested backup/restore automation. Database replicas, Redis AOF and
-PV <code>Retain</code> do not protect against accidental deletion or loss of valtask.
-A verified backup must coordinate PostgreSQL metadata with original/derivative
-files and be restored into an isolated target. Do not delete PVCs, redistribute
-existing tables or resolve failed migrations blindly. Historical repairs remain
-available in Git history rather than in normal deployment manifests.</p>
+  App[API / Prisma / worker] --&gt; RW[CNPG read-write Service]
+  RW --&gt; Primary[Primary: PostgreSQL 18.6 + Citus 14.2]
+  Primary --&gt; Shards[Photo and outbox: 32 shards each on userId]
+  Primary --&gt; Users[user: reference table]
+  Primary --&gt;|WAL: rows, shard tables and Citus catalogs| Standby[Standby: same Citus binaries and replicated shards]
+  Primary --&gt; PV1[(Primary PVC)]
+  Standby --&gt; PV2[(Standby PVC)]
+  Operator[CNPG 1.30.1] -. supervises and promotes .-&gt; Standby</code></pre>
+<p>This is the <strong>repository target</strong>, not a claim that cutover already happened.
+The operator's 2026-11-17 read-only output confirmed:</p>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Observed state before cutover</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Active Test</td>
+<td>Standalone PostgreSQL 18.4/Citus 14.2; correct 32 colocated shards; zero users/photos/outbox rows</td>
+</tr>
+<tr>
+<td>Existing Test CNPG</td>
+<td>PostgreSQL 18.6, two streaming instances; a different database with one user/photo/outbox row and three migrations</td>
+</tr>
+<tr>
+<td>Production</td>
+<td>PostgreSQL 18.6, two streaming CNPG instances; no Citus; zero users/photos/outbox rows; single-column primary keys</td>
+</tr>
+</tbody>
+</table>
+<p>These databases are <strong>not interchangeable</strong>. Test import must preserve the old
+CNPG database separately, including its migration history; never merge or overwrite
+it based on the active Citus database's empty row count. The
+<a href="../../operations/deployment/#controlled-cutover">controlled procedure</a> is mandatory.</p>
+<h2 id="citus-logical-sharding">Citus: logical sharding<a class="headerlink" href="#citus-logical-sharding" title="Permanent link">&para;</a></h2>
+<p><strong>What is it?</strong> Citus routes rows by a distribution key. Colocation aligns the
+shard layout of related tables; reference tables support shared identity data.</p>
+<p><strong>Why Clichy uses it</strong> <code>Photo</code> and <code>PhotoProcessingOutbox</code> belong to users and can
+share <code>userId</code> routing and foreign-key enforcement in both environments.</p>
+<p>Each table uses <code>hash(userId)</code>, 32 shards and the same positive colocation ID.
+<code>user</code> is a reference table (<code>n/t</code>, one shard). Compound primary/unique keys
+include <code>userId</code>. Outbox references <code>Photo(userId,id)</code>; Photo-to-user delete is
+RESTRICT, outbox-to-photo delete is CASCADE, and both FK updates are RESTRICT.
+Images remain on the existing shared photos PVC. Existing coordinator-local
+auth-table registrations can remain in Test; they are not hash shards and are
+not converted or discarded.</p>
+<p>Only the local coordinator (<code>localhost:5432</code>, group 0) stores shards. WAL copies
+its catalogs and physical shard tables together. After promotion localhost means
+the promoted instance, so no external worker addresses need rewriting. Application
+connections use <code>clichy-postgres-rw</code>; do not point them at individual Pods.</p>
+<h2 id="image-initialization-and-prisma">Image, initialization and Prisma<a class="headerlink" href="#image-initialization-and-prisma" title="Permanent link">&para;</a></h2>
+<p>The Dockerfile under <code>infra/kubernetes/cnpg</code> pins the CNPG PostgreSQL 18.6 image
+and official Citus 14.2 image by digest, on Debian 13/PG18. It copies extension
+files rather than PostgreSQL executables, installs pinned libcurl and verifies
+runtime linkage. CI tests it and publishes a PG-major-prefixed SHA tag.
+This is a locally tested custom integration, not a vendor certification of Citus/CNPG.</p>
+<p>CNPG preloads Citus first, enables 100 prepared transactions and creates the
+extension through privileged bootstrap SQL on <strong>fresh</strong> clusters. Existing clusters
+need the explicitly approved extension step in the runbook; bootstrap SQL is not
+replayed on existing databases. The application role remains non-superuser.</p>
+<p>Citus COPY and some parallel queries open internal connections. Loopback-only
+<code>hostssl</code> rules authenticate the existing CNPG streaming client certificate with
+explicit mappings to postgres/clichy. <code>citus.node_conninfo</code> verifies the server CA;
+verify-ca is used because the endpoint is localhost, not a Service DNS identity.
+External clients retain SCRAM. No passwords are copied into SQL or pgpass files,
+and certificate rotation remains CNPG-managed. Actual CNPG certificate integration
+still needs the Test checkpoint before Production.</p>
+<p>Applied Prisma migrations are unchanged. New migration
+<code>20261117140000_unified_cnpg_citus</code> aligns Production's legacy keys, backfills
+nullable outbox owners, removes incompatible global uniqueness and registers
+missing tables transactionally. Existing correct Test shards are only validated.
+Unexpected metadata or orphan rows fail; no destructive conversion runs automatically.
+Dev/local PostgreSQL remains plain PostgreSQL and skips this migration.</p>
+<h2 id="replication-failure-and-limits">Replication, failure and limits<a class="headerlink" href="#replication-failure-and-limits" title="Permanent link">&para;</a></h2>
+<p><strong>What is it?</strong> Physical streaming replays WAL on a standby; promotion makes a
+standby writable. Failover is recovery after failure, not a backup.</p>
+<p><strong>Why Clichy uses it</strong> CNPG maintains two instances and redirects its read-write
+Service after promotion. Clients must reconnect; interrupted jobs may retry.</p>
+<p>Two 2 GiB PVCs and the existing CPU/memory budgets are retained. Replication is
+asynchronous: recent commits may be lost if the primary fails before replay.
+All instances share valtask's disk/host; this is neither horizontal capacity
+scaling nor node-level availability. K3s 1.37 remains outside CNPG 1.30's officially
+supported matrix even though it is tested; the installer keeps its explicit gate.</p>
+<p>Local disposable tests cover non-superuser SCRAM access, certificate-authenticated
+Citus COPY, logical restore, streaming and native PostgreSQL promotion with unchanged
+shard IDs and subsequent writes. <strong>CNPG-managed failover on Kubernetes is not yet
+verified.</strong> The <a href="../../operations/scripts/#healthchecks">healthcheck</a> observes configuration,
+shards and active streaming; it deliberately skips failover testing.
+A logical dump restores rows/schema/history, not Citus distribution metadata:
+the target must be registered by the versioned migration after restore. Archives
+already recording that migration need the explicit reviewed recovery step in the
+runbook. Physical WAL replication preserves the target's catalog/shard IDs.
+Coordinated database/photo backups and a restore rehearsal are prerequisites to cutover.
+See <a href="../../decisions/0009-unified-citus-cnpg/">ADR 0009</a> for the feasibility basis.</p>
 
 
 
@@ -1186,7 +1551,7 @@ available in Git history rather than in normal deployment manifests.</p>
     
       <script src="../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
-        <script src="https://unpkg.com/mermaid@11/dist/mermaid.min.js"></script>
+        <script src="https://unpkg.com/mermaid@11.17.2/dist/mermaid.min.js"></script>
       
         <script src="../../assets/mermaid-init.js"></script>
       

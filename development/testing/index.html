@@ -878,6 +878,345 @@
   
 
     
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisions
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Decisions
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Index
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0001-kubernetes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kubernetes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0002-postgres-prisma/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PostgreSQL and Prisma
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0003-redis-bullmq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Redis and BullMQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0004-citus-experiment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Historical Citus experiment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0005-traefik/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Traefik
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0006-environment-isolation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Environment isolation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0007-replication-sharding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Replication and sharding
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0008-zero-downtime/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Zero-downtime evidence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0009-unified-citus-cnpg/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Unified Citus and CNPG
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
   </ul>
 </nav>
                   </div>
@@ -936,15 +1275,19 @@ components, timeouts, namespace isolation and exit codes without a cluster.
 To test all historical migrations plus Citus registration against the pinned
 image, with Docker available:</p>
 <div class="highlight"><pre><span></span><code>docker<span class="w"> </span>pull<span class="w"> </span>citusdata/citus:14.2.0
+docker<span class="w"> </span>build<span class="w"> </span>-t<span class="w"> </span>clichy-cnpg-citus:18.6-14.2.0<span class="w"> </span>infra/kubernetes/cnpg
 <span class="nv">CLICHY_TEST_CITUS</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>node<span class="w"> </span>packages/db/prisma/sharding.test.mjs
 </code></pre></div>
-<p>This starts and removes one isolated, disposable Citus container, publishes no
-ports and mounts no host data. It checks clean installation, existing shards,
-nonempty tables, invalid metadata, absent extension and plain PostgreSQL branches.
+<p>These tests create/remove disposable containers and an internal Docker network,
+without host mounts or published ports. They cover immutable migration history,
+legacy Production conversion, non-superuser SCRAM, certificate-authenticated COPY,
+logical restore, physical streaming and native PostgreSQL promotion. The latter
+is not an operator-managed CNPG failover test. Historical migration branches and
+invalid metadata remain covered.
 The integration case is explicitly skipped in the default offline test run.</p>
 <p>For infrastructure changes, run <code>bash -n</code> on changed shell scripts, ShellCheck
 if installed, and <code>kubectl kustomize infra/kubernetes/overlays/test</code> (also
-<code>prod</code>, the database overlays, and <code>citus</code> when relevant). Rendering does not
+<code>prod</code> and the separate database overlays). Rendering does not
 apply resources. Build this documentation with:</p>
 <div class="highlight"><pre><span></span><code>python3<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>/tmp/clichy-docs
 /tmp/clichy-docs/bin/pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>docs/requirements.txt
@@ -952,6 +1295,8 @@ apply resources. Build this documentation with:</p>
 </code></pre></div>
 <p>An upload smoke test writes application data. A healthcheck only observes state;
 keep these results separate when recording a demonstration.</p>
+<p>Mermaid is pinned to 11.17.2. Validate rendering with that version; unescaped
+semicolons in sequence messages separate instructions and must be avoided.</p>
 
 
 
@@ -1011,7 +1356,7 @@ keep these results separate when recording a demonstration.</p>
     
       <script src="../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
-        <script src="https://unpkg.com/mermaid@11/dist/mermaid.min.js"></script>
+        <script src="https://unpkg.com/mermaid@11.17.2/dist/mermaid.min.js"></script>
       
         <script src="../../assets/mermaid-init.js"></script>
       
