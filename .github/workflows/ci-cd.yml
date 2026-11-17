@@ -49,8 +49,10 @@ jobs:
       - name: Run worker tests
         run: pnpm --filter worker test
 
-      - name: Check Citus sharding registration guards
-        run: node --test infra/kubernetes/citus/enable-user-sharding.test.mjs
+      - name: Test database migrations with Citus
+        run: |
+          docker pull citusdata/citus:14.2.0
+          CLICHY_TEST_CITUS=1 node --test packages/db/prisma/sharding.test.mjs
 
       - name: Check read-only healthchecks
         run: node --test infra/kubernetes/scripts/healthcheck.test.mjs

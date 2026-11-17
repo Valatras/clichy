@@ -64,18 +64,7 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /var/lib/postgresql
-            - name: init
-              mountPath: /docker-entrypoint-initdb.d/001-enable-citus.sh
-              subPath: init-citus.sh
-              readOnly: true
-            - name: init
-              mountPath: /opt/clichy
-              readOnly: true
       volumes:
         - name: data
           persistentVolumeClaim:
             claimName: clichy-citus-data
-        - name: init
-          configMap:
-            name: clichy-citus-init
-            defaultMode: 0555

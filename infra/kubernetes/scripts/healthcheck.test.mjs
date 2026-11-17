@@ -15,8 +15,6 @@ function run(environment, scenario = '', option) {
   const fake = join(dir, 'kubectl');
   writeFileSync(fake, `#!/usr/bin/env bash
 printf '%s\\n' "$(echo "$*" | tr '\\n' ' ')" >> "$CALL_LOG"
-input=''
-if [[ " $* " == *' exec -i '* && "$*" == *ON_ERROR_STOP=1 ]]; then input="$(cat)"; fi
 case "$*" in
   *secret*|*apply*|*delete*|*patch*|*create*|*port-forward*|*use-context*) exit 99 ;;
 esac
@@ -28,14 +26,13 @@ case "$*" in
   *currentPrimary*) echo clichy-postgres-1 ;;
   *'get pods'*) printf 'clichy-postgres-1 primary\\nclichy-postgres-2 replica\\n' ;;
   *pg_stat_replication*) [[ "$SCENARIO" == no-replica ]] && echo 0 || echo 1 ;;
+  *pg_dist_partition*) [[ "$SCENARIO" == bad-citus ]] && echo f || echo t ;;
   *'SELECT count(*) FROM pg_constraint'*) echo 2 ;;
   *'SELECT migration_name'*)
     if [[ "$SCENARIO" != pending ]]; then
       for file in "$MIGRATIONS"/*/migration.sql; do name="\${file%/migration.sql}"; echo "\${name##*/}"; done
     fi ;;
   *'SELECT count(*) FROM '*_prisma_migrations*) echo 0 ;;
-  *psql*)
-    [[ "$SCENARIO" != bad-citus || "$input" != *pg_dist_partition* ]] || exit 1 ;;
 esac
 exit 0
 `);
@@ -84,13 +81,6 @@ test('invalid arguments return 2 before accessing Kubernetes', () => {
     assert.equal(result.status, 2);
     assert.equal(result.calls, '');
   }
-});
-
-test('shared SQL validator is included by registration and contains no repair', () => {
-  const registration = readFileSync(new URL('../citus/enable-user-sharding.sql', import.meta.url), 'utf8');
-  const validation = readFileSync(new URL('../citus/validate-user-sharding.sql', import.meta.url), 'utf8');
-  assert.match(registration, /\\ir validate-user-sharding.sql/);
-  assert.doesNotMatch(validation, /create_distributed_table|create_reference_table|undistribute_table|\b(?:INSERT|UPDATE|DELETE|ALTER|DROP|TRUNCATE)\s/i);
 });
 
 test('missing kubectl fails with a summary and no dependency installation', () => {

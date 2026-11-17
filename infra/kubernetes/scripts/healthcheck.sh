@@ -88,7 +88,24 @@ db_user=clichy
 [[ "$environment" == test ]] || db_user=postgres
 check 'PostgreSQL connectivity' sql -c 'SELECT 1' || true
 if [[ "$environment" == test ]]; then
-  check 'Citus reference table, hash(userId), 32 shards and colocation' sql < "$ROOT_DIR/infra/kubernetes/citus/validate-user-sharding.sql" || true
+  layout_sql=$(cat <<'SQL'
+WITH layout AS (
+  SELECT p.logicalrelid, p.partmethod, p.repmodel, p.colocationid,
+         CASE WHEN p.partmethod = 'h' THEN column_to_column_name(p.logicalrelid, p.partkey) END AS key,
+         (SELECT count(*) FROM pg_dist_shard s WHERE s.logicalrelid = p.logicalrelid) AS shards
+  FROM pg_dist_partition p
+  WHERE p.logicalrelid IN ('"user"'::regclass, '"Photo"'::regclass, '"PhotoProcessingOutbox"'::regclass)
+)
+SELECT count(*) = 3
+   AND count(*) FILTER (WHERE logicalrelid = '"user"'::regclass AND partmethod = 'n' AND repmodel = 't' AND shards = 1) = 1
+   AND count(*) FILTER (WHERE logicalrelid <> '"user"'::regclass AND partmethod = 'h' AND key = 'userId' AND shards = 32 AND colocationid > 0) = 2
+   AND (SELECT count(DISTINCT colocationid) FROM layout WHERE logicalrelid <> '"user"'::regclass) = 1
+FROM layout;
+SQL
+)
+  if layout="$(sql -c "$layout_sql" 2>/dev/null)" && [[ "$layout" == t ]]; then
+    report PASS 'Citus reference table, hash(userId), 32 shards and colocation'
+  else report FAIL 'Citus reference/hash layout, shard count or colocation invalid or inaccessible'; fi
   fk_sql=$(cat <<'SQL'
 SELECT count(*) FROM pg_constraint
 WHERE convalidated AND contype = 'f' AND confupdtype = 'r' AND (
