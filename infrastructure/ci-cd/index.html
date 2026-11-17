@@ -1355,19 +1355,27 @@
 images. A self-hosted runner executes authorized deployment jobs on valtask.</p>
 <p><strong>Why Clichy uses it</strong> Tests and reproducible images precede deployment, with
 one immutable <code>sha-&lt;40-character-commit&gt;</code> tag tying migrations and images together.</p>
-<pre class="mermaid"><code>flowchart TD
-  Change[Push / PR / manual dispatch] --&gt; CI[Types, tests and builds]
-  CI --&gt; Images[Build application and database images]
-  Images --&gt;|PR| End[No publication or deployment]
-  Images --&gt;|master push or dispatch| GHCR[Login and publish exact SHA tags]
-  GHCR --&gt; Test[Verify valtask and SHA; migrate; deploy Test]
-  Test --&gt; Gate{Manual dispatch with deploy_prod=true?}
-  Gate --&gt;|yes| Production[GitHub production environment; migrate; deploy same SHA]</code></pre>
+<pre class="mermaid"><code>flowchart TB
+  classDef default fill:#f4f6f8,stroke:#8b98a5,color:#273746
+  G["GitHub: commit on master"] --&gt; CI["CI: tests + build"]
+  CI --&gt; IMG["GHCR: application images tagged by SHA"]
+  IMG --&gt; T["Test: migrate + deploy"]
+  T --&gt; M{"Manual production run?"}
+  M --&gt;|"workflow_dispatch: deploy_prod=true"| P["Production: migrate + deploy same SHA"]
+  classDef env fill:#edf5ef,stroke:#72977d,color:#203a29
+  classDef gate fill:#faf3e8,stroke:#b59a70,color:#49391f
+  class T,P env
+  class M gate</code></pre>
+<p>A push deploys Test after CI succeeds. To release, manually dispatch on the
+chosen <code>master</code> commit: that run deploys Test again, then Production with the
+<strong>same SHA</strong>, subject to any configured GitHub Environment approvals. PRs only
+test/build; they never publish or deploy.</p>
 <p>The single source is <code>.github/workflows/ci-cd.yml</code>. Pushes/PRs target <code>master</code>.
 CI uses Node 24, pnpm's frozen lockfile, type checks, server/worker tests,
 Citus migration integration tests in a disposable Docker container, healthcheck
-regression tests and builds. Packaging builds the three application images and the CNPG+Citus image
-from <code>infra/</code>; only master pushes or manual dispatches publish images.</p>
+regression tests and builds. Packaging builds the three application images; only master pushes or manual
+dispatches publish images. The CNPG+Citus image build described by the target
+architecture is not yet integrated into this branch’s workflow.</p>
 <p>Test deploys automatically after successful CI/package. Production additionally
 requires <code>workflow_dispatch</code> with <code>deploy_prod=true</code>, successful Test deployment
 and GitHub Environment <code>production</code>. Approval rules are repository settings,

@@ -1380,23 +1380,21 @@ retries, rather than as a photo cache.</p>
 <p><strong>Why Clichy uses it</strong> HTTP requests record work quickly, while an independent
 worker performs CPU-intensive image decoding and produces previews.</p>
 <h2 id="upload-to-completion">Upload to completion<a class="headerlink" href="#upload-to-completion" title="Permanent link">&para;</a></h2>
-<pre class="mermaid"><code>sequenceDiagram
-  participant U as User
-  participant API as Fastify
-  participant DB as PostgreSQL
-  participant Q as BullMQ / Redis
-  participant W as Worker
-  U-&gt;&gt;API: POST /photos
-  API-&gt;&gt;API: Validate and store original
-  API-&gt;&gt;DB: Transaction: Photo + outbox
-  API--&gt;&gt;U: 202 Accepted / PENDING
-  API-&gt;&gt;Q: Dispatcher publishes stable job ID
-  API-&gt;&gt;DB: Mark outbox published
-  Q-&gt;&gt;W: process-photo (photoId, userId)
-  W-&gt;&gt;DB: Atomically claim photo
-  W-&gt;&gt;W: Read shared original and generate derivatives and hashes
-  W-&gt;&gt;DB: COMPLETED or FAILED</code></pre>
-<p>The dispatcher retries unpublished events. Queue identity makes repeated
+<pre class="mermaid"><code>flowchart TB
+  classDef default fill:#f4f6f8,stroke:#8b98a5,color:#273746
+  API["API: upload"] --&gt;|One transaction| DB["PostgreSQL: Photo + outbox"]
+  API --&gt;|202 PENDING| U["User resumes browsing"]
+  DB --&gt;|Read pending events| D["Dispatcher in API"]
+  D --&gt;|Publish job| Q["BullMQ queue in Redis"]
+  Q --&gt;|Worker takes job| W["Worker: previews + hashes"]
+  W --&gt;|COMPLETED / FAILED| DB
+  classDef queue fill:#faf3e8,stroke:#b59a70,color:#49391f
+  classDef work fill:#edf5ef,stroke:#72977d,color:#203a29
+  class Q queue
+  class DB,W work</code></pre>
+<p>The API responds after saving the original and committing Photo + outbox, without
+waiting for image processing. Redis holds jobs, not photo files; the worker reads
+the shared photos volume. The dispatcher retries unpublished events. Queue identity makes repeated
 publication idempotent; worker claims prevent duplicate processing. Queue
 defaults are four attempts with exponential backoff from two seconds. Invalid
 images and missing originals fail permanently. Stale <code>PROCESSING</code> records are

@@ -1424,15 +1424,17 @@ CloudNativePG (CNPG) manages the PostgreSQL primary, standby and role Services.<
 replicated to a standby. This combines sharding and replication without worker groups.</p>
 <h2 id="architecture-and-rollout-status">Architecture and rollout status<a class="headerlink" href="#architecture-and-rollout-status" title="Permanent link">&para;</a></h2>
 <pre class="mermaid"><code>flowchart LR
-  App[API / Prisma / worker] --&gt; RW[CNPG read-write Service]
-  RW --&gt; Primary[Primary: PostgreSQL 18.6 + Citus 14.2]
-  Primary --&gt; Shards[Photo and outbox: 32 shards each on userId]
-  Primary --&gt; Users[user: reference table]
-  Primary --&gt;|WAL: rows, shard tables and Citus catalogs| Standby[Standby: same Citus binaries and replicated shards]
-  Primary --&gt; PV1[(Primary PVC)]
-  Standby --&gt; PV2[(Standby PVC)]
-  Operator[CNPG 1.30.1] -. supervises and promotes .-&gt; Standby</code></pre>
-<p>This is the <strong>repository target</strong>, not a claim that cutover already happened.
+  classDef default fill:#f4f6f8,stroke:#8b98a5,color:#273746
+  API[API / worker] --&gt; RW[clichy-postgres-rw]
+  RW --&gt; P[Primary]
+  P --&gt;|WAL asynchronous| S[Standby]
+  classDef database fill:#edf5ef,stroke:#72977d,color:#203a29
+  class P,S database</code></pre>
+<p>The primary accepts writes; the standby replays its WAL (write-ahead log).
+This is the <strong>CNPG + Citus target</strong>, not the current <code>master</code> integration:
+its CNPG manifest still uses plain PostgreSQL, and the custom Citus image and
+unification migration described below are absent from this branch. Cutover
+must not be assumed complete.
 The operator's 2026-11-17 read-only output confirmed:</p>
 <table>
 <thead>
@@ -1465,6 +1467,25 @@ it based on the active Citus database's empty row count. The
 shard layout of related tables; reference tables support shared identity data.</p>
 <p><strong>Why Clichy uses it</strong> <code>Photo</code> and <code>PhotoProcessingOutbox</code> belong to users and can
 share <code>userId</code> routing and foreign-key enforcement in both environments.</p>
+<pre class="mermaid"><code>flowchart TB
+  classDef default fill:#f4f6f8,stroke:#8b98a5,color:#273746
+  A["Alice: photos A1, A2"] --&gt;|userId| H["hash(userId)"]
+  B["Bob: photo B1"] --&gt;|userId| H
+  C["Chloé: photo C1"] --&gt;|userId| H
+  subgraph PG["One writable PostgreSQL instance — 32 logical shards per table"]
+    S1["Shard α: A1, A2, C1"]
+    S2["Shard β: B1"]
+    Rest["30 other shards"]
+  end
+  H --&gt; S1
+  H --&gt; S2
+  classDef shard fill:#eef3fa,stroke:#8297b5,color:#24364d
+  class S1,S2,Rest shard</code></pre>
+<p>Illustrative hash results: one user's photo rows stay together; several users
+can share a shard. Matching outbox rows use colocated shards. These are <strong>32
+logical partitions per table, not 32 servers</strong>; image bytes stay on the photos
+PVC. Active Test's standalone Citus uses this local layout; CNPG + Citus remains
+the target integration. A standby copies the data rather than splitting it.</p>
 <p>Each table uses <code>hash(userId)</code>, 32 shards and the same positive colocation ID.
 <code>user</code> is a reference table (<code>n/t</code>, one shard). Compound primary/unique keys
 include <code>userId</code>. Outbox references <code>Photo(userId,id)</code>; Photo-to-user delete is
@@ -1504,6 +1525,17 @@ Dev/local PostgreSQL remains plain PostgreSQL and skips this migration.</p>
 standby writable. Failover is recovery after failure, not a backup.</p>
 <p><strong>Why Clichy uses it</strong> CNPG maintains two instances and redirects its read-write
 Service after promotion. Clients must reconnect; interrupted jobs may retry.</p>
+<pre class="mermaid"><code>flowchart LR
+  classDef default fill:#f4f6f8,stroke:#8b98a5,color:#273746
+  F["Primary unavailable"] --&gt; C["CNPG detects failure"]
+  C --&gt; P["Promote standby to primary"]
+  P --&gt; RW["Redirect -rw Service"]
+  RW --&gt; A["API / worker reconnect"]
+  classDef action fill:#edf5ef,stroke:#72977d,color:#203a29
+  class P,RW action</code></pre>
+<p>This shows the <strong>failover principle</strong>, not a verified Clichy Kubernetes test.
+The promoted standby accepts new writes; asynchronous replication can lose
+commits not yet received. Both instances on valtask are lost if that host fails.</p>
 <p>Two 2 GiB PVCs and the existing CPU/memory budgets are retained. Replication is
 asynchronous: recent commits may be lost if the primary fails before replay.
 All instances share valtask's disk/host; this is neither horizontal capacity

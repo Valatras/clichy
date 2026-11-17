@@ -657,6 +657,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#deployment-pods-and-service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deployment, Pods and Service
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#prepare-a-server" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1364,6 +1375,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#deployment-pods-and-service" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deployment, Pods and Service
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#prepare-a-server" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1460,6 +1482,20 @@ overlays deliberately exclude databases so a routine release cannot change a
 database image. The old standalone Test manifests remain only for the pending
 migration/rollback checkpoint and are no longer applied by deployment. Separate namespaces and Secrets are logical
 isolation, not separate clusters or host-level availability.</p>
+<h2 id="deployment-pods-and-service">Deployment, Pods and Service<a class="headerlink" href="#deployment-pods-and-service" title="Permanent link">&para;</a></h2>
+<pre class="mermaid"><code>flowchart TB
+  classDef default fill:#f4f6f8,stroke:#8b98a5,color:#273746
+  I["Ingress / Traefik"] --&gt;|/photos| S["Service: clichy-server"]
+  S --&gt;|Select ready Pods| P1["API Pod 1"]
+  S --&gt; P2["API Pod 2"]
+  D["Deployment: clichy-server"] -.-&gt;|Via ReplicaSet| P1
+  D -.-&gt; P2
+  classDef pod fill:#eef3fa,stroke:#8297b5,color:#24364d
+  class P1,P2 pod</code></pre>
+<p>Solid arrows carry HTTP traffic; dotted arrows show management. The Deployment
+maintains Pods through a ReplicaSet (omitted); the Service selects ready Pods by
+label and keeps a stable address as Pods change. Two Pods illustrate scaling,
+not a fixed replica count. Ingress routes <code>/photos</code> to the API Service.</p>
 <h2 id="prepare-a-server">Prepare a server<a class="headerlink" href="#prepare-a-server" title="Permanent link">&para;</a></h2>
 <p>These steps modify a host/cluster; review scripts before running them. No
 installation command is needed for normal local application development.</p>

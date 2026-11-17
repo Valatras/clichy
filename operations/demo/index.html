@@ -1561,7 +1561,7 @@ kubectl<span class="w"> </span>top<span class="w"> </span>nodes
 <p>Préparer aussi <strong>avant la séance</strong> un petit changement visible et une nouvelle
 migration compatible avec les anciens Pods (par exemple un champ facultatif
 réellement utile). Générer et tester la migration en développement selon le
-<a href="../database/migrations.md">guide des migrations</a>, relire le SQL, puis préparer
+<a href="../deployment/">guide des migrations</a>, relire le SQL, puis préparer
 le commit à pousser pendant la démo. Une migration déjà appliquée ne démontre
 pas l'application d'une nouvelle migration.</p>
 <h2 id="1-application-ingress-et-stockage-2-min">1. Application, Ingress et stockage — 2 min<a class="headerlink" href="#1-application-ingress-et-stockage-2-min" title="Permanent link">&para;</a></h2>
@@ -1635,7 +1635,7 @@ Les fichiers images restent sur le PVC. Tous les shards sont sur <strong>un seul
 Citus</strong> : ceci montre le sharding logique, pas une distribution entre serveurs.
 Le CNPG de Test ne réplique pas cette base Citus.</p>
 <p>Si le Deployment Citus est absent ou les résultats diffèrent, vérifier la version
-déployée et le <a href="../database/sharding.md">guide sharding</a> avant la séance.</p>
+déployée et le <a href="../../infrastructure/databases/#citus-logical-sharding">guide sharding</a> avant la séance.</p>
 <h2 id="4-replication-postgresql-en-production-2-min">4. Réplication PostgreSQL en Production — 2 min<a class="headerlink" href="#4-replication-postgresql-en-production-2-min" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-n<span class="w"> </span>clichy-prod<span class="w"> </span>-l<span class="w"> </span>cnpg.io/cluster<span class="o">=</span>clichy-postgres<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-L<span class="w"> </span>cnpg.io/instanceRole
