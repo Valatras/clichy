@@ -1,7 +1,7 @@
 site_name: Clichy Documentation
 site_description: Engineering and operations guide for the Clichy photo library service
 extra_javascript:
-  - https://unpkg.com/mermaid@11/dist/mermaid.min.js
+  - https://unpkg.com/mermaid@11.17.2/dist/mermaid.min.js
   - assets/mermaid-init.js
 repo_name: valatras/clichy
 repo_url: https://github.com/valatras/clichy
@@ -36,56 +36,36 @@ markdown_extensions:
   - pymdownx.tabbed:
       alternate_style: true
 nav:
-  - Home: index.md
-  - Project:
-      - Overview: project/overview.md
-      - Requirements traceability: project/requirements.md
-      - Roadmap and status: project/roadmap.md
-      - Glossary: project/glossary.md
-  - Architecture:
-      - System overview: architecture/overview.md
-      - Application: architecture/application.md
-      - Networking: architecture/networking.md
-      - Asynchronous processing: architecture/asynchronous-processing.md
-  - Development:
-      - Onboarding: development/onboarding.md
-      - Prerequisites and configuration: development/prerequisites.md
-      - Local development: development/local-development.md
-      - Project structure: development/project-structure.md
+  - Getting Started:
+      - Clichy: index.md
+      - Local setup: development/onboarding.md
       - Testing: development/testing.md
+  - Architecture:
+      - Overview: architecture/overview.md
+      - Application and photo flow: architecture/application.md
+      - Networking: architecture/networking.md
   - Infrastructure:
-      - Cluster setup: infrastructure/cluster-setup.md
-      - Kubernetes environments: infrastructure/kubernetes.md
-      - Namespaces and traffic: infrastructure/namespaces.md
-      - Storage: infrastructure/storage.md
+      - Kubernetes and environments: infrastructure/kubernetes.md
       - CI/CD: infrastructure/ci-cd.md
-      - Monitoring and scaling: infrastructure/monitoring.md
-      - Cloud migration plan: infrastructure/cloud-migration.md
-  - Database:
-      - PostgreSQL and Prisma: database/overview.md
-      - Schema and migrations: database/migrations.md
-      - Replication: database/replication.md
-      - Sharding: database/sharding.md
-      - Backup and restore: database/backup-restore.md
+      - Databases: infrastructure/databases.md
+      - Redis, monitoring and scaling: infrastructure/monitoring.md
   - Operations:
       - Démo professeur: operations/demo.md
-      - Healthchecks: operations/healthchecks.md
-      - Maintenance audit: operations/maintenance-audit.md
-      - Deployment runbook: operations/deployment.md
+      - Deployment and migrations: operations/deployment.md
+      - Scripts & Commands: operations/scripts.md
       - Troubleshooting: operations/troubleshooting.md
-      - Known issues and resolved incidents: operations/known-issues.md
-  - Design:
-      - Brand guidelines: design/brand-guidelines.md
+  - Glossary: glossary.md
   - Decisions:
-      - ADR index: decisions/index.md
-      - Kubernetes and environments: decisions/0001-kubernetes.md
+      - Index: decisions/index.md
+      - Kubernetes: decisions/0001-kubernetes.md
       - PostgreSQL and Prisma: decisions/0002-postgres-prisma.md
       - Redis and BullMQ: decisions/0003-redis-bullmq.md
-      - Citus experiment: decisions/0004-citus-experiment.md
-      - Traefik ingress: decisions/0005-traefik.md
+      - Historical Citus experiment: decisions/0004-citus-experiment.md
+      - Traefik: decisions/0005-traefik.md
       - Environment isolation: decisions/0006-environment-isolation.md
-      - Database scaling gap: decisions/0007-replication-sharding.md
-      - Zero-downtime status: decisions/0008-zero-downtime.md
+      - Replication and sharding: decisions/0007-replication-sharding.md
+      - Zero-downtime evidence: decisions/0008-zero-downtime.md
+      - Unified Citus and CNPG: decisions/0009-unified-citus-cnpg.md
 copyright: Clichy project documentation
 extra:
   generator: false

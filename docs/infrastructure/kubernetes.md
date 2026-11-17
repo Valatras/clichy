@@ -1,26 +1,94 @@
-# Kubernetes implementation
+# Kubernetes and environments
 
-Kustomize base resources are under `infra/kubernetes/base`; environment overlays are under `infra/kubernetes/overlays/{dev,test,prod}`. Common resources include web/API/worker Deployments, Services, Redis Deployment/Service/PVC, photo PVC, Ingress, and an environment-specific CNPG Cluster. Install the pinned CNPG operator once in `cnpg-system` before preparing any application namespace.
+**What is it?** Kubernetes schedules containers and manages Services, persistent
+volumes and workload controllers. K3s packages it for a small server with
+Traefik, local-path storage and Metrics Server.
 
-## Workload behavior
+**Why Clichy uses it** The same application manifests support namespace-specific
+configuration, rollouts and scaling on the intentionally single-node `valtask`.
 
-- API and web use readiness/liveness HTTP checks on `/`; worker has `/ready` and `/live` probes on port 3001.
-- CNPG runs two PostgreSQL 18.6 instances per namespace and provisions a separate 2 GiB PVC per instance. Dev and Production applications use `clichy-postgres-rw`. Test also runs a single-node Citus database with its own PVC; the Test application uses `clichy-citus-rw` for user-sharded photo tables while CNPG remains available for replication exercises.
-- Redis uses a one-replica Deployment, AOF, `noeviction`, 256 MiB maxmemory, probes, and a PVC.
-- API, worker, web and database have CPU/memory requests and limits in base manifests.
-- Test adds CPU HPA for API and web (1–4 replicas, 70% utilization target). Dev and Production specify one replica for web/server/worker. Production does not include this HPA.
-- The namespace preparation script applies each CNPG Cluster and waits for its Ready condition. The deploy script waits for the database Cluster to be Ready before migrations, then applies app manifests and waits for each app Deployment rollout.
+## Environments and resources
 
-Kubernetes Deployment rollout is not itself proof of zero downtime. One-replica app workloads, storage attachment, readiness behavior, schema compatibility, and live traffic need a measured rollout test. CNPG's two replicas share the one `valtask` node and do not provide host-level HA.
+| Environment | Namespace | Application database | Storage |
+| --- | --- | --- | --- |
+| Dev | `clichy-dev` | CNPG | Local-path; local cluster |
+| Test | `clichy-test` | CNPG + Citus target | Local-path |
+| Production | `clichy-prod` | CNPG + Citus target | Retained local PVs on valtask |
 
-## Environment differences
+`infra/kubernetes/base` defines Web/API/worker, Redis, photo storage and Ingress.
+`overlays/{dev,test,prod}` customize hosts, image names, configuration and replica
+counts. Their separate `database` subdirectories configure CNPG. Test/Production application
+overlays deliberately exclude databases so a routine release cannot change a
+database image. The old standalone Test manifests remain only for the pending
+migration/rollback checkpoint and are no longer applied by deployment. Separate namespaces and Secrets are logical
+isolation, not separate clusters or host-level availability.
 
-Dev uses `clichy.localhost`, development `NODE_ENV`, and local image names. Test uses `clichy-test.home.arpa`, GHCR images, hardened app security context, image pull secret, and HPA. Production uses `valtask.xyz`, exact SHA image tags, hardened contexts, production secrets, local PVs and one replica. All share the base architecture while namespaces and Secrets isolate resources.
+## Prepare a server
 
-Render without applying to inspect an overlay:
+These steps modify a host/cluster; review scripts before running them. No
+installation command is needed for normal local application development.
 
-```bash
-kubectl kustomize infra/kubernetes/overlays/test
-```
+1. Prepare Ubuntu Server 24.04 with hostname `valtask`, working SSH and a mounted
+   `/srv/clichy` for Production. Install baseline tools using ordinary APT:
 
-This requires `kubectl` with Kustomize support. Do not apply a rendered overlay until its namespace, secrets, image references, storage, and target cluster are reviewed.
+   ```bash
+   sudo apt-get update
+   sudo apt-get install --no-install-recommends ca-certificates curl git gnupg jq openssl python3 tar ufw
+   ```
+
+2. Configure Tailscale/MagicDNS and firewall policy. Verify `tailscale ping valtask`
+   from an authorized client. Restrict ports 80, 3000 and 4466 to the intended
+   private clients; existing UFW rules and SSH access require host-specific review.
+3. Run `./infra/kubernetes/scripts/install-k3s.sh` as the non-root operator.
+   It writes a mode-0600 kubeconfig, default `~/.kube/config-k3s`; set `KUBECONFIG`
+   to it explicitly and inspect `kubectl get nodes`. It does not alter firewall/SSH.
+4. Run `./infra/kubernetes/scripts/install-helm.sh` if Helm is absent. Then run
+   `./infra/kubernetes/cnpg/install-operator.sh` before namespace preparation.
+   The pinned K3s default is 1.37; the pinned CNPG installer treats that as tested
+   but unsupported and requires the explicit `CNPG_ALLOW_TESTED_UNSUPPORTED_K8S=1`
+   acknowledgement. Do not silently bypass this check.
+5. Run `./infra/kubernetes/scripts/prepare-namespace.sh test` (and `prod` when
+   preparing Production). The script confirms the target, generates/reuses local
+   mode-0600 secret files under `~/.config/clichy`, normalizes the DB host/user,
+   asks for GHCR read credentials, renders the database image for the checked-out
+   published commit, creates isolated Secrets and waits for databases. For a fresh
+   Test/Prod installation, apply Prisma migrations and acknowledge the validated
+   architecture before the first application release. Existing environments must
+   follow the [cutover runbook](../operations/deployment.md#controlled-cutover)
+   instead of rerunning preparation to switch their Secrets early.
+6. Install monitoring and optionally Headlamp with their scripts. Use
+   `configure-lan-access.sh` for the Traefik admin ports; it refuses to overwrite
+   conflicting Traefik values. See [scripts](../operations/scripts.md).
+7. Configure the [self-hosted runner](ci-cd.md), then deploy through CI.
+
+Namespace preparation can change Secrets; it is not a routine healthcheck.
+Test uses `clichy-server-secrets`, Production `clichy-prod-secrets`; each namespace
+also has `clichy-postgres-app` and `ghcr-pull-secret`. Never display their data
+in logs or copy credentials between environments.
+
+## Persistent storage
+
+API and worker share the 10 GiB `clichy-server-photos` claim at `/data/photos`;
+Redis has a 1 GiB claim. The old Test Citus claim remains retained for rollback. CNPG creates two separate
+2 GiB claims per environment. Production pre-binds CNPG to local PVs under
+`/srv/clichy/k3s-storage/prod/postgres-cnpg-{1,2}`, with UID/GID 26, node affinity
+and `Retain`. Preparation refuses unsafe existing paths and requires the mount.
+
+The old Production PostgreSQL PV/path remains reserved in the storage manifest;
+removing the unused old StatefulSet source does not delete that live volume.
+Do not delete/reuse it as part of normal deployment. `ReadWriteOnce` claims fit
+this one-node design; monitor actual disk use, not just declared PVC capacities.
+`Retain`, replicas and local-path storage are not backups.
+
+The Dev overlay uses local `:dev` image tags; load locally built images into
+your chosen cluster yourself. The `deploy.sh` entry point is intentionally
+restricted to Test/Production on valtask.
+
+## Portability
+
+A cloud move would retain application images and namespace isolation, but replace
+valtask-bound local PVs with provider storage and supply a shared photo volume
+accessible to API/worker. Review ingress/DNS/tunnel endpoints, Secrets, runner
+kubeconfig, node assumptions in deploy/migrate and CNPG storage classes together.
+Restore a coordinated backup into an isolated environment and validate before
+cutover. No cloud overlay or tested migration automation is provided.

@@ -5,11 +5,12 @@
 The earlier experiment was abandoned after integration problems. That described
 an earlier architecture, not the current deployment.
 
-Test now uses a separate single-Pod Citus database for photo metadata and its
+At the time of ADR 0007, Test used a separate single-Pod Citus database for photo metadata and its
 processing outbox, hash-distributed on `userId` with 32 colocated shards.
-Dev and Production use CNPG PostgreSQL without Citus. The separate Test CNPG
-cluster remains for replication exercises and does not replicate Citus data.
+Dev and Production then used CNPG PostgreSQL without Citus. The separate Test CNPG
+cluster was retained for replication exercises and did not replicate Citus data.
+The unified target is now described by [ADR 0009](0009-unified-citus-cnpg.md).
 
-See [sharding](../database/sharding.md) for current constraints and verification,
-and [resolved incidents](../operations/known-issues.md) for recovery history.
+See [sharding](../infrastructure/databases.md#citus-logical-sharding) for current constraints and verification,
+and [resolved incidents](../operations/troubleshooting.md) for recovery history.
 One physical host and one Citus process do not provide multi-node availability.

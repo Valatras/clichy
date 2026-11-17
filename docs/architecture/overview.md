@@ -1,40 +1,44 @@
-# System architecture
+# Architecture
 
-## Current deployment view
+**What is it?** Clichy separates browser UI, HTTP API and asynchronous image
+processing. PostgreSQL stores records; a filesystem stores image bytes.
+
+**Why Clichy uses it** Uploads can return promptly while a separate worker
+processes durable work independently of HTTP requests.
 
 ```mermaid
-flowchart TB
-  User[Browser] -->|HTTPS valtask.xyz or www.valtask.xyz| Proxy[Cloudflare reverse proxy]
-  Proxy -->|routes canonical valtask.xyz requests| Tunnel[cloudflared tunnel]
-  Proxy -. www redirects to canonical valtask.xyz .-> User
-  Tunnel -->|HTTP to Traefik web :80| Traefik[Traefik Ingress]
-  subgraph AppNS[Clichy-prod namespace]
-    Traefik -->|/| Web[web Deployment]
-    Traefik -->|/api/auth and /photos| API[server Deployment]
-    API -->|Prisma via clichy-postgres-rw| PG[CNPG primary]
-    PG -->|asynchronous WAL streaming| PGReplica[CNPG standby]
-    PG --> PGV1[(Primary PVC)]
-    PGReplica --> PGV2[(Standby PVC)]
-    API -->|BullMQ| Redis[(Redis Deployment, 1 replica + AOF PVC)]
-    API -->|original + derivative files| Photos[(photos PVC)]
-    API -. DB outbox dispatcher .-> Redis
-    Worker[worker Deployment] --> Redis
-    Worker --> PG
-    Worker --> Photos
-  end
-  Prom[Prometheus in monitoring namespace] -. /metrics .-> API
-  Prom -. CNPG exporter .-> PG
-  Grafana[Grafana] --> Prom
+flowchart LR
+  Browser --> Traefik --> Web[React Web]
+  Traefik --> API[Fastify API and outbox dispatcher]
+  API --> DB[(PostgreSQL metadata)]
+  API --> Photos[(Shared photos PVC)]
+  API --> Redis[BullMQ / Redis]
+  Redis --> Worker
+  Worker --> DB
+  Worker --> Photos
+  API -. metrics .-> Prometheus
+  Worker -. metrics .-> Prometheus
+  Prometheus --> Grafana
 ```
 
-The public Production request path begins at Cloudflare, which is the reverse proxy for both `valtask.xyz` and `www.valtask.xyz`. HTTPS terminates there; `cloudflared` forwards the requests through the tunnel as HTTP to Traefik's `web` entrypoint on port 80. Cloudflare redirects `www.valtask.xyz` to canonical `valtask.xyz`; the application Ingress host is `valtask.xyz`. Tunnel, DNS and redirect rules are configured outside this repository. Traefik then routes the UI and API paths to their in-cluster Services.
+Web calls the authenticated API. API and worker mount the same photo volume at
+`/data/photos`. The API writes a Photo and an outbox event in one transaction;
+the dispatcher publishes that event to BullMQ. Worker jobs carry `photoId` and
+`userId`; queries include the owner/shard key.
 
-The server is both the HTTP API and outbox dispatcher. It constructs the BullMQ queue and periodically dispatches pending outbox entries. Worker instances consume `process-photo` jobs. The API and worker need the same photo files; Kubernetes mounts the photos PVC into both Deployments.
+| Component | Source | Responsibility |
+| --- | --- | --- |
+| Web | `apps/web` | Login, dashboard and photo UI |
+| API | `apps/server` | Authentication, uploads, photo queries and outbox dispatch |
+| Worker | `apps/worker` | Metadata, hashes and preview generation |
+| Shared packages | `packages/db`, `auth`, `jobs`, `ui` | Prisma, Better Auth, queue configuration and UI components |
 
-## Namespace interpretation
+The target Test/Production database is one CNPG primary with local Citus shards
+and one WAL standby, accessed through `clichy-postgres-rw`. Dev remains plain
+CNPG. The [database guide](../infrastructure/databases.md) distinguishes this
+repository target from the observed pre-cutover topology; the controlled migration
+preserves Test's separate existing dataset.
 
-The repository defines `clichy-dev`, `clichy-test`, and `clichy-prod`; monitoring and Headlamp are separate cluster-level installations/namespaces. These are namespace boundaries on one cluster, not separate clusters. Each environment overlay defines an independent two-instance CNPG database cluster and independent application Secrets; Redis remains a separate Deployment.
-
-## Limits
-
-The repository configures one server, web, and worker replica by default (Test has an HPA for server/web), one Redis instance, and two PostgreSQL instances per namespace. CNPG replication, failover, and metrics are configured but remain unverified until applied on the live cluster. Test application metadata uses a separate Citus Pod with 32 colocated hash shards on `userId`; its CNPG cluster remains separate for replication exercises. Dev and Production connect directly to CNPG. Both database instances and their independent node-local volumes remain on the same physical host; this does not provide node-level availability. The old Production PostgreSQL PV is retained during migration.
+Namespaces isolate configuration and resources on one physical K3s host.
+Redis remains one instance per namespace. Shards, replicas and extra application
+Pods do not provide physical capacity scaling or host-level availability.

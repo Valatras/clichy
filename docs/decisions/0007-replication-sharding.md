@@ -1,6 +1,6 @@
 # ADR 0007: PostgreSQL replication and sharding scope
 
-**Status:** CNPG replication retained in all environments; single-node Citus selected for Test sharding. Multi-node Citus remains deferred.
+**Status:** Superseded target by [ADR 0009](0009-unified-citus-cnpg.md). The topology below records the earlier decision; live cutover is separately gated.
 
 ## Context
 

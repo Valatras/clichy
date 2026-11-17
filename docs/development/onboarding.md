@@ -1,30 +1,68 @@
-# Developer onboarding
+# Local setup
 
-## 1. Install tools and dependencies
+**What is it?** Local development runs the Web, API and worker as Node processes,
+with PostgreSQL and Redis in Docker Compose. pnpm manages the workspace packages.
 
-Install Node.js 24, pnpm 12.8.1, Git, and Docker with Compose. Then clone the repository and install dependencies:
+**Why Clichy uses it** Developers can work on the application without installing
+Kubernetes or accessing valtask.
+
+## Install
+
+Use Node.js 24, pnpm 12.8.1, Git and Docker with Compose. From the repository root:
 
 ```bash
-git clone https://github.com/valatras/clichy.git
-cd clichy
-corepack enable
-corepack prepare pnpm@12.8.1 --activate
 pnpm install
-```
-
-`pnpm install` triggers Varlock code generation through the root `postinstall` script. It does not start services.
-
-## 2. Start local dependencies
-
-```bash
 pnpm db:start
 ```
 
-This invokes the database workspace's `docker compose up -d`, starting PostgreSQL and Redis with named local volumes. The compose file exposes ports 5432 and 6379 on the host. Its sample PostgreSQL password is for local development only; do not reuse it elsewhere.
+`pnpm install` generates Varlock environment types. Compose starts PostgreSQL 18
+and Redis 7.4; its password is for local use only. Do not copy production Secrets.
 
-Configure local environment files based on the `.env.schema` files. Use a local PostgreSQL URL targeting database `clichy`, and set API/worker Redis host to `127.0.0.1`. Provide a unique Better Auth secret of at least 32 characters and matching local auth/CORS URLs. Never copy production Secret values.
+## Configure
 
-## 3. Prepare Prisma and run services
+Create these untracked `.env` files. The `.env.schema` beside each is the source
+of truth for required values and defaults.
+
+`apps/server/.env`:
+
+```dotenv
+NODE_ENV=development
+BETTER_AUTH_SECRET=replace-with-a-random-secret-of-at-least-32-characters
+BETTER_AUTH_URL=http://localhost:3000
+CORS_ORIGIN=http://localhost:5173
+DATABASE_URL=postgresql://postgres:password@localhost:5432/clichy?schema=public
+PHOTO_STORAGE_PATH=./data/photos
+REDIS_HOST=127.0.0.1
+```
+
+`apps/worker/.env`:
+
+```dotenv
+NODE_ENV=development
+DATABASE_URL=postgresql://postgres:password@localhost:5432/clichy?schema=public
+PHOTO_STORAGE_PATH=../server/data/photos
+REDIS_HOST=127.0.0.1
+```
+
+`apps/web/.env`:
+
+```dotenv
+NODE_ENV=development
+VITE_SERVER_URL=http://localhost:3000
+```
+
+`packages/db/.env`:
+
+```dotenv
+DATABASE_URL=postgresql://postgres:password@localhost:5432/clichy?schema=public
+```
+
+API and worker must share the same database, Redis queue and resolved storage
+directory. Defaults are Redis port 6379, DB 0, no password/TLS and queue
+`photo-processing`. Set identical queue overrides in both services if needed.
+The local schemas already supply these defaults.
+
+## Start
 
 ```bash
 pnpm db:generate
@@ -32,35 +70,16 @@ pnpm db:migrate
 pnpm dev
 ```
 
-`db:generate` creates the Prisma client. `db:migrate` runs `prisma migrate dev` and may prompt to create/apply local migrations. `pnpm dev` runs package `dev` tasks through Turbo; use `pnpm dev:web`, `pnpm dev:server`, or `pnpm dev:worker` for an individual service. Confirm Vite's printed URL and that `VITE_SERVER_URL` points to the API.
+Open the Web URL printed by Vite (normally `http://localhost:5173`), sign up,
+then upload a small JPEG/PNG/WebP/GIF. The API listens on port 3000; the worker
+on 3001 for health/metrics. Expect upload status `202`, then completed processing
+and available thumbnails. If Vite chooses another port, update `CORS_ORIGIN`.
 
-## 4. Useful commands
+Use `pnpm dev:web`, `pnpm dev:server` or `pnpm dev:worker` for one process.
+`pnpm db:stop` preserves Compose volumes; `pnpm db:down` removes containers and
+network, also preserving volumes. `db:reset` destroys the local database: it is
+not a setup or troubleshooting shortcut.
 
-```bash
-pnpm check-types
-pnpm --filter server test
-pnpm --filter worker test
-pnpm build
-pnpm db:studio
-pnpm db:stop
-pnpm db:down
-```
-
-These names are defined in root/workspace manifests. `db:stop` stops containers but preserves volumes; `db:down` removes Compose containers/network but leaves named volumes unless `-v` is explicitly passed (which is not part of the script).
-
-For image builds, use the existing Dockerfiles with repository root as build context:
-
-```bash
-docker build -f infra/docker_clichy_server/Dockerfile -t clichy-server:local .
-docker build -f infra/docker_clichy_web/Dockerfile -t clichy-web:local .
-docker build -f infra/docker_clichy_worker/Dockerfile -t clichy-worker:local .
-```
-
-## Troubleshooting
-
-- Prisma client missing: run `pnpm db:generate` after install/schema changes.
-- Connection refused: check `docker compose ps` in `packages/db`, then check ports and URLs.
-- Login fails locally: check `BETTER_AUTH_URL`, `CORS_ORIGIN`, secret length, and browser API URL alignment.
-- Worker reports no Redis: check Redis host/port/credentials and that worker shares the same queue name as the server.
-- Generated environment types missing: run `pnpm env:generate` after schema changes.
-- Avoid `pnpm db:reset` unless you intend to drop and recreate the local database.
+Workspace responsibilities: `apps/web` is React Router; `apps/server` is Fastify
+and the outbox dispatcher; `apps/worker` consumes jobs; `packages/db`, `auth`,
+`jobs` and `ui` hold shared database, auth, queue and UI code.

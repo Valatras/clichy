@@ -1,34 +1,66 @@
-# Application components
+# Application and photo processing
 
-## Web
+**What is it?** React Router renders the Web application; Fastify serves HTTP
+and Better Auth handles email/password sessions backed by Prisma/PostgreSQL.
+Redis is an in-memory data store; BullMQ uses it as a durable job queue with
+retries, rather than as a photo cache.
 
-`apps/web` is a React Router application built with Vite. File-system route setup is in `apps/web/src/routes.ts`; visible routes include index, login, and dashboard. Components include login/sign-up forms and user menu. The browser API origin is supplied through `VITE_SERVER_URL`; production image build currently passes `http://localhost:3000`, so deployments that need another public API origin must review the build argument and routing assumptions.
+**Why Clichy uses it** HTTP requests record work quickly, while an independent
+worker performs CPU-intensive image decoding and produces previews.
 
-## API and authentication
+## Upload to completion
 
-`apps/server/src/index.ts` creates a Fastify server on port 3000, enables multipart uploads (20 MiB maximum), CORS with credentials, exposes `/metrics`, mounts photo routes, and adapts Better Auth under `/api/auth/*`. Better Auth uses Prisma/PostgreSQL and email/password auth. Fastify's logger is enabled. Route handlers return explicit errors for unauthenticated requests, missing input, unsupported images, and missing records; unexpected errors are passed to Fastify's handler.
+```mermaid
+sequenceDiagram
+  participant U as User
+  participant API as Fastify
+  participant DB as PostgreSQL
+  participant Q as BullMQ / Redis
+  participant W as Worker
+  U->>API: POST /photos
+  API->>API: Validate and store original
+  API->>DB: Transaction: Photo + outbox
+  API-->>U: 202 Accepted / PENDING
+  API->>Q: Dispatcher publishes stable job ID
+  API->>DB: Mark outbox published
+  Q->>W: process-photo (photoId, userId)
+  W->>DB: Atomically claim photo
+  W->>W: Read shared original and generate derivatives and hashes
+  W->>DB: COMPLETED or FAILED
+```
 
-Key routes in `apps/server/src/routes/photos.ts`:
+The dispatcher retries unpublished events. Queue identity makes repeated
+publication idempotent; worker claims prevent duplicate processing. Queue
+defaults are four attempts with exponential backoff from two seconds. Invalid
+images and missing originals fail permanently. Stale `PROCESSING` records are
+recovered after 15 minutes and stale `PENDING` records after 10 minutes; normal
+SIGTERM lets the worker close within its 120-second Kubernetes grace period.
 
-| Method/path | Purpose |
-|---|---|
-| `GET /photos` | List the authenticated user's photos |
-| `POST /photos` | Validate and save upload; create record and return 202 pending processing |
-| `GET /photos/:id/metadata` | Read metadata for an owned photo |
-| `GET /photos/:id/thumbnail/:variant` | Read an owned derivative variant |
-| `GET /photos/:id` | Retrieve original photo content |
-| `GET /photos/:id/duplicates` | Find exact SHA-256 matches owned by the user |
-| `GET /photos/:id/similar` | Rank candidates by pHash distance; accepts threshold and limit |
-| `DELETE /photos/:id` | Delete an owned photo and its stored files |
+The original is written before the transaction. A process crash in that window
+can leave an orphan file; there is no orphan sweeper. Files and metadata must
+be backed up together. Redis AOF improves persistence but is not replication
+or a backup of the library.
 
-Auth route surface is Better Auth's handler; consult `packages/auth/src/index.ts` and Better Auth config for exact behavior.
+## API and storage
 
-## Image pipeline
+The API accepts JPEG, PNG, WebP and GIF, with a 20 MiB multipart limit and a
+40-million-pixel decoder cap. Sharp creates WebP previews, Exifr reads optional
+EXIF, SHA-256 identifies exact duplicates, and a 64-bit DCT pHash ranks similar
+images by Hamming distance. These queries do not imply a complete duplicate
+review or blurry-photo classification UI.
 
-`apps/server/src/image-processing.ts` validates and decodes JPEG, PNG, WebP, and GIF using Sharp with a 40-million-pixel cap. It extracts optional EXIF via Exifr, generates SHA-256 and a 64-bit DCT perceptual hash, and writes resized WebP variants. pHash comparison uses Hamming distance in query helpers; this is a similarity primitive, not evidence of a complete duplicate review interface. Video support was not found.
+| Route | Purpose |
+| --- | --- |
+| `/api/auth/*` | Better Auth sessions and registration |
+| `GET /photos`, `POST /photos` | Owned photo list and upload |
+| `GET /photos/:id` | Original |
+| `GET /photos/:id/metadata` | Metadata |
+| `GET /photos/:id/thumbnail/:variant` | Preview |
+| `GET /photos/:id/duplicates`, `/similar` | Owned duplicate/similarity queries |
+| `DELETE /photos/:id` | Owned record and file removal |
 
-`apps/server/src/storage.ts` implements local filesystem storage. Production mounts the same photos PVC into API and worker. This storage design makes shared writable filesystem semantics a runtime dependency.
-
-## Error handling and logging
-
-Fastify logger handles API logs; worker logs structured JSON to stdout/stderr. Image validation errors and missing original files are permanent BullMQ failures; other errors can retry. Tests are Node test runner via `tsx --test`; test files are colocated in server and worker packages. No dedicated lint script is declared at root.
+The API serves health at `/` and metrics at `/metrics`. Worker exposes `/live`,
+`/ready` and `/metrics` on port 3001; readiness requires Redis. Queue/storage
+configuration comes from the environment schemas; API and worker must agree.
+The backfill command reschedules incomplete photos across the library and
+therefore belongs to maintenance, not healthchecking.

@@ -1,29 +1,44 @@
-# Networking and request flow
+# Networking
+
+## Traefik and Ingress
+
+**What is it?** A Kubernetes Ingress declares HTTP routing by host and path.
+Traefik is the Ingress Controller that implements those rules.
+
+**Why Clichy uses it** One application endpoint routes the browser UI and API
+to separate internal Services without exposing databases or Redis.
 
 ```mermaid
 flowchart LR
-  Client[Browser / external client] -->|HTTPS: valtask.xyz or www.valtask.xyz| Proxy[Cloudflare reverse proxy]
-  Proxy -->|canonical valtask.xyz route| Tunnel[cloudflared tunnel]
-  Tunnel -->|HTTP inside tunnel to Traefik port 80| Ingress[Traefik Ingress: entrypoint web]
-  Proxy -. 301 www to canonical valtask.xyz .-> Client
-  Ingress -->|/| WebSvc[ClusterIP clichy-web:80]
-  Ingress -->|/api/auth, /photos| ApiSvc[ClusterIP clichy-server:3000]
-  WebSvc --> WebPod[web Pod]
-  ApiSvc --> ApiPod[server Pod]
-  ApiPod -->|clichy-postgres-rw:5432| PG[CNPG primary Service]
-  ApiPod -->|clichy-redis:6379| Redis[Redis Service]
-  WorkerPod[worker Pod] --> PG
-  WorkerPod --> Redis
-  WorkerPod --> SharedPV[(photo PVC)]
-  ApiPod --> SharedPV
+  Browser -->|HTTPS| Cloudflare
+  Cloudflare --> Tunnel[Cloudflare Tunnel]
+  Tunnel -->|HTTP port 80| Traefik
+  Traefik -->|/| Web[clichy-web Service]
+  Traefik -->|/api/auth and /photos| API[clichy-server Service]
+  Tailnet[Private LAN / Tailscale] -->|Test host| Traefik
 ```
 
-The base Ingress uses Traefik class and the `web` entrypoint. It sends `/api/auth` and `/photos` to the API and `/` to web. Environment overlays change the hostname: `clichy.localhost` (Dev), `clichy-test.home.arpa` (Test), `valtask.xyz` (Production). In Production, Cloudflare acts as the public reverse proxy for both `valtask.xyz` and `www.valtask.xyz`; the configured Cloudflare Tunnel (`cloudflared`) carries requests to Traefik on port 80 before they reach the Kubernetes Services and Pods. Cloudflare terminates public HTTPS. The `www` hostname is redirected to the canonical `https://valtask.xyz` host at the proxy/tunnel edge; the Kubernetes Ingress handles the canonical host. Tunnel, DNS and redirect configuration are external to this repository. The repo's current base ingress annotation selects `web`; TLS configuration is not present in that Ingress.
+| Environment | Host | Intended access |
+| --- | --- | --- |
+| Dev | `clichy.localhost` | Local Kubernetes only |
+| Test | `clichy-test.home.arpa` | Private LAN/Tailscale |
+| Production | `valtask.xyz` | Public tunnel |
 
-This diagram shows Production. Test uses `clichy-citus-rw:5432` for API/worker database traffic, independently of its CNPG replication exercise.
+Base Ingress uses class `traefik`, entrypoint `web`, UI `/`, API `/api/auth`
+and `/photos`. Namespace-local ClusterIP Services expose Web, API, Redis and
+the environment database. `/metrics` is not routed publicly by this Ingress.
 
-Services use namespace-local DNS names (`clichy-postgres-rw`, `clichy-redis`, `clichy-server`, `clichy-web`). PostgreSQL and Redis are ClusterIP internal services; no public database/Redis ingress or service is configured. For local access, use the documented ingress route or explicit `kubectl port-forward` only when needed.
+## Cloudflare Tunnel
 
-## Network diagram caveat
+**What is it?** `cloudflared` opens an outbound connection to Cloudflare,
+allowing public HTTP traffic to reach a private server without inbound home
+router forwarding.
 
-The separate Ingress resources for Grafana and Headlamp are under `infra/kubernetes/monitoring` and `infra/kubernetes/headlamp`; they are LAN-oriented configuration. They are not included in the application Ingress and are not exposed by the documented Cloudflare Tunnel. Check their host/entrypoint and cluster DNS before assuming reachability.
+**Why Clichy uses it** Only Production is public. Cloudflare terminates HTTPS,
+redirects `www.valtask.xyz` to `valtask.xyz` and forwards the canonical route to
+Traefik over the tunnel. DNS, redirects and tunnel settings are outside Git.
+
+Grafana (`http://valtask:3000`) and Headlamp (`http://valtask:4466`) use separate
+LAN entrypoints. They must remain private. Traefik ports are not automatically
+bound only to Tailscale; restrict access through the host firewall and verify
+existing SSH access before changing rules. See [server setup](../infrastructure/kubernetes.md).
