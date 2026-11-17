@@ -1,0 +1,2495 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Engineering and operations guide for the Clichy photo library service">
+      
+      
+      
+      
+        <link rel="prev" href="../../database/backup-restore/">
+      
+      
+        <link rel="next" href="../healthchecks/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
+    
+    
+      
+        <title>Démo professeur - Clichy Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-orange">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#demo-devant-le-professeur" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Clichy Documentation" class="md-header__button md-logo" aria-label="Clichy Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Clichy Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Démo professeur
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-orange"  aria-hidden="true"  type="radio" name="__palette" id="__palette_0">
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/valatras/clichy" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    valatras/clichy
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Clichy Documentation" class="md-nav__button md-logo" aria-label="Clichy Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Clichy Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/valatras/clichy" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    valatras/clichy
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Project
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Project
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../project/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../project/requirements/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Requirements traceability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../project/roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap and status
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../project/glossary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Glossary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    System overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/application/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Application
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/networking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Networking
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/asynchronous-processing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Asynchronous processing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/onboarding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Onboarding
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/prerequisites/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Prerequisites and configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/local-development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local development
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/project-structure/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Project structure
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infrastructure
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Infrastructure
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../infrastructure/cluster-setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cluster setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../infrastructure/kubernetes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kubernetes environments
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../infrastructure/namespaces/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Namespaces and traffic
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../infrastructure/storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Storage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../infrastructure/ci-cd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CI/CD
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../infrastructure/monitoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Monitoring and scaling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../infrastructure/cloud-migration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cloud migration plan
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Database
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../database/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PostgreSQL and Prisma
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../database/migrations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Schema and migrations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../database/replication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Replication
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../database/sharding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharding
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../database/backup-restore/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backup and restore
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operations
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Operations
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Démo professeur
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Démo professeur
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#avant-de-commencer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Avant de commencer
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-application-ingress-et-stockage-2-min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Application, Ingress et stockage — 2 min
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-workers-et-scaling-depuis-headlamp-3-min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Workers et scaling depuis Headlamp — 3 min
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-sharding-citus-en-test-2-min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Sharding Citus en Test — 2 min
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-replication-postgresql-en-production-2-min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Réplication PostgreSQL en Production — 2 min
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-grafana-et-autoscaling-2-min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Grafana et autoscaling — 2 min
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-push-ci-test-validation-production-5-a-8-min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Push → CI → Test → validation → Production — 5 à 8 min
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Push → CI → Test → validation → Production — 5 à 8 min">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mesurer-la-disponibilite-pendant-le-rollout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mesurer la disponibilité pendant le rollout
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#points-a-annoncer-honnetement-pour-le-bareme" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Points à annoncer honnêtement pour le barème
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../healthchecks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Healthchecks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../maintenance-audit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Maintenance audit
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deployment runbook
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../known-issues/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Known issues and resolved incidents
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Design
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/brand-guidelines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Brand guidelines
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisions
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Decisions
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR index
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0001-kubernetes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kubernetes and environments
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0002-postgres-prisma/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PostgreSQL and Prisma
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0003-redis-bullmq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Redis and BullMQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0004-citus-experiment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Citus experiment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0005-traefik/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Traefik ingress
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0006-environment-isolation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Environment isolation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0007-replication-sharding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database scaling gap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../decisions/0008-zero-downtime/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Zero-downtime status
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#avant-de-commencer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Avant de commencer
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-application-ingress-et-stockage-2-min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Application, Ingress et stockage — 2 min
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-workers-et-scaling-depuis-headlamp-3-min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Workers et scaling depuis Headlamp — 3 min
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-sharding-citus-en-test-2-min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Sharding Citus en Test — 2 min
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-replication-postgresql-en-production-2-min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Réplication PostgreSQL en Production — 2 min
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-grafana-et-autoscaling-2-min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Grafana et autoscaling — 2 min
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-push-ci-test-validation-production-5-a-8-min" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Push → CI → Test → validation → Production — 5 à 8 min
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Push → CI → Test → validation → Production — 5 à 8 min">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mesurer-la-disponibilite-pendant-le-rollout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mesurer la disponibilité pendant le rollout
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#points-a-annoncer-honnetement-pour-le-bareme" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Points à annoncer honnêtement pour le barème
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="demo-devant-le-professeur">Démo devant le professeur<a class="headerlink" href="#demo-devant-le-professeur" title="Permanent link">&para;</a></h1>
+<p>Routine de 15 à 20 minutes, basée sur les manifests de ce dépôt. Répéter les
+commandes sur <code>valtask</code> avant la présentation : le serveur peut avoir une autre
+version du projet. Les commandes ci-dessous n'ont pas été exécutées sur le cluster.</p>
+<h2 id="avant-de-commencer">Avant de commencer<a class="headerlink" href="#avant-de-commencer" title="Permanent link">&para;</a></h2>
+<p>Ouvrir quatre onglets : l'application Test (<code>http://clichy-test.home.arpa</code>),
+GitHub Actions, Grafana (<code>http://valtask:3000</code>) et Headlamp
+(<code>http://valtask:4466</code>). Vérifier la résolution des noms depuis le PC de présentation
+et se connecter à l'avance. Préparer un compte Test et quelques photos, dont deux
+copies de la même image pour montrer les doublons et la comparaison.</p>
+<p>Sur <code>valtask</code>, depuis le checkout utilisé pour la démo :</p>
+<div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>/opt/clichy
+git<span class="w"> </span>log<span class="w"> </span>-1<span class="w"> </span>--oneline
+kubectl<span class="w"> </span>config<span class="w"> </span>current-context
+kubectl<span class="w"> </span>get<span class="w"> </span>nodes
+kubectl<span class="w"> </span>get<span class="w"> </span>namespaces
+kubectl<span class="w"> </span>get<span class="w"> </span>deployments<span class="w"> </span>-n<span class="w"> </span>clichy-test
+kubectl<span class="w"> </span>get<span class="w"> </span>deployments<span class="w"> </span>-n<span class="w"> </span>clichy-prod
+kubectl<span class="w"> </span>top<span class="w"> </span>nodes
+</code></pre></div>
+<p>Préparer aussi <strong>avant la séance</strong> un petit changement visible et une nouvelle
+migration compatible avec les anciens Pods (par exemple un champ facultatif
+réellement utile). Générer et tester la migration en développement selon le
+<a href="../../database/migrations/">guide des migrations</a>, relire le SQL, puis préparer
+le commit à pousser pendant la démo. Une migration déjà appliquée ne démontre
+pas l'application d'une nouvelle migration.</p>
+<h2 id="1-application-ingress-et-stockage-2-min">1. Application, Ingress et stockage — 2 min<a class="headerlink" href="#1-application-ingress-et-stockage-2-min" title="Permanent link">&para;</a></h2>
+<p>Dans le navigateur : se connecter, ouvrir la photothèque, montrer les doublons
+et l'outil de comparaison. Importer ensuite quelques photos en Test.</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>ingress<span class="w"> </span>-A
+kubectl<span class="w"> </span>get<span class="w"> </span>services<span class="w"> </span>-n<span class="w"> </span>clichy-test
+kubectl<span class="w"> </span>get<span class="w"> </span>pvc<span class="w"> </span>-n<span class="w"> </span>clichy-test
+</code></pre></div>
+<p>À expliquer : « Traefik est le contrôleur Ingress commun. Il route le Web et
+l'API vers leurs Services. Les données et les photos utilisent des volumes
+persistants ; les namespaces séparent les environnements. » Les Ingress Grafana
+et Headlamp utilisent aussi Traefik, sur des ports LAN dédiés.</p>
+<h2 id="2-workers-et-scaling-depuis-headlamp-3-min">2. Workers et scaling depuis Headlamp — 3 min<a class="headerlink" href="#2-workers-et-scaling-depuis-headlamp-3-min" title="Permanent link">&para;</a></h2>
+<p>Dans <strong>Headlamp</strong>, sélectionner <code>clichy-test</code>, ouvrir la liste des Deployments
+puis <code>clichy-worker</code>. Relever le nombre initial de réplicas, utiliser l'action
+de scaling pour passer de <strong>1 à 2</strong>, puis montrer les deux Pods Ready.
+Selon la version de Headlamp, l'action se trouve dans le menu du Deployment ;
+à défaut, éditer uniquement <code>spec.replicas</code> dans son YAML. Cela nécessite un
+compte autorisé à modifier le Deployment.</p>
+<p>Vérification dans le terminal :</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>rollout<span class="w"> </span>status<span class="w"> </span>deployment/clichy-worker<span class="w"> </span>-n<span class="w"> </span>clichy-test<span class="w"> </span>--timeout<span class="o">=</span>180s
+kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-n<span class="w"> </span>clichy-test<span class="w"> </span>-l<span class="w"> </span><span class="nv">app</span><span class="o">=</span>clichy-worker<span class="w"> </span>-o<span class="w"> </span>wide
+kubectl<span class="w"> </span>logs<span class="w"> </span>-n<span class="w"> </span>clichy-test<span class="w"> </span>-l<span class="w"> </span><span class="nv">app</span><span class="o">=</span>clichy-worker<span class="w"> </span>--all-containers<span class="o">=</span><span class="nb">true</span><span class="w"> </span>--prefix<span class="w"> </span>--tail<span class="o">=</span><span class="m">20</span>
+</code></pre></div>
+<p>Importer plusieurs photos pendant que les deux workers sont actifs. Dans Grafana,
+montrer <strong>Photo Queue Jobs by State</strong>, <strong>Photo Worker Job Rate</strong> et
+<strong>Photo Outbox Backlog</strong>. Les travaux sont parfois trop rapides pour voir une
+file en attente ; des compteurs de travaux terminés qui augmentent constituent
+un meilleur aperçu. Les logs permettent d'identifier les Pods qui prennent les
+travaux, sans garantir que chacun en recevra pendant un petit import.</p>
+<p>À expliquer : « L'API enregistre une photo et un événement outbox ; Redis/BullMQ
+distribue les travaux aux workers qui calculent les dérivés et les métadonnées. »
+Ces workers applicatifs sont distincts des nœuds Kubernetes et des nœuds Citus.</p>
+<p>Revenir à <strong>1 réplica</strong> dans Headlamp après la démonstration. Équivalent terminal
+si l'interface n'est pas disponible :</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>scale<span class="w"> </span>deployment/clichy-worker<span class="w"> </span>-n<span class="w"> </span>clichy-test<span class="w"> </span>--replicas<span class="o">=</span><span class="m">2</span>
+kubectl<span class="w"> </span>rollout<span class="w"> </span>status<span class="w"> </span>deployment/clichy-worker<span class="w"> </span>-n<span class="w"> </span>clichy-test<span class="w"> </span>--timeout<span class="o">=</span>180s
+<span class="c1"># Après la démonstration :</span>
+kubectl<span class="w"> </span>scale<span class="w"> </span>deployment/clichy-worker<span class="w"> </span>-n<span class="w"> </span>clichy-test<span class="w"> </span>--replicas<span class="o">=</span><span class="m">1</span>
+kubectl<span class="w"> </span>rollout<span class="w"> </span>status<span class="w"> </span>deployment/clichy-worker<span class="w"> </span>-n<span class="w"> </span>clichy-test<span class="w"> </span>--timeout<span class="o">=</span>180s
+</code></pre></div>
+<p>Le worker n'a pas de HPA. Utiliser ce Deployment pour le scaling manuel : les
+HPAs de <code>clichy-server</code> et <code>clichy-web</code> pourraient annuler un changement manuel.
+Un prochain déploiement remet aussi les compteurs prévus par les manifests.</p>
+<h2 id="3-sharding-citus-en-test-2-min">3. Sharding Citus en Test — 2 min<a class="headerlink" href="#3-sharding-citus-en-test-2-min" title="Permanent link">&para;</a></h2>
+<p>Une seule commande pour afficher les tables, la clé et le nombre de shards :</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-i<span class="w"> </span>-n<span class="w"> </span>clichy-test<span class="w"> </span>deployment/clichy-citus<span class="w"> </span>--<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>psql<span class="w"> </span>-X<span class="w"> </span>-U<span class="w"> </span>clichy<span class="w"> </span>-d<span class="w"> </span>clichy_test<span class="w"> </span>-v<span class="w"> </span><span class="nv">ON_ERROR_STOP</span><span class="o">=</span><span class="m">1</span><span class="w"> </span><span class="s">&lt;&lt;'SQL'</span>
+<span class="s">SELECT p.logicalrelid::regclass AS table_name,</span>
+<span class="s">       p.partmethod AS method,</span>
+<span class="s">       CASE WHEN p.partmethod = 'h'</span>
+<span class="s">            THEN column_to_column_name(p.logicalrelid, p.partkey)</span>
+<span class="s">       END AS distribution_key,</span>
+<span class="s">       p.colocationid,</span>
+<span class="s">       count(s.shardid) AS shards</span>
+<span class="s">FROM pg_dist_partition p</span>
+<span class="s">LEFT JOIN pg_dist_shard s USING (logicalrelid)</span>
+<span class="s">WHERE p.logicalrelid IN ('"user"'::regclass, '"Photo"'::regclass,</span>
+<span class="s">                         '"PhotoProcessingOutbox"'::regclass)</span>
+<span class="s">GROUP BY p.logicalrelid, p.partmethod, p.partkey, p.colocationid</span>
+<span class="s">ORDER BY 1;</span>
+<span class="s">SQL</span>
+</code></pre></div>
+<p>Résultat attendu : <code>Photo</code> et <code>PhotoProcessingOutbox</code> ont la méthode <strong>h</strong>,
+la clé <strong>userId</strong>, <strong>32 shards chacune</strong>, et le même identifiant de colocation.
+<code>user</code> est une table de référence (<code>n</code>, un shard).</p>
+<p>À expliquer : « Les métadonnées des photos sont réparties par utilisateur.
+Photo et outbox sont colocalisées pour garder les données associées ensemble. »
+Les fichiers images restent sur le PVC. Tous les shards sont sur <strong>un seul Pod
+Citus</strong> : ceci montre le sharding logique, pas une distribution entre serveurs.
+Le CNPG de Test ne réplique pas cette base Citus.</p>
+<p>Si le Deployment Citus est absent ou les résultats diffèrent, vérifier la version
+déployée et le <a href="../../database/sharding/">guide sharding</a> avant la séance.</p>
+<h2 id="4-replication-postgresql-en-production-2-min">4. Réplication PostgreSQL en Production — 2 min<a class="headerlink" href="#4-replication-postgresql-en-production-2-min" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-n<span class="w"> </span>clichy-prod<span class="w"> </span>-l<span class="w"> </span>cnpg.io/cluster<span class="o">=</span>clichy-postgres<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-L<span class="w"> </span>cnpg.io/instanceRole
+<span class="nv">PRIMARY</span><span class="o">=</span><span class="k">$(</span>kubectl<span class="w"> </span>get<span class="w"> </span>cluster.postgresql.cnpg.io<span class="w"> </span>clichy-postgres<span class="w"> </span>-n<span class="w"> </span>clichy-prod<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">'{.status.currentPrimary}'</span><span class="k">)</span>
+kubectl<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-n<span class="w"> </span>clichy-prod<span class="w"> </span><span class="s2">"</span><span class="nv">$PRIMARY</span><span class="s2">"</span><span class="w"> </span>--<span class="w"> </span>psql<span class="w"> </span>-X<span class="w"> </span>-U<span class="w"> </span>postgres<span class="w"> </span>-d<span class="w"> </span>postgres<span class="w"> </span>-c<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="s1">'SELECT application_name, state, sync_state, sent_lsn, replay_lsn FROM pg_stat_replication;'</span>
+</code></pre></div>
+<p>Attendu : deux Pods, un primaire et un réplica ; une ligne <strong>streaming / async</strong>
+dans la requête. Deux Pods Running seuls ne prouvent pas que les données se
+répliquent. Ne pas continuer avec un nom de primaire vide ou une requête en erreur.</p>
+<p>Dans Grafana, sélectionner <code>clichy-prod</code>, montrer <strong>PostgreSQL Recovery State
+(0 primary, 1 standby)</strong>, <strong>PostgreSQL Streaming Replicas</strong> et
+<strong>PostgreSQL Replica Lag (seconds)</strong>.</p>
+<p>À expliquer : « Le primaire envoie son WAL au standby en réplication asynchrone.
+L'application utilise le Service read-write. » Les deux instances restent sur
+<code>valtask</code> : elles ne protègent pas contre la panne du serveur physique.
+Cette séquence observe la réplication sans supprimer de Pod ni provoquer de failover.</p>
+<h2 id="5-grafana-et-autoscaling-2-min">5. Grafana et autoscaling — 2 min<a class="headerlink" href="#5-grafana-et-autoscaling-2-min" title="Permanent link">&para;</a></h2>
+<p>Dashboard <strong>Clichy Photo Service</strong>, filtre <code>clichy-test</code>, période <strong>Last 15 minutes</strong>,
+rafraîchissement 5 ou 10 secondes. Montrer :</p>
+<ul>
+<li><strong>Deployment Desired vs Available Replicas</strong> : conséquence du scaling Headlamp.</li>
+<li><strong>CPU Usage by Pod</strong>, <strong>Memory Usage by Pod</strong> : charge des services.</li>
+<li><strong>HTTP Request Rate</strong>, <strong>HTTP Request Duration (p95)</strong> : activité de l'API.</li>
+<li><strong>HPA Current vs Desired Replicas</strong> : scaling automatique API/Web.</li>
+</ul>
+<p>Prévoir 15 à 30 secondes de collecte, voire plusieurs minutes pour les courbes
+de taux. Un panneau vide ne signifie pas zéro : vérifier les scrapes selon le
+<a href="../../infrastructure/monitoring/">guide monitoring</a>.</p>
+<p>Option, si le temps le permet, pour provoquer une charge Test :</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>hpa<span class="w"> </span>-n<span class="w"> </span>clichy-test
+./infra/kubernetes/scripts/load-test-test.sh<span class="w"> </span>server<span class="w"> </span><span class="m">180</span><span class="w"> </span><span class="m">32</span>
+</code></pre></div>
+<p>Le générateur demande confirmation et s'arrête après trois minutes. Dans un autre
+terminal : <code>kubectl get hpa -n clichy-test -w</code> (Ctrl+C pour quitter l'observation).
+Le HPA cible 70 % de la CPU demandée, entre 1 et 4 Pods. La charge ne garantit
+pas un scaling si le seuil n'est pas atteint. Les requêtes non authentifiées
+retournent 401 : elles servent à générer du trafic, pas à valider un parcours métier.</p>
+<h2 id="6-push-ci-test-validation-production-5-a-8-min">6. Push → CI → Test → validation → Production — 5 à 8 min<a class="headerlink" href="#6-push-ci-test-validation-production-5-a-8-min" title="Permanent link">&para;</a></h2>
+<ol>
+<li>Pousser sur <code>master</code> le commit préparé avec le changement visible et la migration.</li>
+<li>Dans GitHub Actions, ouvrir <strong>ci-cd.yml</strong> : montrer les tests, les images taguées
+   <code>sha-&lt;commit&gt;</code>, puis le job <strong>Deploy to Test on valtask</strong>.</li>
+<li>Dans les logs de déploiement Test, montrer la nouvelle migration appliquée
+   <strong>avant</strong> les rollouts. Vérifier le changement dans le navigateur Test.</li>
+<li>Sur le même commit de <code>master</code> (ne pas pousser entre-temps), lancer <strong>Run workflow</strong>
+   avec <code>deploy_prod=true</code>. Ce nouveau run refait CI, images et Test avant Production.
+   Approuver l'environnement <code>production</code> si une protection GitHub est configurée.</li>
+<li>Montrer la migration et le rollout Production dans les logs, puis le changement
+   sur <code>https://valtask.xyz</code>.</li>
+</ol>
+<p>Pour afficher l'historique des migrations Test en lecture seule :</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-n<span class="w"> </span>clichy-test<span class="w"> </span>deployment/clichy-citus<span class="w"> </span>--<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>psql<span class="w"> </span>-X<span class="w"> </span>-U<span class="w"> </span>clichy<span class="w"> </span>-d<span class="w"> </span>clichy_test<span class="w"> </span>-c<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="s1">'SELECT migration_name, finished_at FROM "_prisma_migrations" ORDER BY started_at DESC LIMIT 5;'</span>
+</code></pre></div>
+<h3 id="mesurer-la-disponibilite-pendant-le-rollout">Mesurer la disponibilité pendant le rollout<a class="headerlink" href="#mesurer-la-disponibilite-pendant-le-rollout" title="Permanent link">&para;</a></h3>
+<p>Avant de lancer le workflow Production, démarrer dans un deuxième terminal :</p>
+<div class="highlight"><pre><span></span><code>python3<span class="w"> </span>-<span class="w"> </span><span class="s">&lt;&lt;'PY'</span>
+<span class="s">import datetime</span>
+<span class="s">import time</span>
+<span class="s">import urllib.error</span>
+<span class="s">import urllib.request</span>
+
+<span class="s"># Route API via l'Ingress LAN ; évite de mesurer uniquement le cache du Web.</span>
+<span class="s">url = 'http://127.0.0.1/photos'</span>
+<span class="s">try:</span>
+<span class="s">    while True:</span>
+<span class="s">        request = urllib.request.Request(url, headers={'Host': 'valtask.xyz'})</span>
+<span class="s">        try:</span>
+<span class="s">            with urllib.request.urlopen(request, timeout=3) as response:</span>
+<span class="s">                status = response.status</span>
+<span class="s">        except urllib.error.HTTPError as error:</span>
+<span class="s">            status = error.code</span>
+<span class="s">        except Exception as error:</span>
+<span class="s">            status = type(error).__name__</span>
+<span class="s">        print(datetime.datetime.now().isoformat(timespec='seconds'), status, flush=True)</span>
+<span class="s">        time.sleep(1)</span>
+<span class="s">except KeyboardInterrupt:</span>
+<span class="s">    pass</span>
+<span class="s">PY</span>
+</code></pre></div>
+<p>Sur <code>valtask</code>, vérifier <strong>avant</strong> le rollout que la sonde retourne régulièrement
+<strong>401</strong> : c'est la réponse attendue de <code>/photos</code> sans authentification. Un 404
+signalerait un mauvais routage. Si l'Ingress LAN n'est pas accessible sur loopback,
+adapter l'adresse à celle de l'Ingress. Pendant le déploiement, surveiller les
+timeouts, erreurs réseau et 5xx. Ctrl+C arrête la sonde.</p>
+<p>Dans un troisième terminal, pendant le déploiement :</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-n<span class="w"> </span>clichy-prod<span class="w"> </span>-l<span class="w"> </span><span class="nv">app</span><span class="o">=</span>clichy-server<span class="w"> </span>-w
+</code></pre></div>
+<p>Cette observation échantillonne une route toutes les secondes ; elle ne prouve
+pas l'absence absolue d'interruption ni le bon fonctionnement des uploads pendant
+une migration. Associer la sonde, les Pods Ready et une vérification navigateur.
+La durée de construction des images peut dépasser le créneau : lancer la pipeline
+au début de la présentation puis présenter les étapes 1 à 5 pendant l'attente.</p>
+<h2 id="points-a-annoncer-honnetement-pour-le-bareme">Points à annoncer honnêtement pour le barème<a class="headerlink" href="#points-a-annoncer-honnetement-pour-le-bareme" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Exigence</th>
+<th>Ce que cette démo permet de montrer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Sharding</td>
+<td>32 shards logiques en Test, sur un seul Pod Citus</td>
+</tr>
+<tr>
+<td>Réplication DB</td>
+<td>CNPG primaire/standby en Production ; Citus Test distinct</td>
+</tr>
+<tr>
+<td>Réplicas applicatifs</td>
+<td>Deux workers simultanés via Headlamp ; HPA API/Web en Test</td>
+</tr>
+<tr>
+<td>Cache répliqué</td>
+<td>Non réalisé : Redis a une seule instance par namespace</td>
+</tr>
+<tr>
+<td>Rafraîchissement Test depuis Prod</td>
+<td>Procédure automatisée et validée non réalisée ; ne pas remplacer Citus par un dump improvisé</td>
+</tr>
+<tr>
+<td>Zéro downtime</td>
+<td>À mesurer pendant le rollout réel, avec une migration compatible</td>
+</tr>
+<tr>
+<td>Documentation</td>
+<td>Montrer ce site : onboarding, CI/CD, migrations, monitoring et guide de migration cloud</td>
+</tr>
+</tbody>
+</table>
+<p>La réplication Redis et le rafraîchissement de Test restent des écarts au sujet.
+Le nombre de Pods et les courbes doivent être constatés en direct, pas présentés
+comme acquis sur la seule base des manifests.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Clichy project documentation
+    </div>
+  
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.top", "search.suggest", "search.highlight", "content.code.copy"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
+      
+        <script src="https://unpkg.com/mermaid@11/dist/mermaid.min.js"></script>
+      
+        <script src="../../assets/mermaid-init.js"></script>
+      
+    
+  </body>
+</html>
