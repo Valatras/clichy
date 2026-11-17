@@ -570,7 +570,7 @@ export default function Home() {
             <div className="mb-8 flex flex-wrap items-end justify-between gap-5">
               <div>
                 <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary">
-                  Your collection
+                  Your collectionV2
                 </p>
                 <h1 className="font-serif text-3xl tracking-tight sm:text-4xl">
                   Library
