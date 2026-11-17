@@ -1328,6 +1328,62 @@
   
   
     <li class="md-nav__item">
+      <a href="operations/healthchecks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Healthchecks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="operations/maintenance-audit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Maintenance audit
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="operations/deployment/" class="md-nav__link">
         
   
@@ -1855,7 +1911,8 @@
 <p>Statements about implementation are based on the checked-out source and Git history. Unless explicitly stated, this documentation has not verified the current state of a live cluster. See the <a href="project/requirements/">requirements matrix</a> for status definitions.</p>
 </div>
 <p>Start with the <a href="project/overview/">project overview</a>, then follow <a href="development/onboarding/">developer onboarding</a>. Operators should read the <a href="infrastructure/kubernetes/">Kubernetes environments</a>, <a href="operations/deployment/">deployment runbook</a>, and <a href="database/migrations/">database migration guide</a>.</p>
-<p>The source review is based on the checked-out repository; the application contains a web UI, authenticated API, filesystem photo storage, image metadata and hashing, and asynchronous processing. CNPG is configured in repository manifests for two PostgreSQL instances per environment, but installation, replication and failover on <code>valtask</code> have not been verified. Redis remains one instance per namespace; sharding is not configured. Production traffic is proxied by Cloudflare for <code>valtask.xyz</code> and <code>www.valtask.xyz</code> and delivered to the server through Cloudflare Tunnel before Traefik.</p>
+<p>The source review is based on the checked-out repository; the application contains a web UI, authenticated API, filesystem photo storage, image metadata and hashing, and asynchronous processing. CNPG is configured in repository manifests for two PostgreSQL instances per environment, but installation, replication and failover on <code>valtask</code> have not been verified. Redis remains one instance per namespace. Test uses a separate single-Pod Citus database with 32 logical shards per photo/outbox table; Dev and Production use CNPG without Citus. Production traffic is proxied by Cloudflare for <code>valtask.xyz</code> and <code>www.valtask.xyz</code> and delivered to the server through Cloudflare Tunnel before Traefik.</p>
+<p>For routine environment checks, use the <a href="operations/healthchecks/">read-only healthcheck</a>.</p>
 
 
 

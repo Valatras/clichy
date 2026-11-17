@@ -1391,6 +1391,62 @@
   
   
     <li class="md-nav__item">
+      <a href="../../operations/healthchecks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Healthchecks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operations/maintenance-audit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Maintenance audit
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../operations/deployment/" class="md-nav__link">
         
   
@@ -1958,7 +2014,7 @@
 <h2 id="sequence-and-gates">Sequence and gates<a class="headerlink" href="#sequence-and-gates" title="Permanent link">&para;</a></h2>
 <ol>
 <li>CI uses GitHub-hosted Ubuntu, pnpm action, Node 24 and frozen lockfile. It runs <code>pnpm check-types</code>, server tests, worker tests, and <code>pnpm build</code>.</li>
-<li>Packaging builds three Docker images from root context and service Dockerfiles. Only push-to-master logs into GHCR and pushes tags <code>ghcr.io/valatras/clichy-{server,web,worker}:sha-${GITHUB_SHA}</code>. Pull requests build without publishing.</li>
+<li>Packaging builds three Docker images from root context and service Dockerfiles. Pushes and manual dispatches on master log into GHCR and push tags <code>ghcr.io/valatras/clichy-{server,web,worker}:sha-${GITHUB_SHA}</code>. Pull requests build without publishing.</li>
 <li>Test deploy runs on a self-hosted Linux runner. It requires checked-out SHA to equal workflow SHA and exactly one cluster node named <code>valtask</code>. It applies monitoring manifests, runs <code>deploy.sh test sha-...</code>, and reports resources even on failure.</li>
 <li>Pushes deploy Test only. Production requires manually dispatching the workflow on <code>master</code> with <code>deploy_prod=true</code>; that run rebuilds, redeploys Test, then uses GitHub Environment <code>production</code> and the same exact-SHA checks before deploying <code>prod</code>.</li>
 <li><code>deploy.sh</code> invokes migration first. If migration fails, application manifests are not applied. On success it renders the overlay with the SHA, applies it, then waits up to five minutes for server, web, and worker rollouts.</li>

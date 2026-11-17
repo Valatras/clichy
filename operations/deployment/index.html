@@ -11,7 +11,7 @@
       
       
       
-        <link rel="prev" href="../../database/backup-restore/">
+        <link rel="prev" href="../maintenance-audit/">
       
       
         <link rel="next" href="../troubleshooting/">
@@ -1319,6 +1319,62 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../healthchecks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Healthchecks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../maintenance-audit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Maintenance audit
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -1964,6 +2020,7 @@
 
 
 <h1 id="deployment-runbook">Deployment runbook<a class="headerlink" href="#deployment-runbook" title="Permanent link">&para;</a></h1>
+<p>Routine status checks: <a href="../healthchecks/">read-only environment healthchecks</a>.</p>
 <h2 id="automated-deployment">Automated deployment<a class="headerlink" href="#automated-deployment" title="Permanent link">&para;</a></h2>
 <p>Push to <code>master</code> triggers CI, image builds, Test deployment and then Production deployment, as described in <a href="../../infrastructure/ci-cd/">CI/CD</a>. Deployment uses exact commit SHA tags. The self-hosted runner must have access to the target K3s kubeconfig, <code>kubectl</code>, Node 24, pnpm, GHCR, and namespace secrets. The script refuses to run unless the cluster reports exactly one node named <code>valtask</code>.</p>
 <h2 id="manual-checked-out-sha-deployment">Manual checked-out SHA deployment<a class="headerlink" href="#manual-checked-out-sha-deployment" title="Permanent link">&para;</a></h2>

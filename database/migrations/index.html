@@ -1232,6 +1232,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#recovering-the-test-citus-sharding-migration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recovering the Test Citus sharding migration
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1383,6 +1394,62 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operations/healthchecks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Healthchecks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operations/maintenance-audit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Maintenance audit
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -1921,6 +1988,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#recovering-the-test-citus-sharding-migration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recovering the Test Citus sharding migration
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1958,12 +2036,20 @@ pnpm<span class="w"> </span>db:migrate
 <pre class="mermaid"><code>flowchart TD
   SHA[Checked out SHA + matching immutable images] --&gt; Verify[Verify clean source, node and target Secret]
   Verify --&gt; Ready[Wait for CNPG Cluster Ready]
-  Ready --&gt; Forward[Loopback port-forward through clichy-postgres-rw and PostgreSQL SELECT 1]
+  Ready --&gt; Forward[Loopback port-forward: Test Citus / Production CNPG; SELECT 1]
   Forward --&gt; Migrate[prisma migrate deploy]
-  Migrate --&gt;|success| Apply[Render and apply environment Kustomize overlay]
+  Migrate --&gt;|Test success| Citus[Register Citus and validate sharding]
+  Citus --&gt;|success| Apply[Render and apply environment Kustomize overlay]
+  Citus --&gt;|failure| Stop
+  Migrate --&gt;|Production success| Apply
   Migrate --&gt;|failure| Stop[Stop; app manifests not applied]
   Apply --&gt; Rollout[Wait for server, web, worker rollouts]</code></pre>
 <p>The workflow applies migrations before deploying the matching app images. The migration script confirms the target database name (<code>clichy_test</code> or <code>clichy_prod</code>) from the connection URL and checks commit cleanliness for relevant sources. Because old Pods may serve while DDL runs, use backward-compatible expand-and-contract migrations. No transactional rollback or automatic schema rollback is provided; Prisma migration failures require diagnosis and a forward repair plan.</p>
+<h2 id="recovering-the-test-citus-sharding-migration">Recovering the Test Citus sharding migration<a class="headerlink" href="#recovering-the-test-citus-sharding-migration" title="Permanent link">&para;</a></h2>
+<p>The first Test attempt at <code>20261116090000_citus_user_sharding</code> failed because it tried to drop the Prisma-created <code>Photo_storageKey_key</code> unique index as a table constraint. The migration is now repeatable across the already-committed statements, and drops that object as an index. Once the fix is present in the checkout on <code>valtask</code>, first mark the failed Test attempt as rolled back:</p>
+<div class="highlight"><pre><span></span><code>./infra/kubernetes/scripts/migrate.sh<span class="w"> </span><span class="nb">test</span><span class="w"> </span>resolve-citus-failure
+</code></pre></div>
+<p>Then rerun the failed Test deployment workflow. The helper connects only to the Test Citus Service and refuses Production. Do not use <code>migrate resolve --applied</code>, delete the Test database, or remove its PVC: the corrected migration must run and create the schema changes. Confirm the migration and app rollout in the workflow logs. This is a recovery for this migration ID; investigate other migration failures individually before resolving them.</p>
 
 
 

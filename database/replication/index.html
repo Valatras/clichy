@@ -1446,6 +1446,62 @@
   
   
     <li class="md-nav__item">
+      <a href="../../operations/healthchecks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Healthchecks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operations/maintenance-audit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Maintenance audit
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../operations/deployment/" class="md-nav__link">
         
   
@@ -2067,6 +2123,9 @@
 <p>CNPG configures and supervises the PostgreSQL instances; PostgreSQL itself streams write-ahead log (WAL) records from the primary and replays them on the standby. Asynchronous replication is selected (<code>minSyncReplicas: 0</code>, <code>maxSyncReplicas: 0</code>): writes do not wait for standby acknowledgement, so a sudden primary loss can lose the most recent unreceived transactions. Synchronous replication waits for configured standbys and can reduce that loss window, but adds write latency and can block writes when acknowledgers are unavailable; it is not enabled here.</p>
 <p>CNPG runs a controller in <code>cnpg-system</code>, exposes <code>clichy-postgres-rw</code> and read-only <code>-ro</code>/<code>-r</code> role services, and reconciles the cluster resource. The app uses only <code>-rw</code>; no replica read routing is configured. CNPG promotes an eligible standby after it determines the primary has failed, updates the role service, and recreates/rejoins the former primary as a standby when possible. A deliberate Pod deletion tests the controller's Pod failure recovery path, but it is not equivalent to loss of the node or a controlled PostgreSQL shutdown.</p>
 <p>This single-node prototype does not protect against power, disk, OS, K3s, or physical server failure. Replication is not a backup: accidental deletes and logical corruption can be replayed. Keep backups and tested restore as separate work.</p>
+<p>The diagram describes Dev/Production application traffic. Test API and worker
+connect to Citus; the Test CNPG cluster is a separate replication exercise.
+For routine Production observations use the <a href="../../operations/healthchecks/">healthcheck</a>.</p>
 <h2 id="install-and-inspect">Install and inspect<a class="headerlink" href="#install-and-inspect" title="Permanent link">&para;</a></h2>
 <p>The pinned operator installer is <code>infra/kubernetes/cnpg/install-operator.sh</code>. CNPG 1.30.1 officially supports Kubernetes 1.34–1.36; its release is tested but not officially supported on 1.37. The project K3s installer currently targets 1.37, so check the live server version first. The script refuses 1.37 unless the operator explicitly opts in with <code>CNPG_ALLOW_TESTED_UNSUPPORTED_K8S=1</code>; K3s distribution support is also outside CNPG's formal vanilla-Kubernetes support policy. Do not interpret successful install as upstream support.</p>
 <p>On <code>valtask</code>, from a clean checkout of this repository, check <code>kubectl version -o json</code> and <code>/srv/clichy</code> free space first. The supplied host report had 28 GiB free on that 30 GiB filesystem; the new two 2 GiB CNPG volumes are separate from the retained legacy volume. Then install the operator once:</p>
@@ -2082,7 +2141,7 @@
 ./infra/kubernetes/scripts/prepare-namespace.sh<span class="w"> </span>dev
 ./infra/kubernetes/scripts/prepare-namespace.sh<span class="w"> </span>prod
 </code></pre></div>
-<p>Each script prompts before changing its namespace and may prompt for GHCR credentials if needed. The Prod run creates <code>/srv/clichy/k3s-storage/prod/postgres-cnpg-1</code> and <code>-2</code> only when absent/empty, sets UID/GID 26 on new paths, and retains <code>/srv/clichy/k3s-storage/prod/postgres</code>. Once Test is Ready, push the reviewed commit through the ordinary pipeline: CI runs tests/builds, deploys Test, and the configured Production environment gate controls Prod promotion. <code>deploy.sh</code> refuses to migrate or deploy until CNPG reports Ready.</p>
+<p>Each script prompts before changing its namespace and may prompt for GHCR credentials if needed. The Prod run creates <code>/srv/clichy/k3s-storage/prod/postgres-cnpg-1</code> and <code>-2</code> only when absent/empty, sets UID/GID 26 on new paths, and retains <code>/srv/clichy/k3s-storage/prod/postgres</code>. Once Test is Ready, push the reviewed commit through the ordinary pipeline: CI runs tests/builds and deploys Test. Production additionally requires manual workflow dispatch with <code>deploy_prod=true</code> and the configured Production environment protections. <code>deploy.sh</code> refuses to migrate or deploy until CNPG reports Ready.</p>
 <p>After operator install and namespace preparation, inspect roles and PVCs:</p>
 <div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>cluster,pods,svc,pvc<span class="w"> </span>-n<span class="w"> </span>clichy-prod<span class="w"> </span>-o<span class="w"> </span>wide
 kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-n<span class="w"> </span>clichy-prod<span class="w"> </span>-l<span class="w"> </span>cnpg.io/cluster<span class="o">=</span>clichy-postgres<span class="w"> </span>-L<span class="w"> </span>cnpg.io/instanceRole

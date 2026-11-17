@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#adr-0004-citus-sharding-experiment" class="md-skip">
+        <a href="#adr-0004-historical-citus-experiment" class="md-skip">
           Skip to content
         </a>
       
@@ -1320,6 +1320,62 @@
   
   
     <li class="md-nav__item">
+      <a href="../../operations/healthchecks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Healthchecks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operations/maintenance-audit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Maintenance audit
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../operations/deployment/" class="md-nav__link">
         
   
@@ -1673,24 +1729,6 @@
         
       
       
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Citus experiment
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
@@ -1707,69 +1745,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#context" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Context
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#decision" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Decision
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#alternatives-considered" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Alternatives considered
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#consequences" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Consequences
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
       
     </li>
   
@@ -1915,58 +1890,6 @@
     
   
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#context" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Context
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#decision" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Decision
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#alternatives-considered" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Alternatives considered
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#consequences" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Consequences
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
 </nav>
                   </div>
                 </div>
@@ -1985,16 +1908,17 @@
   
 
 
-<h1 id="adr-0004-citus-sharding-experiment">ADR 0004: Citus sharding experiment<a class="headerlink" href="#adr-0004-citus-sharding-experiment" title="Permanent link">&para;</a></h1>
-<p><strong>Status:</strong> Rejected/abandoned experiment; not current architecture.</p>
-<h2 id="context">Context<a class="headerlink" href="#context" title="Permanent link">&para;</a></h2>
-<p>Project-provided history says Citus was introduced experimentally to explore PostgreSQL sharding, encountered problems, and was not retained as a validated design.</p>
-<h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
-<p>The current repository uses standard PostgreSQL and does not configure Citus. No operational sharding claims should be made.</p>
-<h2 id="alternatives-considered">Alternatives considered<a class="headerlink" href="#alternatives-considered" title="Permanent link">&para;</a></h2>
-<p>Current single PostgreSQL instance is the implemented baseline. A formal comparison or exact experiment commit is not available in the checked-out history reviewed here.</p>
-<h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
-<p>The application has no shard routing or distributed transaction model. Future scaling should start with measured evidence and a documented design. Citus failure root cause and precise experiment outcomes remain unverified.</p>
+<h1 id="adr-0004-historical-citus-experiment">ADR 0004: Historical Citus experiment<a class="headerlink" href="#adr-0004-historical-citus-experiment" title="Permanent link">&para;</a></h1>
+<p><strong>Status:</strong> Historical decision, superseded by <a href="../0007-replication-sharding/">ADR 0007</a>.</p>
+<p>The earlier experiment was abandoned after integration problems. That described
+an earlier architecture, not the current deployment.</p>
+<p>Test now uses a separate single-Pod Citus database for photo metadata and its
+processing outbox, hash-distributed on <code>userId</code> with 32 colocated shards.
+Dev and Production use CNPG PostgreSQL without Citus. The separate Test CNPG
+cluster remains for replication exercises and does not replicate Citus data.</p>
+<p>See <a href="../../database/sharding/">sharding</a> for current constraints and verification,
+and <a href="../../operations/known-issues/">resolved incidents</a> for recovery history.
+One physical host and one Citus process do not provide multi-node availability.</p>
 
 
 

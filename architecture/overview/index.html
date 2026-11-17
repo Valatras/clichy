@@ -1402,6 +1402,62 @@
   
   
     <li class="md-nav__item">
+      <a href="../../operations/healthchecks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Healthchecks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../operations/maintenance-audit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Maintenance audit
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../operations/deployment/" class="md-nav__link">
         
   
@@ -1992,7 +2048,7 @@
 <h2 id="namespace-interpretation">Namespace interpretation<a class="headerlink" href="#namespace-interpretation" title="Permanent link">&para;</a></h2>
 <p>The repository defines <code>clichy-dev</code>, <code>clichy-test</code>, and <code>clichy-prod</code>; monitoring and Headlamp are separate cluster-level installations/namespaces. These are namespace boundaries on one cluster, not separate clusters. Each environment overlay defines an independent two-instance CNPG database cluster and independent application Secrets; Redis remains a separate Deployment.</p>
 <h2 id="limits">Limits<a class="headerlink" href="#limits" title="Permanent link">&para;</a></h2>
-<p>The repository configures one server, web, and worker replica by default (Test has an HPA for server/web), one Redis instance, and two PostgreSQL instances per namespace. CNPG replication, failover, and metrics are configured but remain unverified until applied on the live cluster. PostgreSQL is not sharded. Both database instances and their independent node-local volumes remain on the same physical host; this does not provide node-level availability. The old Production PostgreSQL PV is retained during migration.</p>
+<p>The repository configures one server, web, and worker replica by default (Test has an HPA for server/web), one Redis instance, and two PostgreSQL instances per namespace. CNPG replication, failover, and metrics are configured but remain unverified until applied on the live cluster. Test application metadata uses a separate Citus Pod with 32 colocated hash shards on <code>userId</code>; its CNPG cluster remains separate for replication exercises. Dev and Production connect directly to CNPG. Both database instances and their independent node-local volumes remain on the same physical host; this does not provide node-level availability. The old Production PostgreSQL PV is retained during migration.</p>
 
 
 
