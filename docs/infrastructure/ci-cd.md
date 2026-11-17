@@ -7,21 +7,30 @@ images. A self-hosted runner executes authorized deployment jobs on valtask.
 one immutable `sha-<40-character-commit>` tag tying migrations and images together.
 
 ```mermaid
-flowchart TD
-  Change[Push / PR / manual dispatch] --> CI[Types, tests and builds]
-  CI --> Images[Build application and database images]
-  Images -->|PR| End[No publication or deployment]
-  Images -->|master push or dispatch| GHCR[Login and publish exact SHA tags]
-  GHCR --> Test[Verify valtask and SHA; migrate; deploy Test]
-  Test --> Gate{Manual dispatch with deploy_prod=true?}
-  Gate -->|yes| Production[GitHub production environment; migrate; deploy same SHA]
+flowchart TB
+  classDef default fill:#f4f6f8,stroke:#8b98a5,color:#273746
+  G["GitHub: commit on master"] --> CI["CI: tests + build"]
+  CI --> IMG["GHCR: application images tagged by SHA"]
+  IMG --> T["Test: migrate + deploy"]
+  T --> M{"Manual production run?"}
+  M -->|"workflow_dispatch: deploy_prod=true"| P["Production: migrate + deploy same SHA"]
+  classDef env fill:#edf5ef,stroke:#72977d,color:#203a29
+  classDef gate fill:#faf3e8,stroke:#b59a70,color:#49391f
+  class T,P env
+  class M gate
 ```
+
+A push deploys Test after CI succeeds. To release, manually dispatch on the
+chosen `master` commit: that run deploys Test again, then Production with the
+**same SHA**, subject to any configured GitHub Environment approvals. PRs only
+test/build; they never publish or deploy.
 
 The single source is `.github/workflows/ci-cd.yml`. Pushes/PRs target `master`.
 CI uses Node 24, pnpm's frozen lockfile, type checks, server/worker tests,
 Citus migration integration tests in a disposable Docker container, healthcheck
-regression tests and builds. Packaging builds the three application images and the CNPG+Citus image
-from `infra/`; only master pushes or manual dispatches publish images.
+regression tests and builds. Packaging builds the three application images; only master pushes or manual
+dispatches publish images. The CNPG+Citus image build described by the target
+architecture is not yet integrated into this branch’s workflow.
 
 Test deploys automatically after successful CI/package. Production additionally
 requires `workflow_dispatch` with `deploy_prod=true`, successful Test deployment

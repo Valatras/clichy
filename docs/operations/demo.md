@@ -28,7 +28,7 @@ kubectl top nodes
 Préparer aussi **avant la séance** un petit changement visible et une nouvelle
 migration compatible avec les anciens Pods (par exemple un champ facultatif
 réellement utile). Générer et tester la migration en développement selon le
-[guide des migrations](../database/migrations.md), relire le SQL, puis préparer
+[guide des migrations](deployment.md), relire le SQL, puis préparer
 le commit à pousser pendant la démo. Une migration déjà appliquée ne démontre
 pas l'application d'une nouvelle migration.
 
@@ -125,7 +125,7 @@ Citus** : ceci montre le sharding logique, pas une distribution entre serveurs.
 Le CNPG de Test ne réplique pas cette base Citus.
 
 Si le Deployment Citus est absent ou les résultats diffèrent, vérifier la version
-déployée et le [guide sharding](../database/sharding.md) avant la séance.
+déployée et le [guide sharding](../infrastructure/databases.md#citus-logical-sharding) avant la séance.
 
 ## 4. Réplication PostgreSQL en Production — 2 min
 

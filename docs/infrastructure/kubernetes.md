@@ -23,6 +23,25 @@ database image. The old standalone Test manifests remain only for the pending
 migration/rollback checkpoint and are no longer applied by deployment. Separate namespaces and Secrets are logical
 isolation, not separate clusters or host-level availability.
 
+## Deployment, Pods and Service
+
+```mermaid
+flowchart TB
+  classDef default fill:#f4f6f8,stroke:#8b98a5,color:#273746
+  I["Ingress / Traefik"] -->|/photos| S["Service: clichy-server"]
+  S -->|Select ready Pods| P1["API Pod 1"]
+  S --> P2["API Pod 2"]
+  D["Deployment: clichy-server"] -.->|Via ReplicaSet| P1
+  D -.-> P2
+  classDef pod fill:#eef3fa,stroke:#8297b5,color:#24364d
+  class P1,P2 pod
+```
+
+Solid arrows carry HTTP traffic; dotted arrows show management. The Deployment
+maintains Pods through a ReplicaSet (omitted); the Service selects ready Pods by
+label and keeps a stable address as Pods change. Two Pods illustrate scaling,
+not a fixed replica count. Ingress routes `/photos` to the API Service.
+
 ## Prepare a server
 
 These steps modify a host/cluster; review scripts before running them. No

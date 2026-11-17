@@ -11,25 +11,23 @@ worker performs CPU-intensive image decoding and produces previews.
 ## Upload to completion
 
 ```mermaid
-sequenceDiagram
-  participant U as User
-  participant API as Fastify
-  participant DB as PostgreSQL
-  participant Q as BullMQ / Redis
-  participant W as Worker
-  U->>API: POST /photos
-  API->>API: Validate and store original
-  API->>DB: Transaction: Photo + outbox
-  API-->>U: 202 Accepted / PENDING
-  API->>Q: Dispatcher publishes stable job ID
-  API->>DB: Mark outbox published
-  Q->>W: process-photo (photoId, userId)
-  W->>DB: Atomically claim photo
-  W->>W: Read shared original and generate derivatives and hashes
-  W->>DB: COMPLETED or FAILED
+flowchart TB
+  classDef default fill:#f4f6f8,stroke:#8b98a5,color:#273746
+  API["API: upload"] -->|One transaction| DB["PostgreSQL: Photo + outbox"]
+  API -->|202 PENDING| U["User resumes browsing"]
+  DB -->|Read pending events| D["Dispatcher in API"]
+  D -->|Publish job| Q["BullMQ queue in Redis"]
+  Q -->|Worker takes job| W["Worker: previews + hashes"]
+  W -->|COMPLETED / FAILED| DB
+  classDef queue fill:#faf3e8,stroke:#b59a70,color:#49391f
+  classDef work fill:#edf5ef,stroke:#72977d,color:#203a29
+  class Q queue
+  class DB,W work
 ```
 
-The dispatcher retries unpublished events. Queue identity makes repeated
+The API responds after saving the original and committing Photo + outbox, without
+waiting for image processing. Redis holds jobs, not photo files; the worker reads
+the shared photos volume. The dispatcher retries unpublished events. Queue identity makes repeated
 publication idempotent; worker claims prevent duplicate processing. Queue
 defaults are four attempts with exponential backoff from two seconds. Invalid
 images and missing originals fail permanently. Stale `PROCESSING` records are

@@ -11,17 +11,19 @@ replicated to a standby. This combines sharding and replication without worker g
 
 ```mermaid
 flowchart LR
-  App[API / Prisma / worker] --> RW[CNPG read-write Service]
-  RW --> Primary[Primary: PostgreSQL 18.6 + Citus 14.2]
-  Primary --> Shards[Photo and outbox: 32 shards each on userId]
-  Primary --> Users[user: reference table]
-  Primary -->|WAL: rows, shard tables and Citus catalogs| Standby[Standby: same Citus binaries and replicated shards]
-  Primary --> PV1[(Primary PVC)]
-  Standby --> PV2[(Standby PVC)]
-  Operator[CNPG 1.30.1] -. supervises and promotes .-> Standby
+  classDef default fill:#f4f6f8,stroke:#8b98a5,color:#273746
+  API[API / worker] --> RW[clichy-postgres-rw]
+  RW --> P[Primary]
+  P -->|WAL asynchronous| S[Standby]
+  classDef database fill:#edf5ef,stroke:#72977d,color:#203a29
+  class P,S database
 ```
 
-This is the **repository target**, not a claim that cutover already happened.
+The primary accepts writes; the standby replays its WAL (write-ahead log).
+This is the **CNPG + Citus target**, not the current `master` integration:
+its CNPG manifest still uses plain PostgreSQL, and the custom Citus image and
+unification migration described below are absent from this branch. Cutover
+must not be assumed complete.
 The operator's 2026-11-17 read-only output confirmed:
 
 | Source | Observed state before cutover |
@@ -42,6 +44,29 @@ shard layout of related tables; reference tables support shared identity data.
 
 **Why Clichy uses it** `Photo` and `PhotoProcessingOutbox` belong to users and can
 share `userId` routing and foreign-key enforcement in both environments.
+
+```mermaid
+flowchart TB
+  classDef default fill:#f4f6f8,stroke:#8b98a5,color:#273746
+  A["Alice: photos A1, A2"] -->|userId| H["hash(userId)"]
+  B["Bob: photo B1"] -->|userId| H
+  C["Chloé: photo C1"] -->|userId| H
+  subgraph PG["One writable PostgreSQL instance — 32 logical shards per table"]
+    S1["Shard α: A1, A2, C1"]
+    S2["Shard β: B1"]
+    Rest["30 other shards"]
+  end
+  H --> S1
+  H --> S2
+  classDef shard fill:#eef3fa,stroke:#8297b5,color:#24364d
+  class S1,S2,Rest shard
+```
+
+Illustrative hash results: one user's photo rows stay together; several users
+can share a shard. Matching outbox rows use colocated shards. These are **32
+logical partitions per table, not 32 servers**; image bytes stay on the photos
+PVC. Active Test's standalone Citus uses this local layout; CNPG + Citus remains
+the target integration. A standby copies the data rather than splitting it.
 
 Each table uses `hash(userId)`, 32 shards and the same positive colocation ID.
 `user` is a reference table (`n/t`, one shard). Compound primary/unique keys
@@ -91,6 +116,21 @@ standby writable. Failover is recovery after failure, not a backup.
 
 **Why Clichy uses it** CNPG maintains two instances and redirects its read-write
 Service after promotion. Clients must reconnect; interrupted jobs may retry.
+
+```mermaid
+flowchart LR
+  classDef default fill:#f4f6f8,stroke:#8b98a5,color:#273746
+  F["Primary unavailable"] --> C["CNPG detects failure"]
+  C --> P["Promote standby to primary"]
+  P --> RW["Redirect -rw Service"]
+  RW --> A["API / worker reconnect"]
+  classDef action fill:#edf5ef,stroke:#72977d,color:#203a29
+  class P,RW action
+```
+
+This shows the **failover principle**, not a verified Clichy Kubernetes test.
+The promoted standby accepts new writes; asynchronous replication can lose
+commits not yet received. Both instances on valtask are lost if that host fails.
 
 Two 2 GiB PVCs and the existing CPU/memory budgets are retained. Replication is
 asynchronous: recent commits may be lost if the primary fails before replay.
