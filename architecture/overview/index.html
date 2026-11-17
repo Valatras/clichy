@@ -930,9 +930,9 @@ processes durable work independently of HTTP requests.</p>
   Redis --&gt; Worker
   Worker --&gt; DB
   Worker --&gt; Photos
-  Prometheus -. metrics &lt;-. API
-  Prometheus -. metrics &lt;-. Worker
-  Grafana &lt;-- Prometheus</code></pre>
+  Prometheus -. metrics .-&gt; API
+  Prometheus -. metrics .-&gt; Worker
+  Prometheus --&gt; Grafana</code></pre>
 <p>Web calls the authenticated API. API and worker mount the same photo volume at
 <code>/data/photos</code>. The API writes a Photo and an outbox event in one transaction;
 the dispatcher publishes that event to BullMQ. Worker jobs carry <code>photoId</code> and
