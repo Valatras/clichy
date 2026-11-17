@@ -930,8 +930,8 @@ processes durable work independently of HTTP requests.</p>
   Redis --&gt; Worker
   Worker --&gt; DB
   Worker --&gt; Photos
-  Prometheus -. metrics .-&gt; API
-  Prometheus -. metrics .-&gt; Worker
+  API -. metrics .-&gt; Prometheus
+  Worker -. metrics .-&gt; Prometheus
   Prometheus --&gt; Grafana</code></pre>
 <p>Web calls the authenticated API. API and worker mount the same photo volume at
 <code>/data/photos</code>. The API writes a Photo and an outbox event in one transaction;
