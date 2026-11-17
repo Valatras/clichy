@@ -120,10 +120,10 @@ SELECT create_distributed_table(
 ALTER TABLE "Photo"
   ADD CONSTRAINT "Photo_userId_fkey"
   FOREIGN KEY ("userId") REFERENCES "user"("id")
-  ON DELETE RESTRICT ON UPDATE CASCADE;
+  ON DELETE RESTRICT ON UPDATE RESTRICT;
 ALTER TABLE "PhotoProcessingOutbox"
   ADD CONSTRAINT "PhotoProcessingOutbox_userId_photoId_fkey"
   FOREIGN KEY ("userId", "photoId") REFERENCES "Photo"("userId", "id")
-  ON DELETE CASCADE ON UPDATE CASCADE;
+  ON DELETE CASCADE ON UPDATE RESTRICT;
 
 \i /opt/clichy/enable-user-sharding.sql

@@ -35,7 +35,7 @@ model Photo {
   processedAt         DateTime?
   createdAt           DateTime              @default(now())
 
-  user             User                     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  user             User                     @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   processingOutbox PhotoProcessingOutbox[]
 
   @@id([userId, id])
@@ -56,7 +56,7 @@ model PhotoProcessingOutbox {
   attempts    Int       @default(0)
   lastError   String?
 
-  photo Photo @relation(fields: [userId, photoId], references: [userId, id], onDelete: Cascade)
+  photo Photo @relation(fields: [userId, photoId], references: [userId, id], onDelete: Cascade, onUpdate: Restrict)
 
   @@id([userId, id])
   @@index([userId, photoId])

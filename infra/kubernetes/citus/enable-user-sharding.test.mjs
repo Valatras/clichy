@@ -14,6 +14,10 @@ const citusMigration = await readFile(
   new URL("../../../packages/db/prisma/migrations/20261116090000_citus_user_sharding/migration.sql", import.meta.url),
   "utf8",
 );
+const shardKeyFkMigration = await readFile(
+  new URL("../../../packages/db/prisma/migrations/20261117120000_citus_shard_key_fk_update_restrict/migration.sql", import.meta.url),
+  "utf8",
+);
 const migrateScript = await readFile(
   new URL("../scripts/migrate.sh", import.meta.url),
   "utf8",
@@ -62,9 +66,17 @@ test("Prisma keys and foreign keys satisfy Citus distribution-key requirements",
   assert.match(photoSchema, /@@id\(\[userId, id\]\)/);
   assert.match(photoSchema, /@@unique\(\[userId, storageKey\]\)/);
   assert.match(photoSchema, /fields: \[userId, photoId\], references: \[userId, id\]/);
+  assert.match(photoSchema, /onDelete: Restrict, onUpdate: Restrict/);
+  assert.match(photoSchema, /onDelete: Cascade, onUpdate: Restrict/);
   assert.match(citusMigration, /PRIMARY KEY \("userId", "id"\)/);
   assert.match(citusMigration, /FOREIGN KEY \("userId", "photoId"\)/);
   assert.match(citusMigration, /CREATE UNIQUE INDEX IF NOT EXISTS "Photo_userId_storageKey_key"\s+ON "Photo"\("userId", "storageKey"\)/);
+});
+
+test("Citus foreign keys keep delete semantics but cannot cascade shard-key updates", () => {
+  assert.match(shardKeyFkMigration, /ON DELETE RESTRICT ON UPDATE RESTRICT/);
+  assert.match(shardKeyFkMigration, /ON DELETE CASCADE ON UPDATE RESTRICT/);
+  assert.doesNotMatch(shardKeyFkMigration, /ON UPDATE CASCADE/);
 });
 
 test("registration does not silently destructively convert existing tables", () => {
@@ -85,6 +97,8 @@ test("the empty-table repair is manual, explicitly confirmed, and guarded by liv
   assert.match(emptyRepairSql, /photo_rows <> 0 OR outbox_rows <> 0/);
   assert.match(emptyRepairSql, /photo_repmodel IS DISTINCT FROM 's'/);
   assert.match(emptyRepairSql, /outbox_repmodel IS DISTINCT FROM 's'/);
+  assert.match(emptyRepairSql, /ON DELETE RESTRICT ON UPDATE RESTRICT/);
+  assert.match(emptyRepairSql, /ON DELETE CASCADE ON UPDATE RESTRICT/);
   assert.doesNotMatch(migrateScript, /repair-empty-local-photo-tables/);
   assert.doesNotMatch(emptyRepairSql, /DROP\s+TABLE|TRUNCATE\s+/i);
 });
