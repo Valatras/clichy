@@ -10,3 +10,4 @@ configMapGenerator:
     files:
       - init-citus.sh
       - enable-user-sharding.sql
+      - repair-empty-local-photo-tables.sql

@@ -18,6 +18,10 @@ const migrateScript = await readFile(
   new URL("../scripts/migrate.sh", import.meta.url),
   "utf8",
 );
+const emptyRepairSql = await readFile(
+  new URL("./repair-empty-local-photo-tables.sql", import.meta.url),
+  "utf8",
+);
 
 test("photo tables are created as userId hash shards and colocated", () => {
   assert.match(
@@ -72,4 +76,15 @@ test("registration does not silently destructively convert existing tables", () 
 test("Test deployment stops when the Citus registration or validation SQL fails", () => {
   assert.match(migrateScript, /--set ON_ERROR_STOP=1[\s\S]*?--file=\/opt\/clichy\/enable-user-sharding\.sql/);
   assert.match(migrateScript, /Test Citus sharding registration or validation failed/);
+});
+
+test("the empty-table repair is manual, explicitly confirmed, and guarded by live preflight checks", () => {
+  assert.match(emptyRepairSql, /\\if :confirm_backup/);
+  assert.match(emptyRepairSql, /\\if :confirm_empty_test_data/);
+  assert.match(emptyRepairSql, /current_database\(\) <> 'clichy_test'/);
+  assert.match(emptyRepairSql, /photo_rows <> 0 OR outbox_rows <> 0/);
+  assert.match(emptyRepairSql, /photo_repmodel IS DISTINCT FROM 's'/);
+  assert.match(emptyRepairSql, /outbox_repmodel IS DISTINCT FROM 's'/);
+  assert.doesNotMatch(migrateScript, /repair-empty-local-photo-tables/);
+  assert.doesNotMatch(emptyRepairSql, /DROP\s+TABLE|TRUNCATE\s+/i);
 });
