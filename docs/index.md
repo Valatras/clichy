@@ -10,3 +10,5 @@ Start with the [project overview](project/overview.md), then follow [developer o
 The source review is based on the checked-out repository; the application contains a web UI, authenticated API, filesystem photo storage, image metadata and hashing, and asynchronous processing. CNPG is configured in repository manifests for two PostgreSQL instances per environment, but installation, replication and failover on `valtask` have not been verified. Redis remains one instance per namespace. Test uses a separate single-Pod Citus database with 32 logical shards per photo/outbox table; Dev and Production use CNPG without Citus. Production traffic is proxied by Cloudflare for `valtask.xyz` and `www.valtask.xyz` and delivered to the server through Cloudflare Tunnel before Traefik.
 
 For routine environment checks, use the [read-only healthcheck](operations/healthchecks.md).
+
+Pour la présentation, suivre la [routine de démo devant le professeur](operations/demo.md).
