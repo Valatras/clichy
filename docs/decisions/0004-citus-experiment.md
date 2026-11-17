@@ -1,19 +1,15 @@
-# ADR 0004: Citus sharding experiment
+# ADR 0004: Historical Citus experiment
 
-**Status:** Rejected/abandoned experiment; not current architecture.
+**Status:** Historical decision, superseded by [ADR 0007](0007-replication-sharding.md).
 
-## Context
+The earlier experiment was abandoned after integration problems. That described
+an earlier architecture, not the current deployment.
 
-Project-provided history says Citus was introduced experimentally to explore PostgreSQL sharding, encountered problems, and was not retained as a validated design.
+Test now uses a separate single-Pod Citus database for photo metadata and its
+processing outbox, hash-distributed on `userId` with 32 colocated shards.
+Dev and Production use CNPG PostgreSQL without Citus. The separate Test CNPG
+cluster remains for replication exercises and does not replicate Citus data.
 
-## Decision
-
-The current repository uses standard PostgreSQL and does not configure Citus. No operational sharding claims should be made.
-
-## Alternatives considered
-
-Current single PostgreSQL instance is the implemented baseline. A formal comparison or exact experiment commit is not available in the checked-out history reviewed here.
-
-## Consequences
-
-The application has no shard routing or distributed transaction model. Future scaling should start with measured evidence and a documented design. Citus failure root cause and precise experiment outcomes remain unverified.
+See [sharding](../database/sharding.md) for current constraints and verification,
+and [resolved incidents](../operations/known-issues.md) for recovery history.
+One physical host and one Citus process do not provide multi-node availability.

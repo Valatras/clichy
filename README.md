@@ -51,69 +51,12 @@ namespace et n'est exposé ni par Traefik ni par Cloudflare Tunnel. Cloudflare
 Tunnel est configuré extérieurement au dépôt pour l'accès public de production ;
 aucun service d'administration n'est exposé par ce tunnel.
 
-## Démarrage local
+## Démarrage et documentation
 
-Prérequis : Node.js 24, pnpm 12.8.1 et Docker Compose pour la base locale.
-Depuis la racine :
-
-```bash
-pnpm install
-pnpm run db:start
-```
-
-Configurer `apps/server/.env` avec les valeurs de développement :
-
-```dotenv
-NODE_ENV=development
-BETTER_AUTH_SECRET=une-cle-aleatoire-d-au-moins-32-caracteres
-BETTER_AUTH_URL=http://localhost:3000
-CORS_ORIGIN=http://localhost:5173
-DATABASE_URL=postgresql://postgres:password@localhost:5432/clichy?schema=public
-PHOTO_STORAGE_PATH=./data/photos
-REDIS_HOST=127.0.0.1
-REDIS_PORT=6379
-REDIS_DB=0
-REDIS_TLS=false
-PHOTO_QUEUE_NAME=photo-processing
-PHOTO_JOB_ATTEMPTS=4
-PHOTO_JOB_BACKOFF_MS=2000
-PHOTO_WORKER_CONCURRENCY=1
-```
-
-Créer `apps/worker/.env` avec le même `DATABASE_URL`, les mêmes paramètres
-Redis et un `PHOTO_STORAGE_PATH` résolvant vers le même dossier que l'API
-(par défaut `../server/data/photos` depuis `apps/worker`). Ne pas configurer
-de `REDIS_PASSWORD` localement sauf si Redis est démarré avec une authentification.
-
-Configurer `apps/web/.env` :
-
-```dotenv
-NODE_ENV=development
-VITE_SERVER_URL=http://localhost:3000
-```
-
-Puis générer le client Prisma, appliquer les migrations locales et démarrer
-l'application (web, API et worker) :
-
-```bash
-pnpm run db:generate
-pnpm run db:migrate
-pnpm run dev
-```
-
-L'interface de développement est disponible sur `http://localhost:5173` et
-l'API sur `http://localhost:3000`. Ne pas réutiliser les identifiants Compose
-sur un serveur. Voir les README de [l'API](./apps/server/README.md), du
-[frontend](./apps/web/README.md) et de la [base de données](./packages/db/README.md).
-
-L'API répond `202 Accepted` après avoir enregistré la photo et son événement
-d'outbox dans la même transaction PostgreSQL. Un dispatcher publie ensuite un
-job BullMQ ne contenant que l'identifiant de la photo; le worker lit l'original
-depuis le stockage partagé et met à jour son statut. Le dispatcher retente les
-événements non publiés, et répare périodiquement les statuts `PENDING` ou
-`PROCESSING` abandonnés. La file utilise quatre tentatives avec backoff
-exponentiel à partir de 2 secondes; les images invalides et les originaux
-manquants échouent sans répétition.
+Le [guide de démarrage local](docs/development/onboarding.md) décrit les
+prérequis, les fichiers d'environnement et les commandes de lancement.
+La [documentation](docs/index.md) présente l'architecture et les procédures.
+Pour vérifier Test ou Production, utiliser le [healthcheck](docs/operations/healthchecks.md).
 
 ## Infrastructure
 
@@ -123,9 +66,10 @@ trouve dans [infra/kubernetes/README.md](./infra/kubernetes/README.md).
 
 Les environnements `dev`, `test` et `prod` ont des overlays distincts. Dev
 reste local, Test est privé sur `valtask` et le manifeste Prod cible
-`https://valtask.xyz`. Sur un push validé vers `master`, le workflow déploie
-Test puis attend l'approbation de l'environnement GitHub `production` avant
-d'appliquer les migrations et de déployer le même SHA en Prod.
+`https://valtask.xyz`. Sur un push validé vers `master`, le workflow déploie Test. Production
+nécessite un lancement manuel (`workflow_dispatch`, `deploy_prod=true`), puis
+le passage des règles de protection configurées pour l'environnement GitHub
+`production`. Les migrations précèdent le déploiement du même SHA.
 
 L'incident de migration Prod résolu et les consignes de récupération sont
 consignés dans [docs/operations/known-issues.md](./docs/operations/known-issues.md).

@@ -1,5 +1,7 @@
 # Troubleshooting
 
+Routine status checks: [read-only environment healthchecks](../operations/healthchecks.md).
+
 Start with namespace and context checks to avoid inspecting the wrong cluster:
 
 ```bash

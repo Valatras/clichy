@@ -2,10 +2,13 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-const registrationSql = await readFile(
+const registrationOnlySql = await readFile(
   new URL("./enable-user-sharding.sql", import.meta.url),
   "utf8",
 );
+const validationSql = await readFile(new URL("./validate-user-sharding.sql", import.meta.url), "utf8");
+const registrationSql = registrationOnlySql + validationSql;
+
 const photoSchema = await readFile(
   new URL("../../../packages/db/prisma/schema/photo.prisma", import.meta.url),
   "utf8",

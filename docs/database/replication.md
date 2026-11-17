@@ -25,6 +25,10 @@ CNPG runs a controller in `cnpg-system`, exposes `clichy-postgres-rw` and read-o
 
 This single-node prototype does not protect against power, disk, OS, K3s, or physical server failure. Replication is not a backup: accidental deletes and logical corruption can be replayed. Keep backups and tested restore as separate work.
 
+The diagram describes Dev/Production application traffic. Test API and worker
+connect to Citus; the Test CNPG cluster is a separate replication exercise.
+For routine Production observations use the [healthcheck](../operations/healthchecks.md).
+
 ## Install and inspect
 
 The pinned operator installer is `infra/kubernetes/cnpg/install-operator.sh`. CNPG 1.30.1 officially supports Kubernetes 1.34–1.36; its release is tested but not officially supported on 1.37. The project K3s installer currently targets 1.37, so check the live server version first. The script refuses 1.37 unless the operator explicitly opts in with `CNPG_ALLOW_TESTED_UNSUPPORTED_K8S=1`; K3s distribution support is also outside CNPG's formal vanilla-Kubernetes support policy. Do not interpret successful install as upstream support.
@@ -48,7 +52,7 @@ The installation creates the `cnpg-system` namespace, CRDs, RBAC and operator De
 ./infra/kubernetes/scripts/prepare-namespace.sh prod
 ```
 
-Each script prompts before changing its namespace and may prompt for GHCR credentials if needed. The Prod run creates `/srv/clichy/k3s-storage/prod/postgres-cnpg-1` and `-2` only when absent/empty, sets UID/GID 26 on new paths, and retains `/srv/clichy/k3s-storage/prod/postgres`. Once Test is Ready, push the reviewed commit through the ordinary pipeline: CI runs tests/builds, deploys Test, and the configured Production environment gate controls Prod promotion. `deploy.sh` refuses to migrate or deploy until CNPG reports Ready.
+Each script prompts before changing its namespace and may prompt for GHCR credentials if needed. The Prod run creates `/srv/clichy/k3s-storage/prod/postgres-cnpg-1` and `-2` only when absent/empty, sets UID/GID 26 on new paths, and retains `/srv/clichy/k3s-storage/prod/postgres`. Once Test is Ready, push the reviewed commit through the ordinary pipeline: CI runs tests/builds and deploys Test. Production additionally requires manual workflow dispatch with `deploy_prod=true` and the configured Production environment protections. `deploy.sh` refuses to migrate or deploy until CNPG reports Ready.
 
 After operator install and namespace preparation, inspect roles and PVCs:
 

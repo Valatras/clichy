@@ -68,6 +68,8 @@ nav:
       - Sharding: database/sharding.md
       - Backup and restore: database/backup-restore.md
   - Operations:
+      - Healthchecks: operations/healthchecks.md
+      - Maintenance audit: operations/maintenance-audit.md
       - Deployment runbook: operations/deployment.md
       - Troubleshooting: operations/troubleshooting.md
       - Known issues and resolved incidents: operations/known-issues.md

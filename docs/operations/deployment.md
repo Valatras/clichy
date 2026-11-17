@@ -1,5 +1,7 @@
 # Deployment runbook
 
+Routine status checks: [read-only environment healthchecks](../operations/healthchecks.md).
+
 ## Automated deployment
 
 Push to `master` triggers CI, image builds, Test deployment and then Production deployment, as described in [CI/CD](../infrastructure/ci-cd.md). Deployment uses exact commit SHA tags. The self-hosted runner must have access to the target K3s kubeconfig, `kubectl`, Node 24, pnpm, GHCR, and namespace secrets. The script refuses to run unless the cluster reports exactly one node named `valtask`.

@@ -1,5 +1,7 @@
 # Installer et exploiter Clichy sur Ubuntu Server
 
+Routine status checks: [read-only environment healthchecks](../../docs/operations/healthchecks.md).
+
 Ce guide décrit l'infrastructure Clichy : un hôte Ubuntu Server 24.04 LTS
 nommé `valtask`, K3s mono-nœud, Traefik fourni par K3s, Helm, Tailscale, un
 runner GitHub Actions auto-hébergé et GHCR. Test et l'administration sont

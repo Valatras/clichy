@@ -6,6 +6,18 @@ Test uses a separate Citus 14.2 / PostgreSQL 18 database exposed through `clichy
 
 The intended layout is deliberately small: `user` is a Citus reference table; `Photo` and `PhotoProcessingOutbox` are hash-distributed on `userId`, each with 32 logical shards and the same colocation ID. Related photo and outbox rows for a user can then be routed together. This is logical sharding on one Citus Pod and one physical host, not multi-node scale-out or high availability.
 
+```mermaid
+flowchart LR
+  API[Test API and worker] --> DB[Single Citus Pod / clichy-citus-rw]
+  DB --> Users[user: reference table]
+  DB --> Photos[Photo: hash userId / 32 shards]
+  DB --> Outbox[PhotoProcessingOutbox: hash userId / 32 shards]
+  Photos ---|same colocation ID| Outbox
+  DB --> PVC[(One Citus PVC on valtask)]
+  CNPG[Test CNPG primary and replica] -. separate replication exercise .-> Host[Same physical host]
+  PVC --> Host
+```
+
 ## Prisma schema and Citus constraints
 
 Prisma declares `Photo`'s key as `(userId, id)` and its unique storage key as `(userId, storageKey)`. The outbox key is `(userId, id)`, and its foreign key to Photo is `(userId, photoId) -> (userId, id)`. Every unique/primary key on a hash-distributed table includes its distribution column, and the photo/outbox foreign key includes the same key so it can be enforced on colocated tables. The foreign key from Photo to the reference `user` table is supported by Citus; its delete action is `RESTRICT` to avoid a cross-shard cascade. Both foreign keys use `ON UPDATE RESTRICT`: Citus rejects cascading updates when a foreign key contains the distribution column. User IDs and shard keys are immutable in this application.
@@ -27,6 +39,11 @@ Prisma migrations and Citus registration must both succeed before the Test app m
 
 ## Verify on valtask
 
+For routine checks, run `./infra/kubernetes/scripts/healthcheck.sh test`; see
+the [healthcheck guide](../operations/healthchecks.md). The SQL below is for
+detailed investigation. Registration creates missing Citus metadata and is
+not a read-only healthcheck.
+
 The metadata field `pg_dist_partition.partkey` is Citus expression text, not a PostgreSQL expression accepted by `pg_get_expr`. Use Citus' `column_to_column_name` helper:
 
 ```sh
@@ -46,12 +63,13 @@ GROUP BY p.logicalrelid, p.partmethod, p.partkey, p.repmodel, p.colocationid
 ORDER BY p.logicalrelid::regclass::text;"
 ```
 
-Expected: `user` has method `n` and one reference shard; Photo and outbox each have method `h`, key `userId`, 32 shards and the same colocation ID. Re-run the registration/validation script safely with:
+Expected: `user` has method `n` and one reference shard; Photo and outbox each have method `h`, key `userId`, 32 shards and the same colocation ID. Run the shared read-only validator with:
 
 ```sh
-kubectl exec -n clichy-test deployment/clichy-citus -- \
-  psql -U clichy -d clichy_test -v ON_ERROR_STOP=1 \
-  -f /opt/clichy/enable-user-sharding.sql
+kubectl exec -i -n clichy-test deployment/clichy-citus -- \
+  env PGOPTIONS='-c default_transaction_read_only=on -c statement_timeout=10000' \
+  psql -X -U clichy -d clichy_test -v ON_ERROR_STOP=1 \
+  < infra/kubernetes/citus/validate-user-sharding.sql
 ```
 
 It exits nonzero if the expected layout is not present. To inspect routing, run a query scoped by `userId` and inspect its `EXPLAIN` plan; a one-task plan alone does not prove that the table is hash-sharded.

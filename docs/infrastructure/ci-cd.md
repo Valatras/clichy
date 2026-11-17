@@ -20,7 +20,7 @@ flowchart TD
 ## Sequence and gates
 
 1. CI uses GitHub-hosted Ubuntu, pnpm action, Node 24 and frozen lockfile. It runs `pnpm check-types`, server tests, worker tests, and `pnpm build`.
-2. Packaging builds three Docker images from root context and service Dockerfiles. Only push-to-master logs into GHCR and pushes tags `ghcr.io/valatras/clichy-{server,web,worker}:sha-${GITHUB_SHA}`. Pull requests build without publishing.
+2. Packaging builds three Docker images from root context and service Dockerfiles. Pushes and manual dispatches on master log into GHCR and push tags `ghcr.io/valatras/clichy-{server,web,worker}:sha-${GITHUB_SHA}`. Pull requests build without publishing.
 3. Test deploy runs on a self-hosted Linux runner. It requires checked-out SHA to equal workflow SHA and exactly one cluster node named `valtask`. It applies monitoring manifests, runs `deploy.sh test sha-...`, and reports resources even on failure.
 4. Pushes deploy Test only. Production requires manually dispatching the workflow on `master` with `deploy_prod=true`; that run rebuilds, redeploys Test, then uses GitHub Environment `production` and the same exact-SHA checks before deploying `prod`.
 5. `deploy.sh` invokes migration first. If migration fails, application manifests are not applied. On success it renders the overlay with the SHA, applies it, then waits up to five minutes for server, web, and worker rollouts.
